@@ -1,3 +1,21 @@
+/* RE-POINTED 26 Nov 2026 (f1246, #1035 — the owner: "For counter party contracts or 3rd party contracts, they should be
+   filled in using their tools"): EVERY UPLOAD IS THEIR PAPER, so the form and the marks this file was built to prove stand
+   down on every upload, whoever signs it. The machinery stays (a ruling can be lifted) and f342 keeps proving it reads and
+   writes right under its old gate (OLD_THEIRS) — a stand-in a page cannot take: uploadblanks.js is an ES module, its gate
+   is a module binding, and setting window.uploadBlanksTheirs reaches no caller. So this file proves THE NEW RULING ON THE
+   PAGE, on the same four received documents, each claim GATED on the page really carrying what the old build marked:
+     1 the placeholders stand on the page as written, and none is marked — inside the agreement or out
+     2 the page and the reading agree: nothing read, nothing painted; the reason is "theirs"
+     3 the form in the middle asks no blank of their paper
+     4 the Dossier's own Fill in door (pdFillGo) says it is their paper and turns no space into a box; nothing written
+     5 the painter itself, called by hand, paints nothing and moves nothing
+     6 a redlined upload: the same
+     8 a Word form's own fields stand as the file drew them — never wrapped, never boxed — and the wording is not rewritten
+     9 on HaTi's own signing, on THEIRS and back: no box, no mark, the arrival tile says whose blanks they are every time,
+       the wording and its first line unmoved, the answer typed before the ruling still on the record and never printed
+    10 a bracketed ruled line is not asked for either
+   Red at the parent of #1035, where every upload HaTi signs drew its marks and its boxes. The text below is the file's
+   history as it was built. */
 /* upload-blanks-verify — THE BLANKS IN A DOCUMENT SOMEBODY SENT US, ON A REAL
    PAGE (Young ruled it 20 September 2026: "build it", item 9)
    ============================================================
@@ -40,7 +58,7 @@
    Run: node test/chromium/upload-blanks-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, ckOpenRowOf } = require('../helpers');
+const { startHati, seedWorkspace } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -60,19 +78,6 @@ const signIn = async (page, base, email, pass) => {
   await page.waitForTimeout(2400);
 };
 
-const typeInto = async (page, sel, value, ev) => {
-  const there = await page.evaluate(x => !!document.querySelector(x), sel);
-  if (!there) return false;
-  /* an answered box sits in the "Show N filled" fold: opened first */
-  await page.evaluate(x => { const d = document.querySelector(x).closest('details');
-    if (d && !d.open) d.querySelector('summary').click(); }, sel);
-  /* THE CHECKLIST (22 Oct 2026): its row is opened first, as a person would */
-  await ckOpenRowOf(page, sel);
-  await page.fill(sel, value);
-  await page.dispatchEvent(sel, ev);
-  await page.waitForTimeout(800);
-  return true;
-};
 
 /* RE-POINTED 12 Oct 2026: the blanks panel is the room's Details tab
    (#tplform-section, owner) beside the room's paper (#doc-canvas). */
@@ -148,6 +153,12 @@ const SEEN = () => {
   }) : [];
   return {
     canvas: !!canvas, wording: !!wording,
+    /* RE-POINTED 26 Nov 2026 (f1246): the wording's own words as painted, and the file's own fields — what their paper
+       carries, unmarked */
+    wordingText: wording ? (wording.textContent || '') : '',
+    wfields: wording ? wording.querySelectorAll('span.hati-wfield').length : 0,
+    wfDrawn: wording ? [...wording.querySelectorAll('span.hati-wfield')].filter(m => { const r = m.getBoundingClientRect(); return r.width > 1 && r.height > 1; }).length : 0,
+    wfMarked: wording ? wording.querySelectorAll('span.hati-wfield.up-blank, span.hati-wfield[data-upblank], span.hati-wfield.is-filled').length : 0,
     /* WHICH COPY the paper beside the panel is (RE-POINTED 14 Oct 2026, stage
        5): Home's one paper is the working copy beside Fill in and the signing
        copy beside Before you sign, and the marks belong to the working copy. */
@@ -202,7 +213,8 @@ const CONTRACT = (id, over) => Object.assign({
 (async () => {
   const h = await startHati();
   const W = await seedWorkspace(h);
-  const up = CONTRACT('MK-UB1');
+  /* an answer typed into the old form before the ruling: kept on the record, never printed on their paper */
+  const up = CONTRACT('MK-UB1', { fields: { up_insert_company_name: 'Highland Corporate Ltd' } });
   /* A WORD FORM: the gaps are FIELDS the file stated, not patterns in the text
      (item 9's third shape, 20 Sep 2026). `Enter buyer name` is ordinary
      wording to look at — only the span says it is a gap. */
@@ -240,179 +252,110 @@ const CONTRACT = (id, over) => Object.assign({
     page.on('pageerror', e => errors.push(e.message));
     await signIn(page, h.base, 'admin@example.co.ke', 'adminpassword1');
 
-    /* ============ 1. THE MARKS ARE ON THE WORDING ============ */
+    /* ============ 1. THE PLACEHOLDERS STAND AS WRITTEN, UNMARKED ============ */
     await openRoom(page, up.id);
     const s = await page.evaluate(SEEN);
     check('1a the received document draws its wording in a named container',
       s.canvas && s.wording, s.canvas ? (s.wording ? 'yes' : 'no [data-upwording]') : 'no canvas');
-    check('1b its placeholders are MARKED on the page', s.markKeys.length >= 4,
+    /* GATE: what the old build marked is really on the page, or "nothing marked" is true of a page with no wording */
+    const placeholders = !!s.wording && (s.wordingText.match(/Insert Company Name/g) || []).length === 2
+      && /effective_date/.test(s.wordingText) && /Delivery address/.test(s.wordingText);
+    check('1b GATE — the placeholders stand on the page as the drafter wrote them', placeholders,
+      s.wordingText.slice(0, 160));
+    check('1c THEIR PAPER: none of them is marked as a blank for us', placeholders && s.markKeys.length === 0,
       s.markKeys.length + ' marks: ' + s.markKeys.join(', '));
-    check('1c and the marks are PAINTED, not merely in the markup',
-      s.markKeys.length > 0 && s.markDrawn === s.markKeys.length,
-      s.markDrawn + ' of ' + s.markKeys.length + ' have a painted box');
-    check('1d EVERY mark is inside the wording', s.markKeys.length > 0 && s.marksInWording,
-      s.marksInWording ? 'yes' : 'a mark landed outside the agreement');
-    /* THE SCOPE IS THE CLAIM, and it is about HaTi's OWN furniture rather than
-       about the drafter's words: a ruled line the other side typed under their
-       own "Signature" heading IS a blank in their document and is marked (the
-       first build's test said otherwise and the product was right). What may
-       never be marked is the signature block, the file strip and the seal card
-       HaTi draws AROUND the agreement — they are outside [data-upwording]. */
     check('1e GATE — the canvas really carries something an unscoped walk would take',
       s.outsideRules > 0, s.outsideRules + ' candidates outside the agreement');
-    check('1e2 HATI\'S OWN FURNITURE IS NEVER MARKED, however it is ruled or named',
-      s.markKeys.length > 0 && s.outsideRules > 0 && s.outsideMarks === 0,
-      s.outsideMarks + ' marks outside the agreement, over '
-      + s.outsideRules + ' candidates of our own');
-    check('1e3 and no box is offered for the file name',
-      s.boxKeys.length > 0 && !s.boxKeys.some(k => /draft_name/.test(k || '')), s.boxKeys.join(', '));
-    check('1f a list marker on the page is still not a blank',
-      s.markText.length > 0 && !s.markText.includes('[1]'), s.markText.join(' | '));
+    check('1e2 and nothing outside the agreement is marked either',
+      placeholders && s.outsideRules > 0 && s.outsideMarks === 0,
+      s.outsideMarks + ' marks outside the agreement, over ' + s.outsideRules + ' candidates of our own');
 
-    /* ============ 2. THE PAGE AND THE RECORD ARE ONE READING ============ */
-    check('2a the keys painted on the page are the keys read off the stored wording',
-      s.seq.length > 0 && s.markKeys.join('|') === s.seq.join('|'),
-      'page: ' + s.markKeys.join(',') + '  ·  record: ' + s.seq.join(','));
-    check('2b a name said twice is marked twice and boxed once',
-      s.markKeys.filter(k => k === 'up_insert_company_name').length === 2
-      && s.boxKeys.filter(k => k === 'up_insert_company_name').length === 1,
-      'marks ' + s.markKeys.filter(k => k === 'up_insert_company_name').length
-      + ', boxes ' + s.boxKeys.filter(k => k === 'up_insert_company_name').length);
+    /* ============ 2. THE PAGE AND THE READING AGREE ============ */
+    const rd = await page.evaluate(() => { const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
+      return { theirs: typeof uploadBlanksTheirs === 'function' ? uploadBlanksTheirs(c) : null,
+        live: typeof uploadBlanksLive === 'function' ? uploadBlanksLive(c) : null,
+        none: typeof contractBlanksNone === 'function' ? contractBlanksNone(c) : null,
+        open: typeof contractBlanksOpen === 'function' ? contractBlanksOpen(c).length : null }; });
+    check('2a the reading stands down too: nothing read, nothing painted, and the reason is "theirs"',
+      placeholders && rd.theirs === true && rd.live === false && rd.none === 'theirs' && rd.open === 0
+      && s.seq.length === 0 && s.markKeys.length === 0, JSON.stringify(rd) + ' · seq ' + s.seq.length);
 
-    /* ============ 3. THE PANEL ============ */
+    /* ============ 3. THE FORM IN THE MIDDLE ASKS NO BLANK OF THEIR PAPER ============ */
     check('3a the panel is DRAWN on a received document', s.panel && s.panelW > 2,
       s.panel ? s.panelW + 'px' : '#pd-og missing');
-    /* RE-POINTED 17 Nov 2026 (#762): THE MIDDLE (the one-page Home plan, owner 14 Oct 2026: what a Dossier line opens
-       comes to the middle where the paper was; the Dossier never moves): the form is its own page in the middle, the
-       paper put by under it with ONE way back ("‹ Paper", pdMidClose) — no longer a card beside the paper */
     check('3b in the middle where the paper was, with its way back to the paper',
       s.panelW > 2 && s.inMid && s.midBack, `in the middle ${s.inMid} · ‹ Paper ${s.midBack} · ${s.panelW}px`);
-    /* RE-POINTED 21 Oct 2026: the card is Still owed (no "Blanks in this document" heading, no hover
-       of its own); each blank is a row of the grid, one per question */
-    check('3c the blanks stand under the Fill in stage, one row each', /^fill( in)?( the contract)?$/i.test(s.panelHead) /* RE-POINTED 24 Oct 2026 (Round 4): the line says "Fill" */ && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
-    check('3e one box per question', s.boxKeys.length >= 4, s.boxKeys.join(', '));
-    check('3f a ruled line is labelled by the words in front of it',
-      s.boxLabels.some(l => /Delivery address/i.test(l)), s.boxLabels.join(' | '));
-    /* RE-POINTED (21 Sep 2026): the counter reads "N of M" now. */
-    check('3g the counter counts at least the boxes on the page',
-      /\d+/.test(s.count) && Number((s.count.match(/\d+/) || [0])[0]) >= s.boxKeys.length, s.count);
+    check('3c and it holds no row and no box for their paper\'s blanks',
+      s.panel && placeholders && s.blankRows === 0 && s.boxKeys.length === 0,
+      `${s.panelHead} · ${s.blankRows} rows · boxes ${s.boxKeys.join(', ') || 'none'}`);
 
-    /* ============ 4. TYPING IN THE PANEL CHANGES THE PAGE ============ */
-    const drove = await typeInto(page, '#pd-og [data-blankf="up_insert_company_name"]',
-      'Highland Corporate Ltd', 'change');
-    const after = drove ? await page.evaluate(() => {
-      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
-      const marks = [...document.querySelectorAll('#ig-canvas span.up-blank[data-upblank="up_insert_company_name"]')];
-      return {
-        text: marks.map(m => (m.textContent || '').trim()),
-        filled: marks.filter(m => m.classList.contains('is-filled')).length,
-        record: (c.fields || {}).up_insert_company_name,
-        stored: c.redlineText,
-        /* RE-POINTED 23 Oct 2026 (Spine): the count is the Fill in stage's own ("N to do") */
-        count: ((document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"] .ds-ln-sub, #ig-dock .ds-sp-st[data-ds-sp="fill"] .ds-sp-v') || {}).textContent || '').trim(),
-      };
-    }) : null;
-    check('4a the box was there to type in', drove, drove ? 'yes' : 'no box');
-    check('4b EVERY occurrence on the page reads back the answer',
-      !!after && after.text.length === 2 && after.text.every(t => t === 'Highland Corporate Ltd'),
-      after ? after.text.join(' | ') : 'not driven');
-    check('4c and each says it is answered', !!after && after.filled === 2,
-      after ? after.filled + ' marked filled' : 'not driven');
-    check('4d the answer is on the record', !!after && after.record === 'Highland Corporate Ltd',
-      after ? String(after.record) : 'not driven');
-    check('4e THE RECEIVED DOCUMENT IS NOT REWRITTEN',
-      !!after && after.stored === s.stored && /\[Insert Company Name\]/.test(after.stored),
-      after ? (after.stored === s.stored ? 'byte-identical' : 'THE WORDING MOVED') : 'not driven');
-    /* RE-POINTED 21 Oct 2026 (the Legora way): the grid is never repainted under a hand (pdOgHolds) —
-       the row's Confirm is the answer's press, and the count moves on it */
-    const n1 = drove ? await page.evaluate(async () => { const b = document.querySelector('#pd-og [data-pd-og-ok="up_insert_company_name"]'); if (b) b.click();
-      /* RE-POINTED 17 Nov 2026 (#762): the count is the form's own line in the middle */
-      await new Promise(r => setTimeout(r, 700)); return ((document.querySelector('[data-pd-mid] [data-pd-fm-count]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"] .ds-sp-v') || {}).textContent || '').trim(); }) : '';
-    check('4f the counter moved once the row was confirmed', !!after && n1 !== s.count,
-      after ? s.count + ' → ' + n1 : 'not driven');
+    /* ============ 4. THE DOSSIER'S OWN FILL IN DOOR SAYS WHY, AND FILLS NOTHING ============ */
+    const door = await page.evaluate(async id => {
+      ['pdMidClose', 'pdFormClose', 'pdFillClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} });
+      if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'copilot');
+      const c = getContract(id), before = JSON.stringify([c.redlineText, c.fields || {}, c.fills || null]);
+      const want = i18t('pd2_fill_theirs');
+      if (typeof pdFillGo !== 'function') return { missing: true, want };
+      pdFillGo(id);
+      let said = '';
+      for (let i = 0; i < 40 && !said; i++){ await new Promise(r => setTimeout(r, 100));
+        const t = (document.getElementById('toast-root') || {}).textContent || ''; if (t.includes(want)) said = want; }
+      const c2 = getContract(id);
+      return { want, said, boxes: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length,
+        head: !!document.getElementById('pd2-fill-head'), marks: document.querySelectorAll('#ig-canvas span.up-blank').length,
+        same: JSON.stringify([c2.redlineText, c2.fields || {}, c2.fills || null]) === before };
+    }, up.id);
+    check('4a the Dossier\'s Fill in door says it is their paper, where the reader looks',
+      !door.missing && !!door.want && door.said === door.want, door.missing ? 'no pdFillGo' : (door.said || 'nothing said'));
+    check('4b and turns no space on their paper into a box', !door.missing && door.boxes === 0 && !door.head && door.marks === 0,
+      JSON.stringify(door));
+    check('4c and nothing is written: the wording, the answers and the fills are as they were', !door.missing && door.same,
+      door.same ? 'unchanged' : 'THE RECORD MOVED');
 
-    /* ============ 5. THE CONTRACT DOES NOT MOVE BY A PIXEL ============ */
-    /* GUARDED: run against the commit before this work neither name exists,
-       and a bare call takes the whole file down with a stack — so the six
-       claims below it are never reported and nobody can see which are new. */
+    /* ============ 5. THE PAINTER ITSELF PAINTS NOTHING, AND MOVES NOTHING ============ */
     const off = await page.evaluate(() => {
       if(typeof uploadBlanksClear !== 'function' || typeof uploadBlanksPaint !== 'function')
-        return { blocks: [], back: [], missing: true };
+        return { blocks: [], back: [], marks: -1, missing: true };
       const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
-      uploadBlanksClear(document.getElementById('ig-canvas'));
       const w = document.querySelector('#ig-canvas [data-upwording]');
-      const blocks = w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
-        const r = el.getBoundingClientRect();
-        return [Math.round(r.top), Math.round(r.height)].join(':');
-      }) : [];
+      const shot = () => w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
+        const r = el.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.height)].join(':'); }) : [];
+      uploadBlanksClear(document.getElementById('ig-canvas'));
+      const blocks = shot();
       uploadBlanksPaint(c);
-      const back = w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
-        const r = el.getBoundingClientRect();
-        return [Math.round(r.top), Math.round(r.height)].join(':');
-      }) : [];
-      return { blocks, back, missing: false };
+      return { blocks, back: shot(), marks: document.querySelectorAll('#ig-canvas span.up-blank').length, missing: false };
     });
-    check('5a every block of the wording measures the same with the marks off and on',
+    check('5a GATE — the painter is on this build and the wording is drawn', !off.missing && off.blocks.length > 3,
+      off.missing ? 'the painter is not on this build' : off.blocks.length + ' blocks');
+    check('5b called by hand on their paper, it paints no mark', !off.missing && off.blocks.length > 3 && off.marks === 0,
+      off.marks + ' marks');
+    check('5c and every block of the wording measures the same',
       off.blocks.length > 3 && off.blocks.join(' ') === off.back.join(' '),
-      off.missing ? 'the painter is not on this build'
-        : off.blocks.length + ' blocks · off ' + off.blocks.slice(0, 3).join(' ')
-          + ' · on ' + off.back.slice(0, 3).join(' '));
-    /* AND THE MARK REALLY IS DRAWN, or 5a is satisfied by a page with none. */
-    check('5b GATE — the marks were on when 5a measured them',
-      off.back.length > 3 && (await page.evaluate(() =>
-        document.querySelectorAll('#ig-canvas span.up-blank').length)) >= 4,
-      'marks re-painted');
+      'off ' + off.blocks.slice(0, 3).join(' ') + ' · on ' + off.back.slice(0, 3).join(' '));
 
-    /* ============ 6. ONCE THE WORDING IS OURS, THIS STANDS DOWN ============ */
+    /* ============ 6. A REDLINED UPLOAD: THE SAME ============ */
     await openRoom(page, edited.id);
     const e = await page.evaluate(SEEN);
-    /* GATED ON THE SIBLING: "nothing is drawn here" is true of a build that
-       draws nothing anywhere, so both claims below require the SAME document
-       to have been marked on the contract this run already measured. */
-    const drew = s.markKeys.length > 0 && s.boxKeys.length > 0;
-    check('6a a redlined upload draws no placeholder mark', drew && e.markKeys.length === 0,
-      drew ? (e.markKeys.join(', ') || 'none') : 'GATE: the unedited twin drew none either');
-    check('6b and no panel', drew && (!e.panel || e.boxKeys.length === 0),
-      drew ? (e.boxKeys.join(', ') || 'none') : 'GATE: the unedited twin drew none either');
+    const eHas = !!e.wording && /Insert Company Name/.test(e.wordingText);
+    check('6a a redlined upload draws no placeholder mark', eHas && e.markKeys.length === 0,
+      eHas ? (e.markKeys.join(', ') || 'none') : 'GATE: its wording with the placeholders is not on the page');
+    check('6b and no box', eHas && e.boxKeys.length === 0, eHas ? (e.boxKeys.join(', ') || 'none') : 'GATE not met');
     check('6c CONTROL — the wording is still on the page', e.canvas,
       e.canvas ? 'canvas drawn' : 'nothing drawn at all');
 
-    /* ============ 8. A WORD FILL-IN FIELD IS A BLANK ============ */
+    /* ============ 8. A WORD FORM'S OWN FIELDS STAND AS THE FILE DREW THEM ============ */
     await openRoom(page, form.id);
     const f = await page.evaluate(SEEN);
-    check('8a the file\'s own gaps are marked on the page',
-      f.markKeys.join(',') === 'up_buyer_name,up_registered_address,up_fee',
-      f.markKeys.join(',') || 'none');
-    check('8b and they are PAINTED, not merely in the markup',
-      f.markKeys.length > 0 && f.markDrawn === f.markKeys.length,
-      f.markDrawn + ' of ' + f.markKeys.length);
-    check('8c AN ANSWERED FIELD IS THEIR WORDING — "Acme Trading Ltd" gets no box',
-      f.boxKeys.length > 0 && !f.boxKeys.some(k => /acme|seller/i.test(k || '')),
-      f.boxKeys.join(', '));
-    check('8d the panel lists them under the drafter\'s own names',
-      /Buyer name/.test(f.boxLabels.join(' | ')) && /Registered address/.test(f.boxLabels.join(' | '))
-      && /Fee/.test(f.boxLabels.join(' | ')), f.boxLabels.join(' | '));
-    check('8e an EMPTY box is still a gap', f.boxKeys.includes('up_fee'), f.boxKeys.join(', '));
-    const droveF = await typeInto(page, '#pd-og [data-blankf="up_buyer_name"]',
-      'Highland Corporate Ltd', 'change');
-    const afterF = droveF ? await page.evaluate(() => {
-      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
-      const sp = document.querySelector('#ig-canvas span[data-upblank="up_buyer_name"]');
-      return { text: sp ? (sp.textContent || '').trim() : null,
-        stillField: !!(sp && sp.classList.contains('hati-wfield')),
-        filled: !!(sp && sp.classList.contains('is-filled')),
-        stored: c.redlineText, record: (c.fields || {}).up_buyer_name };
-    }) : null;
-    check('8f typing in the panel answers the word on the page',
-      !!afterF && afterF.text === 'Highland Corporate Ltd', afterF ? String(afterF.text) : 'not driven');
-    check('8g THE PAPER\'S OWN SPAN IS NEVER UNWRAPPED — it is still the file\'s field',
-      !!afterF && afterF.stillField && afterF.filled,
-      afterF ? ('field ' + afterF.stillField + ' · filled ' + afterF.filled) : 'not driven');
-    check('8h and the received document is not rewritten',
-      !!afterF && afterF.stored === FORM_WORDING && /Enter buyer name/.test(afterF.stored),
-      afterF ? (afterF.stored === FORM_WORDING ? 'byte-identical' : 'THE WORDING MOVED' + (/data-clause-id/.test(afterF.stored) && !/data-clause-id/.test(FORM_WORDING) ? ' — clause ids were stamped into it' : '')) : 'not driven');
+    check('8a GATE — the file\'s own fields are on the page, painted',
+      f.wfields === 3 && f.wfDrawn === 3 && /Enter buyer name/.test(f.wordingText), f.wfields + ' fields · ' + f.wfDrawn + ' painted');
+    check('8b none is marked or wrapped as a blank for us', f.wfields === 3 && f.markKeys.length === 0 && f.wfMarked === 0,
+      f.markKeys.join(', ') || ('none · ' + f.wfMarked + ' fields wearing a mark'));
+    check('8c and the panel asks none of them', f.wfields === 3 && f.boxKeys.length === 0 && f.blankRows === 0,
+      f.boxKeys.join(', ') || 'none');
+    check('8d the received document is not rewritten', f.stored === FORM_WORDING,
+      f.stored === FORM_WORDING ? 'byte-identical' : 'THE WORDING MOVED' + (/data-clause-id/.test(f.stored) && !/data-clause-id/.test(FORM_WORDING) ? ' — clause ids were stamped into it' : ''));
     const offF = await page.evaluate(() => {
-      if(typeof uploadBlanksClear !== 'function') return { missing: true };
+      if(typeof uploadBlanksClear !== 'function' || typeof uploadBlanksPaint !== 'function') return { missing: true };
       const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
       const w = document.querySelector('#ig-canvas [data-upwording]');
       const shot = () => w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
@@ -422,64 +365,33 @@ const CONTRACT = (id, over) => Object.assign({
       const off = shot();
       const kept = w ? w.querySelectorAll('span.hati-wfield').length : 0;
       uploadBlanksPaint(c);
-      const hit = w ? [...w.querySelectorAll('p,h1,h4')].map((el, i) => /Highland Corporate Ltd/.test(el.textContent || '') ? i : -1).filter(i => i >= 0) : [];
-      return { off, on: shot(), kept, hit, missing: false };
+      return { off, on: shot(), kept, marks: document.querySelectorAll('#ig-canvas span.up-blank').length, missing: false };
     });
-    check('8i clearing the marks LEAVES the file\'s own fields standing',
-      !offF.missing && offF.kept === 3, offF.missing ? 'painter absent' : (offF.kept + ' fields'));
-    check('8j and the wording measures the same with the marks off and on',
-      /* GATED on the marks really being on, or a page with none satisfies it. */
-      !offF.missing && offF.kept === 3 && f.markKeys.length === 3
-      /* RE-POINTED 25 Nov 2026 (owner's photos, "merge now": the marks on show the typed answer, "Highland Corporate Ltd",
-         where the marks off show the file's placeholder, and the longer answer may wrap — the one paper type at 15px
-         wraps it): the marks move nothing BUT the block holding the typed answer — its height may grow by whole lines, and
-         every block after it moves down by exactly that growth; every other block measures the same */
-      && offF.off.length > 3 && offF.off.length === offF.on.length && (() => {
-        const P = x => x.split(':').map(Number); let shift = 0;
-        for (let i = 0; i < offF.off.length; i++){
-          const [t0, h0] = P(offF.off[i]), [t1, h1] = P(offF.on[i]);
-          if (t1 - t0 !== shift) return false;
-          if (h1 !== h0){ if (!offF.hit.includes(i) || h1 < h0) return false; shift += h1 - h0; }
-        }
-        return true; })(),
-      offF.missing ? 'painter absent'
-        : offF.off.length + ' blocks · off ' + offF.off.slice(0, 3).join(' ')
-          + ' · on ' + offF.on.slice(0, 3).join(' '));
+    check('8i clearing and painting LEAVE the file\'s own fields standing, and paint no mark',
+      !offF.missing && offF.kept === 3 && offF.marks === 0, offF.missing ? 'painter absent' : (offF.kept + ' fields · ' + offF.marks + ' marks'));
+    check('8j and the wording measures the same',
+      !offF.missing && offF.kept === 3 && offF.off.length > 3 && offF.off.join(' ') === offF.on.join(' '),
+      offF.missing ? 'painter absent' : offF.off.length + ' blocks · off ' + offF.off.slice(0, 3).join(' ') + ' · on ' + offF.on.slice(0, 3).join(' '));
 
-    /* ============ 9. A FILE THEY SIGN HAS NO BLANKS FOR US TO FILL ============
-       (Young, 26 Sep 2026: "if the contract is being signed out of hati and
-       the contract is simply being used to negotiate the clauses, these
-       fields are irrelevant I would presume.") On that route what they
-       receive is the agreed WORDING as a Word file, and an answer typed in
-       this panel is a working note that never reaches it.
-
-       DRIVEN THROUGH THE PRODUCT'S OWN DOOR on the Signing tab, on the SAME
-       document section 1 measured marked and section 4 answered: switched to
-       their signing, the panel and every mark stand down and the arrival
-       tile says whose blanks they are; switched back through the route
-       card's own link, both return and the answer is where it was left.
-       GATED on section 1 having drawn marks and a panel on this very
-       contract, or "nothing is drawn" passes on a build that draws nothing
-       anywhere. */
+    /* ============ 9. THEIR SIGNING AND OURS: THEIR PAPER EITHER WAY ============
+       Driven through the product's own doors (the Dossier's More → "They run the signing", and the Before you sign card's
+       "We sign in HaTi instead"), on the same document section 1 measured. GATED on the page carrying the wording with
+       its placeholders, or "nothing is drawn" passes on a page that draws nothing. */
     await openRoom(page, up.id);
     const m9 = await page.evaluate(SEEN);
-    const drew9 = m9.markKeys.length >= 4 && m9.boxKeys.length >= 4;
-    /* The first line of THEIR wording, measured on the page: the right-hand
-       column changes and the paper may not move because of it. */
+    const drew9 = !!m9.wording && /Insert Company Name/.test(m9.wordingText);
     const inkOf = () => page.evaluate(() => {
       const w = document.querySelector('#ig-canvas [data-upwording]');
       const el = w && w.querySelector('h1,h4,p');
       return el ? Math.round(el.getBoundingClientRect().top) : null;
     });
     const ink0 = await inkOf();
-    /* AN ARRIVAL NOTE THAT COUNTED THE BLANKS, as a reading on HaTi's own
-       route would have written it — the tile has to follow the route LIVE. */
+    /* AN ARRIVAL NOTE THAT COUNTED THE BLANKS, as a reading before the ruling would have written it — the tile has to
+       follow the gate LIVE, never the stored count */
     const openNow = await page.evaluate(() => {
       const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
-      const n = (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
-      c.triage = { at: new Date().toISOString(),
-        steps: { fill: { ok: true, filled: [], left: n, none: null } } };
-      return n;
+      c.triage = { at: new Date().toISOString(), steps: { fill: { ok: true, filled: [], left: 3, none: null } } };
+      return (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
     });
     const tileHead = async () => {
       await openContractRoom(page, up.id);
@@ -491,13 +403,9 @@ const CONTRACT = (id, over) => Object.assign({
         .find(x => /open fields/i.test(x)) || '');
     };
     const tile0 = await tileHead();
-    /* THE WORDING AS THE ROOM LEAVES IT, just before the door is pressed (re-
-       pointed 11 Oct 2026: the measurement above is on Home, before the room
-       has been opened at all, and the room stamps clause ids on arrival) */
+    check('9 THEIR PAPER ON HaTi\'S OWN SIGNING: the arrival tile says whose blanks they are, not how many',
+      drew9 && openNow === 0 && /theirs to fill/i.test(tile0) && !/\b3\b/.test(tile0), '"' + tile0 + '" · open ' + openNow);
     const stored0 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).redlineText || '');
-    /* RE-POINTED 14 Oct 2026 (stage 5): the Signing tab's door is on Jambo's
-       Before you sign face now — the room's Signing tab went home — so it is
-       opened through roomOpenAt(id, 'sign') and the door is pressed there. */
     const pressRoute = async (sel) => {
       await page.evaluate(x => roomOpenAt(x, 'sign'), up.id);
       await page.waitForFunction(x => !!document.querySelector('#pd-signface ' + x), sel, { timeout: 8000 }).catch(() => {});
@@ -544,10 +452,9 @@ const CONTRACT = (id, over) => Object.assign({
     };
     const toTheirs = await pressMenuRoute();
     const route1 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
-    check('9a GATE — the Signing tab\'s own door moved this contract to their signing',
+    check('9a GATE — the Dossier\'s own door moved this contract to their signing',
       toTheirs && route1 === 'outside' && drew9,
-      (toTheirs ? 'pressed' : 'no #ws-m-their-way door') + ' · route ' + route1
-        + ' · marked before: ' + m9.markKeys.length + ', boxes before: ' + m9.boxKeys.length);
+      (toTheirs ? 'pressed' : 'no #ws-m-their-way door') + ' · route ' + route1 + ' · wording drawn ' + drew9);
     const tile1 = await tileHead();
     await openRoom(page, up.id);
     const t9 = await page.evaluate(SEEN);
@@ -555,9 +462,6 @@ const CONTRACT = (id, over) => Object.assign({
     check('9b THEIR SIGNING: no blanks panel beside their paper',
       ok9 && t9.boxKeys.length === 0 && !t9.blankRows,
       ok9 ? (t9.boxKeys.length + ' boxes · heading "' + (t9.panelHead || '') + '"') : 'GATE not met');
-    /* GATED (14 Oct 2026, stage 5) on the paper beside the panel being the
-       WORKING copy — the copy marks are drawn on — or "none marked" is true of
-       a signing copy left standing on Home's paper. */
     check('9c and no placeholder is marked on their wording',
       ok9 && t9.wording && t9.copy === 'work' && t9.markKeys.length === 0,
       ok9 ? (t9.wording ? (t9.markKeys.join(', ') || 'none') + ' · on the ' + t9.copy + ' copy' : 'no wording drawn') : 'GATE not met');
@@ -568,63 +472,41 @@ const CONTRACT = (id, over) => Object.assign({
     check('9e CONTROL — THE CONTRACT DOES NOT MOVE: its first line sits where it sat',
       ok9 && ink0 != null && ink1 === ink0, 'first line ' + ink0 + ' → ' + ink1);
     const kept = await page.evaluate(() => ((getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).fields || {}).up_insert_company_name);
-    check('9f CONTROL — the answer typed before is still on the record', ok9 && kept === 'Highland Corporate Ltd',
+    check('9f CONTROL — the answer typed before the ruling is still on the record', ok9 && kept === 'Highland Corporate Ltd',
       String(kept));
-    check('9g the arrival tile says whose blanks they are, not how many are open',
-      ok9 && openNow > 0 && /theirs to fill/i.test(tile1) && !new RegExp('\\b' + openNow + '\\b').test(tile1),
+    check('9g the arrival tile says the same on their signing', ok9 && /theirs to fill/i.test(tile1) && !/\b3\b/.test(tile1),
       'before: "' + tile0 + '" · after: "' + tile1 + '"');
-    /* AND BACK, through the route card's own link — the other half of one
-       door, not a second one. */
-    /* RE-POINTED 17 Nov 2026 (#762, owner's "2 yes"): the way back is the five parts' card's own "We sign in HaTi instead" */
+    /* AND BACK, through the route card's own link */
     const toOurs = await pressRoute('[data-pd2-ho-in]') || await pressRoute('[data-ho-route="inside"]');
     const route2 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
-    /* RE-POINTED 17 Nov 2026 (#762): the way back is pressed on Before you sign, whose paper is the SIGNING copy; the
-       marks belong to the working copy, so the face is put away (its own close) before the room is read — as 9b's door
-       put it away before the trip out */
     await page.evaluate(() => { if (typeof window.pdSignClose === 'function') try { window.pdSignClose(); } catch (_){} });
-    await page.waitForTimeout(600);
+    await page.waitForFunction(() => !document.getElementById('pd-signface'), null, { timeout: 4000 }).catch(() => {});
     await openRoom(page, up.id);
     const b9 = await page.evaluate(SEEN);
-    check('9h CONTROL — switched back to HaTi\'s own signing, the panel returns with every box',
-      ok9 && toOurs && route2 === 'inside' && b9.boxKeys.join('|') === m9.boxKeys.join('|'),
+    const back9 = ok9 && toOurs && route2 === 'inside';
+    check('9h back on HaTi\'s own signing it is still their paper: no box returns',
+      back9 && b9.wording && b9.boxKeys.length === 0 && !b9.blankRows,
       (toOurs ? 'pressed' : 'no link back') + ' · route ' + route2 + ' · ' + b9.boxKeys.length + ' boxes');
-    check('9i CONTROL — and the marks return, printing the answer that was kept',
-      ok9 && b9.markKeys.join('|') === m9.markKeys.join('|')
-        && b9.markText.filter(x => x === 'Highland Corporate Ltd').length === 2,
-      (b9.markText.join(' | ') || 'no marks') + ' · the paper beside the panel is the ' + b9.copy + ' copy');
+    check('9i and no mark returns, and the kept answer is never printed on their paper',
+      back9 && b9.wording && b9.copy === 'work' && b9.markKeys.length === 0 && !/Highland Corporate Ltd/.test(b9.wordingText),
+      (b9.markText.join(' | ') || 'no marks') + ' · the paper is the ' + b9.copy + ' copy');
     const tile2 = await tileHead();
-    /* RE-POINTED 27 Sep 2026 (the overnight clean-up): a tile with fields still
-       open used to draw a TICK over "N still open" — the head saying done in
-       the same breath as its own detail saying not. It now says the fields are
-       on the panel, names the first of them, and the NUMBER is in the chip (A
-       HEAD AND A COUNT ARE TWO FACTS, 21 Sep). So "counts the open blanks" is
-       asked of the chip against the live count; the old wording still passes,
-       which keeps this a CONTROL on both sides. */
     const chip2 = await page.evaluate(() => {
       const t = [...document.querySelectorAll('#kt-triage .kt-tri-tile')]
         .find(x => /open fields/i.test(((x.querySelector('.kt-tri-hw') || {}).textContent || '')));
       return t ? ((t.querySelector('.kt-tri-chip') || {}).textContent || '').trim() : '';
     });
-    const open2 = await page.evaluate(() => {
-      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
-      return (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
-    });
-    check('9j CONTROL — and the arrival tile counts the open blanks again',
-      ok9 && !/theirs to fill/i.test(tile2)
-        && (/still open/i.test(tile2) || (open2 > 0 && chip2 === String(open2))),
-      '"' + tile2 + '" · chip ' + chip2 + ' · open ' + open2);
+    check('9j and the arrival tile still says whose blanks they are, with no count',
+      back9 && /theirs to fill/i.test(tile2) && !/\d/.test(chip2) && !/still open/i.test(tile2),
+      '"' + tile2 + '" · chip ' + (chip2 || '—'));
 
-    /* ============ 10. A BLANK'S NAME CARRIES NO STRAY "[" ============
-       Read off the drawn panel. Red at the parent (3ee647b), which prints the
-       label as "Made effective as of [". */
+    /* ============ 10. A BRACKETED RULED LINE IS NOT ASKED FOR EITHER ============ */
     await openRoom(page, bracketed.id);
     const s10 = await page.evaluate(SEEN);
-    check('10a GATE — the bracketed ruled line is asked for in the panel', s10.boxKeys.length >= 1,
-      s10.boxKeys.length + ' boxes: ' + s10.boxLabels.join(' | '));
-    check('10b its name carries no "[" and reads as the words in front of it',
-      s10.boxLabels.length >= 1 && s10.boxLabels.every(l => !/\[/.test(l))
-        && s10.boxLabels.some(l => /^Made effective as of\b/i.test(l)),
-      s10.boxLabels.join(' | '));
+    const has10 = !!s10.wording && /made effective as of/.test(s10.wordingText);
+    check('10a GATE — the bracketed ruled line stands on the page as written', has10, s10.wordingText.slice(0, 120));
+    check('10b and it is neither marked nor asked for in the panel', has10 && s10.markKeys.length === 0 && s10.boxKeys.length === 0,
+      s10.markKeys.length + ' marks · ' + s10.boxKeys.length + ' boxes');
 
     check('7a CONTROL — no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');
   } finally {

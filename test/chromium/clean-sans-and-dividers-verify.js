@@ -165,8 +165,16 @@ const login = async page => {
     await page.waitForTimeout(1400);
     if (!opened) check('5b the clause editor opened', false, 'rlOpenClauseEditor refused');
     else {
-      const ceSeam = await seamRead(page, '#ce-resizer',
-        () => document.querySelector('#clause-editor .ce-grid').firstElementChild.getBoundingClientRect().right);
+      /* RE-POINTED 26 Nov 2026 (owner, #1030/#1032: "Simply copy what has been done in the dossier tab"): the editor opens
+         as the Dossier's Editor tab (.is-tabbed), where its own divider (#ce-resizer) stands down and the divider is the
+         Dossier's own grip, #ce-tab-resizer, at the side panel's left edge — so that grip is the one measured; the
+         editor's own divider only where the editor is not a tab */
+      const ceTab = await page.evaluate(() => !!document.querySelector('#clause-editor.is-tabbed'));
+      const ceSeam = await seamRead(page, ceTab ? '#ce-tab-resizer' : '#ce-resizer',
+        () => { const g = document.querySelector('#clause-editor .ce-grid');
+          const rail = document.querySelector('#clause-editor.is-tabbed .ce-grid > .ce-rail');
+          return rail ? rail.getBoundingClientRect().left : g.firstElementChild.getBoundingClientRect().right; });
+      if (ceSeam) ceSeam.tab = ceTab;
       check('5b clause editor: a press beside the seam reaches the scrollbar, not the divider',
         ceSeam && !ceSeam.hidden && !ceSeam.leftIsRez, JSON.stringify(ceSeam));
       check('5c and the grip is still the divider', ceSeam && ceSeam.gripIsRez, JSON.stringify(ceSeam));
