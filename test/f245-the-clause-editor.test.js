@@ -1418,7 +1418,11 @@ describe('f245 (12) — the divider, and what it must not disturb', () => {
     /* When the layout and the drag described the page differently, one pixel of
        pointer bought less than one pixel of column. And the gap: this grid has
        none, so subtracting one would put the handle 14px off the seam. */
-    assert.equal((CE.match(/_ceAvail\(/g) || []).length, 2,
+    /* RE-POINTED 26 Nov 2026 (the Editor tab's divider moves the one panel width, f1242): the drag asks it in more than
+       one place now; the rule stands — only the layout (ceFitSplit) and the drag (ceWireSplit) ask it */
+    const cut = name => { const at = CE.indexOf('function ' + name + '('); return at < 0 ? '' : CE.slice(at, CE.indexOf('\n}\n', at) + 3); };
+    const inside = (cut('ceFitSplit').match(/_ceAvail\(/g) || []).length + (cut('ceWireSplit').match(/_ceAvail\(/g) || []).length;
+    assert.ok((CE.match(/_ceAvail\(/g) || []).length === inside && cut('ceFitSplit').includes('_ceAvail(') && cut('ceWireSplit').includes('_ceAvail('),
       'the layout and the drag both ask the same function, and nothing else does');
     assert.match(CE, /const _ceAvail = grid => grid\.clientWidth;/,
       'no gap subtracted — this grid has no gap track');

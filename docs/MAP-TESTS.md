@@ -679,6 +679,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- THE SPEED BUDGET (26 Nov 2026): test/chromium/speed-budget-verify.js (GitHub; six moves; 1 no whole-page restyle, 2 styled ≤ 14× the page; red at the parent of f1240 on every move for 1, Calendar 17.6 · Approvals 15.6 · Board 14.5 for 2). f1241 (dead rules ≤ `DEAD_RULES_MAX` 857; red at the parent, 1,271).
 - A MOVE IS STYLED ONCE (26 Nov 2026): f1240 (six parts, all red at the parent): no `:has()` rule ending on a bare `:not()`/`*`; the panel heads hide the same parts at no added weight; `insRoom` once a turn, afresh next turn and on resize; `sddPut` writes only what changed; the panel frame's guarded writes. Browser: our-paper-as-drawn-verify and the panel checks on GitHub.
 - ONE HOME FOR A HALF-TYPED QUESTION (13 Nov 2026, the flash survey, Part A): f1044 (seven parts); test/chromium/jambo-box-keeps-what-you-typed-verify.js (red at the parent 1-5).
 - THE SEND SCREEN TURNS IN PLACE (13 Nov 2026, the flash survey, Part B): f1045 (six parts); test/chromium/send-screen-keeps-its-way-back-verify.js (red at the parent 1-3).
@@ -1262,3 +1263,5 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## RISKS TO LOOK AT — one list, both papers (26 Nov 2026)
 - test/f1241-one-list-both-papers.test.js — Jambo's findings on the redlined paper; one check (our redline on the clause or topic) green on both papers. Re-pointed: f1037.
+## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (26 Nov 2026, Fill in ends when you leave it)
+- f1242 (six parts, all red at the parent); f1203 (4) re-pointed (no Checked · nothing found); f245 (12) re-pointed (the divider's drag asks _ceAvail in more than one place). Browser: test/chromium/fill-ends-when-you-leave-verify.js (1 nothing typed ends; 2 typed asks, Esc stays, Stop keeps nothing; 3 Save keeps; 4 a refresh puts it away; 5 the Editor tab's divider moves the one width); every-door-lands-on-home-verify's Fill in refresh re-pointed.

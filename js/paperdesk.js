@@ -9829,7 +9829,8 @@ function pd2NotesPaint(c, seat){
   if (typeof document === 'undefined') return;
   const zoom = seat ? seat.zoom : document.querySelector('#ig-paper .ig-zoom'), cv = seat ? seat.cv : document.getElementById('ig-canvas');
   if (seat) return pd2SeatPaint(c, seat, zoom, cv);
-  if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ _pd2Fill = null; document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); }
+  /* another contract or the old look: Fill in's bar goes at once, and what was typed is asked about, never dropped quietly */
+  if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); pd2FillLeaveSoon(); }
   if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
   /* WHILE JAMBO READS, THE NOTES STAND BESIDE THE PAPER TOO (owner, 8 Nov 2026): painted as ever, each held until the
      read reaches its clause (pd2WalkNotesHold, asked again on every step), and all of them there once it has read */
@@ -9991,12 +9992,8 @@ function pd2Groups(c, cv, notes, opts){
     const node = n.hit.el || (n.hit.range && n.hit.range.startContainer); const g = get(node ? rowOf(node) : -1);
     if (g.at < 0 && !g.el) g.el = n.hit.el || null, g.hit = g.hit || n.hit;
     g.items.push({ tone: n.tone, word: n.word, std: n.std, k: n.k, w: n.w, acts: n.acts, note: n }); });
-  /* CHECKED · NOTHING FOUND (Round E, as drawn): on Clauses, once Jambo has read the paper, a clause with nothing on it says so
-     beside it — read off the same points, nothing new. The caller says whether its notes stand on Clauses (opts.checked):
-     the Approvals preview (pd2SeatPaint) never draws them, whatever Home's tab (review, 24 Nov 2026) */
-  let readDone = false; try { readDone = !!(opts && opts.checked) && typeof window.stkLivePoints === 'function' && !!window.stkLivePoints(c); } catch (_){ readDone = false; }
-  if (readDone) rows.forEach((r, i) => { if (!r || !r.el || by.has(i) || (typeof window.docThreadIsSec === 'function' && window.docThreadIsSec(r))) return;
-    by.set(i, { at: i, el: r.el, label: '', ok: true, items: [{ tone: 'fact', kind: 'ok', word: '', k: _pdT('pd2_g_checked_none') }] }); });
+  /* NO "CHECKED · NOTHING FOUND" BESIDE THE PAPER (owner, 26 Nov 2026: "sometimes it appears on the pages and sometimes
+     it does not. Just remove it overall"; reverses Round E's tick): a clause with nothing on it has nothing beside it */
   return [...by.values()].map(g => Object.assign(g, { cid: c.id, hit: g.el ? { el: g.el } : (g.hit || (g.items[0].note && g.items[0].note.hit)) })).filter(g => g.hit && g.items.length)
     .map(g => Object.assign(g, { y: (g.hit.el || g.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
 }
@@ -11171,6 +11168,59 @@ function pd2FillNext(){
   if (next){ pd2FillGoTo(next); return; }
   pd2FillSave();
 }
+/* LEAVING FILL IN ENDS IT (owner, 26 Nov 2026: the top bar "sometimes changes to a different bar"; then "if nothing was
+   filled in, then you just move on. If something started and was filled in, a pop up appears in the middle of the screen
+   asking stop or save"). Fill in's own bar (name · Stop · Save) stood in for the paper's line until Stop or Save — across
+   Redline, the other tabs, other pages, even a refresh. Now any move away (another tab or face of the panel, the Redline
+   or Their view switch, another page or contract, the middle page) is read after it lands: nothing typed, Fill in simply
+   ends; something typed, ONE pop-up in the middle asks Save or Stop, and closes only on one of them. */
+let _pd2FillAsking = false, _pd2FillLeaveSoon = false;
+function pd2FillHere(){
+  if (!_pd2Fill) return true;
+  try {
+    if (!(typeof state !== 'undefined' && state && state.view === 'dashboard')) return false;
+    if (typeof window.hbFace === 'function' && window.hbFace() !== 'paper') return false;
+    const pc = typeof pdContract === 'function' ? pdContract() : null;
+    if (!pc || String(pc.id) !== String(_pd2Fill.id)) return false;
+    if (_pdTab !== 'copilot') return false;
+    if (typeof window.igRedOn === 'function' && window.igRedOn(pc)) return false;
+    if (typeof pdMidUp === 'function' && pdMidUp()) return false;
+  } catch (_){ return true; }
+  return true;
+}
+function pd2FillLeaveCheck(){
+  _pd2FillLeaveSoon = false;
+  if (!_pd2Fill || _pd2FillAsking || pd2FillHere()) return;
+  const c = typeof getContract === 'function' ? getContract(_pd2Fill.id) : null;
+  if (!c || !pd2FillChanged(c)){ pd2FillStop(); return; }
+  if (typeof window.lgpOpen !== 'function'){ pd2FillStop(); return; }
+  _pd2FillAsking = true;
+  /* the bar goes at once: the page moved to stands with its own line; the typed values wait in the record of the sitting */
+  document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove());
+  const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill');
+  let decided = false;
+  const done = save => { if (decided) return; decided = true; _pd2FillAsking = false;
+    try { if (typeof closeModal === 'function') closeModal(); } catch (_){}
+    /* a negotiated paper's blanks are filed as our change, which waits on the server: Fill in ends once it is done */
+    let r = null; if (save){ try { r = pd2FillSave(); } catch (_){ r = null; } }
+    Promise.resolve(r).catch(() => null).then(() => { try { pd2FillStop(); } catch (_){} }); };
+  window.lgpOpen({ title: _pdT('pd2_fl_leave_q'), sub: _pdT('pd2_fl_leave_sub', { name: String(c.name || '') }), focus: false,
+    primary: { label: _pdT('og_save'), attr: 'data-pd2-fl-save' }, alt: { label: _pdT('pd2_fp_stop'), attr: 'data-pd2-fl-stop' }, noCancel: true,
+    onBeforeClose: () => decided });
+  const root = document.getElementById('modal-root');
+  const form = root && root.querySelector('.lgp');
+  /* no corner cross: it would close nothing (the question is answered by Save or Stop) */
+  const x = form && form.querySelector('.lgp-x'); if (x) x.remove();
+  if (form){ form.addEventListener('submit', e => { e.preventDefault(); done(true); });
+    form.addEventListener('click', e => { const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+      if (t.closest('[data-pd2-fl-stop]')){ e.preventDefault(); done(false); } }); }
+}
+/* read after the move has landed, once a turn */
+function pd2FillLeaveSoon(){
+  if (!_pd2Fill || _pd2FillLeaveSoon) return;
+  _pd2FillLeaveSoon = true;
+  (typeof queueMicrotask === 'function' ? queueMicrotask : f => Promise.resolve().then(f))(() => { try { pd2FillLeaveCheck(); } catch (_){ _pd2FillLeaveSoon = false; } });
+}
 function pd2FillStop(){
   if (!_pd2Fill) return;
   _pd2Fill = null;
@@ -11850,7 +11900,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
-Object.assign(window, { pdSignNamesPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* THE ARRIVAL VEIL: a page in the middle that opens only once its paper stands (History, pay, Key terms; pdMidArriving)
    has the page's own ground stand over the paper meanwhile, so the paper is never seen on the way; bounded (CV_LAND_MS).
    (The Cover page these were first built for was deleted, owner, 20 Nov 2026: "Delete it, open the Dossier instead".) */

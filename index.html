@@ -1093,7 +1093,7 @@
   input::placeholder,textarea::placeholder{color:var(--color-neutral-500);}
 
   /* elevation utilities (mapped onto the Industry shadow scale) */
-  .elev-1{box-shadow:var(--shadow-sm)} .elev-2{box-shadow:var(--shadow-sm)}
+  .elev-1{box-shadow:var(--shadow-sm)} 
   .elev-3{box-shadow:var(--shadow-md)} .elev-4{box-shadow:var(--shadow-lg)}
   .lift{transition:transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), border-color var(--dur-1)}
   .lift:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
@@ -1143,7 +1143,7 @@
      rendered 366x17px at 1440 and 304x17px at 390, and the register's pager
      link 95x17px. Both are text-styled buttons, which is why every finding
      aimed at .ui-btn missed them. A floor, not a box: they still read as links. */
-  .linkbtn,button.linkbtn,[data-reg-flat]{
+  [data-reg-flat]{
     min-height:var(--tap-min);display:inline-flex;align-items:center;}
 
   button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,
@@ -1467,9 +1467,8 @@
   [data-dlg-page] .na-x{ display:none; }      /* a page leaves by Cancel at its top, not a corner cross */
   /* Two ways in, one segmented row (openImportModal, SAP pop-ups 10 Oct 2026). */
   .imp-tabs{ display:flex; border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; }
-  .imp-tab{ flex:1; height:var(--ctl-h); border:0; border-right:1px solid var(--color-divider); background:var(--color-surface);
-    font:inherit; font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-neutral-700); cursor:pointer; }
-  .imp-tab:last-child{ border-right:0; }
+  
+  
   .imp-tab.on{ background:var(--color-accent-50); color:var(--accent-ink); font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
   /* A DATE ON HaTi'S OWN CALENDAR (SAP pop-ups, 10 Oct 2026): the real date
      box stays in the form, out of sight; the face beside it wears the field's
@@ -1549,7 +1548,7 @@
      choices are joined segments side by side; the link's two settings are
      one row. */
   [data-share-sap] .sh-hd{ margin:-16px -18px 16px; }
-  [data-share-sap] .sh-pick-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin:0 0 14px; }
+  
   [data-share-sap] .sh-pick-row .sap-lbl{ display:block; margin-bottom:5px; }
   [data-share-sap] .sh-segs{ display:flex; }
   [data-share-sap] .sh-seg{ position:relative; flex:1; min-width:0; height:30px; padding:0 6px; margin-left:-1px; border:1px solid var(--btn-edge); border-radius:0;
@@ -1558,8 +1557,7 @@
   [data-share-sap] .sh-seg:last-child{ border-radius:0 var(--radius) var(--radius) 0; }
   [data-share-sap] .sh-seg[aria-pressed="true"]{ font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
   [data-share-sap] #sh-link-opts{ margin:0 0 14px; }
-  [data-share-sap] .sh-durable-box{ display:flex; align-items:center; gap:8px; height:var(--field-h); padding:0 10px; border:1px solid var(--field-line, var(--color-divider));
-    border-radius:var(--radius); font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
+  
   /* THE LETTER (round 11 of the redesign, owner picked "The letter", 17 Oct
      2026): the send screen is the email, drawn: its head rows (From, To,
      Subject, Sent as), its words with the note as the one box in them, and
@@ -1645,12 +1643,11 @@
   [data-share-sap] .sh-as.is-open .sh-as-pop{ display:block; }
   [data-share-sap] .sh-as-pop .sh-segs{ flex-wrap:wrap; }
   [data-share-sap] .sh-as-pop #sh-link-opts{ display:grid; grid-template-columns:minmax(0,1fr); gap:8px; margin:0; }
-  [data-share-sap] .sh-as-menu{ padding:4px; min-width:220px; }
-  [data-share-sap] .sh-as-menu button{ display:block; width:100%; text-align:left; border:0; background:none; padding:7px 10px; border-radius:var(--radius);
-    font:inherit; font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
-  [data-share-sap] .sh-as-menu button:hover:not(:disabled){ background:var(--color-neutral-100); }
-  [data-share-sap] .sh-as-menu button[aria-current="true"]{ font-weight:var(--w-strong); color:var(--accent-ink); }
-  [data-share-sap] .sh-as-menu button:disabled{ opacity:.5; cursor:not-allowed; }
+  
+  
+  
+  
+  
   [data-share-sap] .sh-lt-p.is-lead{ margin-bottom:6px; }
   [data-share-sap] .sh-lt-ans{ margin:0 0 12px; padding:2px 0 2px 12px; border-left:3px solid var(--color-divider); }
   [data-share-sap] .sh-lt-ans .sh-lt-p{ margin:0 0 4px; }
@@ -1827,7 +1824,7 @@
   .sr-f{min-width:0;}
   .sr-wide{grid-column:1 / -1;}
   .sr-hint{font-size:var(--t-meta);line-height:1.4;margin-top:4px;}
-  .sr-cf{display:flex;justify-content:flex-end;margin-top:10px;}
+  
   .sr-mwrap{position:relative;display:inline-flex;flex:none;}
   .sr-addwrap{margin-top:6px;}
   .sr-win .sr-addto{font-size:var(--t-meta);color:var(--color-neutral-600);gap:4px;}
@@ -2145,8 +2142,7 @@
   .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--accent-ink-700);}
   .nav-count[data-tone="amber"]{background:rgba(245,158,11,.18);color:#b45309;}
   /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
-  .nav-badge{margin-left:auto;flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);
-    background:rgba(245,158,11,.2);color:#b45309;white-space:nowrap;}
+  
   /* Collapsible nav sections: the group label is a +/- toggle that shows or
      hides its tabs. Only ADMINISTRATION folds now — its header is the one
      button left carrying data-section-toggle and the +/− glyph; every other
@@ -2211,13 +2207,10 @@
   .rail-head-label{font-family:var(--font-heading);font-size:var(--t-micro);font-weight:var(--w-title);
     color:rgba(255,255,255,.72);min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .rail-toggle{margin-left:auto;flex:none;width:26px;height:26px;border-radius:50%;
-    display:grid;place-items:center;border:1px solid rgba(255,255,255,.3);
-    background:rgba(255,255,255,.14);color:#fff;cursor:pointer;padding:0;
-    transition:background var(--dur-1),transform var(--dur-1);}
-  .rail-toggle:hover{background:rgba(255,255,255,.3);}
-  .rail-toggle:active{transform:scale(.94);}
-  .rail-toggle:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  
+  
+  
+  
   /* Collapsed the bar keeps its height and its colour and centres the control,
      so the rail still opens on the same block rather than on a door. */
   #app-shell.rail .rail-head{justify-content:center;padding:0;}
@@ -2811,18 +2804,13 @@
      2026), its title alone on the title row, the empty state --s-3 under it */
   .ngl-wrap > .ngl-head.ph-card{ margin:0 0 var(--s-3); }
   .ngl-head.ph-card > .ph-top h2{ margin:0; }
-  .ngl-list{ display:flex; flex-direction:column; gap:var(--s-2); }
-  .ngl-row{ display:flex; align-items:center; gap:14px; width:100%; text-align:left;
-    font:inherit; cursor:pointer; padding:13px 15px; border-radius:var(--radius);
-    border:1px solid var(--color-divider); background:var(--color-surface);
-    color:var(--color-text); transition:border-color var(--dur-1), background var(--dur-1); }
-  .ngl-row:hover{ border-color:var(--color-accent); background:var(--st-steel-bg); }
-  .ngl-row:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
-  .ngl-main{ flex:1; min-width:0; display:block; }
-  .ngl-name{ display:block; font-weight:var(--w-strong); font-size:var(--t-card); line-height:1.35;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .ngl-sub{ display:block; font-size:var(--t-meta); color:var(--color-neutral-600); margin-top:2px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  
+  
+  
+  
+  
+  
+  
   /* Three states, three readings. Amber is the only one that asks for anything;
      the other two are told quietly on purpose — a list where every row shouts
      is a list where the one that matters is invisible.
@@ -3300,11 +3288,8 @@
      two headings. */
   .st-grp{ margin-bottom:22px; }
   .st-grp:last-child{ margin-bottom:0; }
-  .st-grp-h{ display:flex; align-items:baseline; gap:var(--s-2); flex-wrap:wrap;
-    margin:0 0 7px 2px; font-size:var(--t-micro); font-weight:var(--w-title);
-      color:var(--color-quiet); }
-  .st-grp-sub{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0;
-    text-transform:none; color:var(--color-neutral-600); }
+  
+  
   /* ---- WHAT WANTS A DECISION ----
      It is drawn only when it holds something (stAttentionHtml returns '' when
      the list is empty), every row is a door to the panel that settles it, and
@@ -3313,15 +3298,10 @@
   .st-att{ margin-bottom:22px; border:1px solid var(--st-amber-line);
     border-radius:var(--radius); overflow:hidden; background:var(--color-surface);
     box-shadow:var(--shadow-sm); }
-  .st-att-h{ display:flex; align-items:center; gap:var(--s-2); margin:0;
-    padding:8px var(--s-3); background:var(--st-amber-bg);
-    border-bottom:1px solid var(--st-amber-line); font-size:var(--t-micro);
-    font-weight:var(--w-title);  
-    color:var(--st-amber-fg); }
+  
   /* The rows inside are already in a card, so they give up their own. */
   .st-att .st-rows{ border:0; border-radius:0; box-shadow:none; }
-  .st-att-more{ margin:0; padding:7px var(--s-3); border-top:1px solid var(--color-divider);
-    background:var(--surface-2); font-size:var(--t-label); color:var(--color-neutral-600); }
+  
   /* WHICH TAB A ROW LIVES ON — drawn only where the list crosses tabs (the
      attention block and a search result), never in a group, where the tab is
      the one the reader is standing on. */
@@ -3335,12 +3315,9 @@
     border-radius:var(--radius); font-size:var(--t-meta); color:var(--color-neutral-600); }
   /* THE DOTS SAY WHAT THEY MEAN, ONCE, UNDER THE LIST. Three words replacing
      the Mandatory / Optional tag that used to be printed on every row. */
-  .st-legend{ display:flex; flex-wrap:wrap; gap:var(--s-4); align-items:center;
-    padding:11px var(--s-3); background:var(--surface-2);
-    border:1px solid var(--color-divider); border-radius:var(--radius);
-    font-size:var(--t-label); color:var(--color-neutral-600); }
-  .st-legend span{ display:inline-flex; align-items:center; gap:6px; }
-  .st-legend i{ display:inline-block; }
+  
+  
+  
   /* ---- THE DRAWER'S OWN CRUMB AND ITS NEXT DOOR ----
      The crumb sits above the shared dialog head and clears the ✕, which is
      pinned 12px from the top right of .st-dhead. */
@@ -3358,8 +3335,7 @@
   .st-dnext:focus-visible{ outline:2px solid var(--btn-edge); outline-offset:2px; }
   /* ---- people ---- */
   .st-people-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .st-people-count{ font-family:var(--font-heading); font-weight:var(--w-strong); font-size:var(--t-card);
-    color:var(--color-text); flex:1; }
+  
   .st-people{ display:flex; flex-direction:column; border:1px solid var(--color-divider);
     border-radius:var(--radius); overflow:hidden; background:var(--color-surface);
     box-shadow:var(--shadow-sm); }
@@ -3369,7 +3345,7 @@
     transition:background var(--dur-1); }
   .st-person:last-child{ border-bottom:0; }
   .st-person:hover{ background:var(--st-steel-bg); }
-  .st-person-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  
   .st-person-name{ font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
   .st-person-sub{ display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;
     font-size:var(--t-label); color:var(--color-neutral-600); }
@@ -3382,15 +3358,11 @@
     place-items:center; font-size:var(--t-label); font-weight:var(--w-title); font-family:var(--font-mono);
     background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); }
   .dir-none{ color:var(--color-neutral-400); }
-  .st-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-title); border-radius:var(--radius);
-    padding:3px 10px; background:var(--st-green-bg); color:var(--st-green-fg); }
-  .st-chip[data-tone="warn"]{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  
+  
   /* AN AMBER COUNT WITH NOBODY'S NAME ON IT IS A NUMBER YOU CANNOT ACT ON. */
-  .st-banner{ display:flex; align-items:flex-start; gap:10px; border:1px solid var(--st-amber-line);
-    background:var(--st-amber-bg); border-left:4px solid var(--st-amber-dot); border-radius:var(--radius);
-    padding:10px 13px; margin-bottom:var(--s-3); font-size:var(--t-meta); line-height:1.5;
-    color:var(--st-amber-fg); }
-  .st-banner-ic{ flex:none; color:var(--st-amber-dot); display:inline-flex; margin-top:1px; }
+  
+  
   /* ---- the drawer ---- */
   .st-scrim{ position:fixed; inset:48px 0 0 0; background:rgba(15,23,42,.34);
     opacity:0; transition:opacity var(--dur-2); z-index:70; }
@@ -3418,14 +3390,13 @@
   .st-dav{ flex:none; width:30px; height:30px; border-radius:var(--radius); display:grid; place-items:center;
     background:transparent; border:1px solid var(--rule-strong); color:var(--color-quiet); font-size:11px; font-weight:var(--w-strong); }
   .st-row2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
-  .st-seg{ display:flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; height:30px; }
-  .st-seg-o{ flex:1; position:relative; display:grid; place-items:center; border-right:1px solid var(--field-line);
-    font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-neutral-700); cursor:pointer; background:var(--color-surface); }
-  .st-seg-o:last-child{ border-right:0; }
-  .st-seg-o input{ position:absolute; opacity:0; pointer-events:none; }
-  .st-seg-o:has(input:checked){ background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
-  .st-seg-o:has(input:focus-visible){ outline:2px solid var(--accent-fill); outline-offset:-2px; }
-  .st-seg-o[data-locked]{ cursor:default; }
+  
+  
+  
+  
+  
+  
+  
   .st-dx svg{ width:var(--btn-ic); height:var(--btn-ic); }
   .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:16px 18px; }
   .st-dfoot{ flex:none; display:flex; flex-direction:column; gap:9px;
@@ -3600,11 +3571,11 @@
     border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); font-size:var(--t-meta); }
   .ov-cn-k{ color:var(--color-neutral-600); font-weight:var(--w-label); }
   .ov-cn-v{ flex:1; min-width:0; color:var(--color-text); }
-  .ov-cn-go{ background:none; border:0; padding:0; color:var(--accent-ink); font:inherit; font-weight:var(--w-label); cursor:pointer; white-space:nowrap; }
-  .ov-cn-go:hover{ text-decoration:underline; }
-  .cn-people{ max-height:220px; overflow-y:auto; }
-  .cn-real{ margin:10px 0 0; }
-  .cn-refusal{ margin:8px 0 0; color:var(--st-ruby-fg); font-size:var(--t-meta); }
+  
+  
+  
+  
+  
   /* THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way", 17 Oct 2026):
      Data & backup's second tab — the period, the streams, the format, the count
      beside the one act, then every download so far */
@@ -3674,7 +3645,7 @@
   .st-rule-state{ font-weight:var(--w-body); color:var(--color-neutral-600); }
   .st-rule-says{ color:var(--color-neutral-600); line-height:1.5; }
   .st-rule-row > .ui-btn{ flex:none; }
-  .st-you{ max-width:620px; }
+  
   /* ============================================================
      THE CONTROL ROOM (owner picked it by name, 16 Oct 2026)
      ============================================================
@@ -3801,7 +3772,7 @@
   :is(.st-cr, .jb-turn) .st-jb-me{ align-self:flex-end; max-width:88%; background:var(--accent-solid,var(--color-accent)); color:#fff;
     border-radius:10px; padding:7px 11px; font-size:var(--t-meta); line-height:1.45; overflow-wrap:anywhere; }
   :is(.st-cr, .jb-turn) .st-jb-turn{ display:flex; flex-direction:column; gap:8px; }
-  :is(.st-cr, .jb-turn) .st-jb-chips{ display:flex; flex-wrap:wrap; gap:4px 12px; padding-left:36px; }
+  
   /* a suggestion is a link (Chambers, 20 Oct 2026; see .jb-chip) */
   :is(.st-cr, .jb-turn) .st-jb-chip{ appearance:none; border:0; background:none; padding:1px 0; border-radius:0; height:auto; min-height:0; font:inherit; font-size:12.5px; font-weight:var(--w-body); line-height:1.45; color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--color-accent-200); text-underline-offset:3px; cursor:pointer; text-align:left; }
   :is(.st-cr, .jb-turn) .st-jb-chip:hover{ text-decoration-color:currentColor; color:var(--accent-ink-700); }
@@ -5027,9 +4998,9 @@
   .sec-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 13px; }
   .sec-foot{ margin:0; padding:0 16px 13px; font-size:var(--t-label);
     color:var(--color-neutral-600); }
-  .sec-body{ padding:14px 16px 16px; }
-  .sec-body > :first-child{ margin-top:0; }
-  .sec-body > :last-child{ margin-bottom:0; }
+  
+  
+  
   /* RULE 5: a row of controls becomes one sentence. */
   .sec-say{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-width:0; }
   .sec-say-lead{ font-size:var(--t-meta); font-weight:var(--w-strong); flex:none; }
@@ -5151,27 +5122,23 @@
   .ov-top-acts{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
   /* THE CONTRACT'S LIFE AS ONE LINE (ovTimelineHtml). Labels sit above or
      below their point; ovTimelineSettle moves one that would touch another. */
-  .ov-tl{ position:relative; height:54px; margin:12px 16px 2px; }
-  .ov-tl-bar{ position:absolute; left:0; right:0; top:25px; height:4px; border-radius:2px;
-    background:var(--color-neutral-100); overflow:hidden; }
-  .ov-tl-bar > i{ display:block; height:100%; background:var(--color-accent-200); }
-  .ov-tl-pt{ position:absolute; top:21px; width:12px; height:12px; margin-left:-6px;
-    box-sizing:border-box; border-radius:50%; background:var(--color-surface);
-    border:2px solid var(--color-accent); }
-  .ov-tl-pt.is-start{ margin-left:0; }
-  .ov-tl-pt.is-end{ margin-left:-12px; }
+  
+  
+  
+  
+  
+  
   .ov-tl-pt.is-now{ background:var(--color-accent); }
-  .ov-tl-pt.is-decide{ border-color:var(--st-amber-fg); background:var(--st-amber-bg); }
-  .ov-tl-pt.is-missed{ border-color:var(--st-ruby-fg); background:var(--st-ruby-bg); }
-  .ov-tl-tx{ position:absolute; transform:translateX(-50%); white-space:nowrap;
-    font-size:var(--t-label); line-height:16px; color:var(--color-neutral-600); }
-  .ov-tl-tx b{ font-weight:var(--w-strong); color:var(--color-text); }
+  
+  
+  
+  
   .ov-tl-tx.is-up{ top:0; }
-  .ov-tl-tx.is-dn{ top:38px; }
-  .ov-tl-tx.is-start, .ov-tl-tx.is-al{ transform:none; }
-  .ov-tl-tx.is-end, .ov-tl-tx.is-ar{ transform:translateX(-100%); }
-  .ov-tl-tx.is-decide b{ color:var(--st-amber-fg); }
-  .ov-tl-tx.is-missed b{ color:var(--st-ruby-fg); }
+  
+  
+  
+  
+  
   .ov-tl-tx.is-gone{ visibility:hidden; }
   /* THE ESSENTIALS CARD (ktOverviewTermsHtml, 8 Oct 2026): who it is between
      on the left, the terms on the right; stacked when the pane is narrow. */
@@ -5244,8 +5211,8 @@
   :root #ov-ess .ov-ess-g .sec-f-l:not(#_){ font-weight:var(--w-strong); }
   :root #ov-ess .ov-ess-g .sec-f-v:not(#_){ font-weight:var(--w-body); }
   :root #ov-map .ov-map-pcap, :root #ov-map .ov-map-pane h4{ text-transform:none; letter-spacing:0; }
-  .ov-ess-cap{ font-size:var(--t-micro); letter-spacing:var(--cap-ls); color:var(--cap-ink); }
-  .ov-ess-acts{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  
+  
   .ov-ess-p .ov-ess-h > [data-py-add]{ margin-left:auto; }
   .ov-ess-lock, .ov-ess-hold{ display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:999px;
     font-size:var(--t-micro); font-weight:var(--w-strong); }
@@ -5438,11 +5405,10 @@
     #ov-map .ov-map-stage{ height:calc((100cqw - 2px) * 310 / 900); }
   }
   .ov-map-top{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--color-divider); }
-  .ov-map-chipt{ height:26px; padding:0 10px; border-radius:13px; border:1px solid var(--color-divider); background:var(--color-surface);
-    font:inherit; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-text); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer; }
-  .ov-map-chipt i{ width:8px; height:8px; border-radius:50%; }
-  .ov-map-chipt[aria-pressed="false"]{ opacity:.5; }
-  .ov-map-chipt[aria-pressed="false"] span{ text-decoration:line-through; }
+  
+  
+  
+  
   .ov-map-stage{ background:radial-gradient(circle,var(--color-accent-100) 1px,transparent 1.3px) 0 0/22px 22px,var(--color-surface); }
   /* THE STAGE FITS A LAPTOP (Young, 8 Oct 2026: "Make it so you do not have to
      scroll up and down on your laptop to see the full circle of movement"): one
@@ -5465,9 +5431,9 @@
   .ov-map-top .ov-map-chipt i{ background:var(--accent-fill); }
   .ov-map-svg .ov-map-halo-ln{ fill:none; stroke:var(--color-accent-100); stroke-width:12; stroke-linecap:round; }
   .ov-map-svg .ov-map-ln{ fill:none; stroke:var(--accent-fill); stroke-width:2.5; }
-  .ov-map-svg .ov-map-sq{ fill:var(--accent-fill); }
+  
   .ov-map-svg .ov-map-hit{ fill:none; stroke:transparent; stroke-width:16; }
-  .ov-map-svg .ov-map-arc .ov-map-dash{ fill:none; stroke:var(--rule-strong); }
+  
   .ov-map-svg .ov-map-us-c{ fill:var(--color-accent-100); stroke:var(--accent-fill); stroke-width:2.5; }
   .ov-map-svg .ov-map-them-c{ fill:var(--alt-soft); stroke:var(--alt); stroke-width:2.5; }
   .ov-map-svg .ov-map-ini{ font-size:26px; }
@@ -5485,7 +5451,7 @@
   .ov-map-svg .ov-map-lines{ stroke:var(--color-accent-200); }
   .ov-map-svg .is-sel .ov-map-us-c, .ov-map-svg .is-sel .ov-map-them-c{ stroke:var(--accent-fill); stroke-width:4; }
   .ov-map-svg [tabindex]:focus-visible .ov-map-us-c, .ov-map-svg [tabindex]:focus-visible .ov-map-them-c{ stroke:var(--accent-fill); stroke-width:4; stroke-dasharray:6 4; }
-  .ov-map-cl{ font-family:var(--font-code); color:var(--accent-ink); }
+  
   /* (work order Part 9) the node's place is on .ov-map-hitg, its pop-in on the
      inner .ov-map-nd; "they owe" in their colour; the empty map's one line;
      a payment's amount at the row's right; the compact renewal decision. */
@@ -5504,8 +5470,8 @@
   .ov-map-svg .ov-map-seg{ fill:none; stroke-width:7; animation:ov-map-grow 1.2s cubic-bezier(.2,.8,.2,1) .2s forwards; }
   .ov-map-svg .ov-map-seg.is-g{ stroke:var(--st-green-dot); } .ov-map-svg .ov-map-seg.is-a{ stroke:var(--st-amber-dot); }
   .ov-map-svg .ov-map-seg.is-r{ stroke:var(--st-ruby-dot); } .ov-map-svg .ov-map-seg.is-s{ stroke:var(--st-steel-dot); }
-  .ov-map-svg .ov-map-dash{ stroke:var(--color-divider); stroke-width:2; stroke-dasharray:4 7; }
-  .ov-map-svg .ov-map-fl.is-b{ animation-delay:0s, -3s; }
+  
+  
   @keyframes ov-map-grow{ to{ stroke-dashoffset:0; } }
   @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-seg{ animation:none; stroke-dashoffset:0; } }
   .ov-map-list{ display:flex; flex-direction:column; gap:6px; padding:0 12px; }
@@ -5516,18 +5482,18 @@
   .ov-map-svg{ display:block; width:100%; height:auto; }
   .ov-map-svg text{ font-family:var(--font-body); }
   .ov-map-svg .ov-map-nd{ cursor:pointer; transform-box:fill-box; transform-origin:center; animation:ov-map-pop .55s cubic-bezier(.2,.8,.2,1) both; transition:opacity .2s; }
-  .ov-map-svg .ov-map-fl{ animation:ov-map-pop .55s cubic-bezier(.2,.8,.2,1) both, ov-map-float 6s ease-in-out .7s infinite; }
+  
   .ov-map-svg.is-dim .ov-map-nd:not(.is-lit){ opacity:.18; }
   .ov-map-svg .is-off{ opacity:0; pointer-events:none; }
-  .ov-map-svg .ov-map-ringp{ transform-box:fill-box; transform-origin:center; animation:ov-map-ring 1.8s ease-out infinite; }
-  .ov-map-svg .ov-map-halo{ animation:ov-map-breathe 5s ease-in-out infinite; }
+  
+  
   .ov-map-svg .ov-map-cap{ font-size:10.5px; letter-spacing:.06em; fill:var(--cap-ink); }
   .ov-map-svg .ov-map-nm{ font-size:12.5px; font-weight:700; fill:var(--color-text); }
   .ov-map-svg .ov-map-doc{ fill:var(--color-surface); stroke:var(--color-accent-200); stroke-width:1.5; }
   .ov-map-svg .ov-map-lines{ stroke:var(--color-divider); stroke-width:2; stroke-linecap:round; fill:none; }
   .ov-map-svg .ov-map-ref{ font:600 11px var(--font-ref); fill:var(--accent-ink); }
   .ov-map-svg .ov-map-sm{ font-size:11px; fill:var(--color-quiet); }
-  .ov-map-svg .ov-map-av{ font-size:10px; font-weight:700; }
+  
   .ov-map-svg .ov-map-chip{ fill:var(--color-surface); stroke:var(--color-divider); }
   .ov-map-svg .ov-map-big{ font-size:13px; font-weight:700; fill:var(--color-text); }
   .ov-map-svg .ov-map-badge{ stroke:var(--color-surface); stroke-width:2; }
@@ -5542,11 +5508,11 @@
   @keyframes ov-map-ring{ from{ transform:scale(1); opacity:.75; } to{ transform:scale(2.6); opacity:0; } }
   @keyframes ov-map-breathe{ 50%{ opacity:.45; } }
   @keyframes ov-map-rise{ from{ opacity:0; transform:translateY(10px); } }
-  @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-nd, .ov-map-svg .ov-map-fl, .ov-map-svg .ov-map-halo, .ov-map-svg .ov-map-ringp, .ov-map-rise{ animation:none; } }
+  @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-nd,.ov-map-rise{ animation:none; } }
   .ov-map-rise{ animation:ov-map-rise .45s cubic-bezier(.2,.8,.2,1) both; }
   .ov-map-pane h3{ margin:2px 0 4px; font-size:var(--t-section); font-weight:var(--w-title); color:var(--color-text); }
   .ov-map-pane h4{ margin:14px 0 6px; font-size:var(--t-micro); font-weight:var(--cap-w);   color:var(--cap-ink); }
-  .ov-map-pcap{ font-size:var(--t-micro);   color:var(--cap-ink); }
+  
   .ov-map-lede{ margin:0 0 10px; color:var(--color-neutral-600); font-size:var(--t-card); }
   .ov-map-none{ margin:4px 0; color:var(--color-neutral-600); font-size:var(--t-label); }
   .ov-map-ob{ display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-top:1px solid var(--color-divider); width:100%; }
@@ -5563,10 +5529,10 @@
   .ov-map-pill.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); } .ov-map-pill.is-amber i{ background:var(--st-amber-dot); }
   .ov-map-pill.is-ruby{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); } .ov-map-pill.is-ruby i{ background:var(--st-ruby-dot); }
   .ov-map-pill.is-steel{ background:var(--st-steel-bg); color:var(--st-steel-fg); } .ov-map-pill.is-steel i{ background:var(--st-steel-dot); }
-  .ov-map-sg{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  
   .ov-map-sg.is-done{ color:var(--st-green-fg); }
   .ov-map-quote{ margin:8px 0 0; padding:8px 10px; border-left:2px solid var(--color-accent-200); background:var(--color-accent-50); font-size:var(--t-card); color:var(--color-text); }
-  .ov-map-acts{ margin-top:12px; }
+  
   .ov-map-pane #renewal-host:not(:empty){ margin:0 0 12px; }
   /* THE LIVE LINES AND THE STRUCTURED PANEL (Young, 9 Oct 2026). Dots travel
      the curves the way each duty runs; the curves march the same way; a
@@ -5615,7 +5581,7 @@
   .ov-map-kv-v .ov-map-pill{ font-weight:var(--w-label); }
   .ov-map-pane blockquote.ov-map-quote{ margin:0; padding:10px 12px; border-left:0; border-radius:var(--radius); background:var(--color-accent-50); line-height:1.55; }
   .ov-map-grp + .ov-map-grp{ margin-top:2px; }
-  .ov-map-rows{ border:1px solid var(--color-divider); border-radius:var(--radius); }
+  
   .ov-map-rows .ov-map-ob{ padding:8px 12px; border-top:0; }
   .ov-map-rows .ov-map-ob + .ov-map-ob{ border-top:1px solid var(--color-divider); }
   .ov-map-obt{ display:block; font-size:var(--t-card); font-weight:var(--w-label); color:var(--color-text); }
@@ -5771,11 +5737,11 @@
   .obd-row.is-ls .obd-desc{font-weight:var(--w-label)}
   .obd-lsq{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:3px;font:italic 13px/1.4 var(--font-doc);color:var(--color-quiet)}
   .obd-sec{font:normal var(--w-label) 11.5px/1 var(--font-body);color:var(--accent-ink);margin-right:6px}
-  .obd-pills{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:2px}
-  .obd-pills button{font-size:12px;padding:2px 9px;border-radius:999px;background:none;border:0;color:var(--color-quiet)}
+  
+  
   #obd .obd-pills button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
-  .obd-ns-say{display:block;margin-top:3px;font-size:12px;color:var(--st-amber-fg)}
-  .obd-lsw{font-size:13px;color:var(--color-quiet)}
+  
+  
   .obd-bd{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:20px;padding:0 8px;border-radius:999px;white-space:nowrap}
   .obd-bd i{width:6px;height:6px;border-radius:50%;background:currentColor}
   .obd-bd.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
@@ -5788,9 +5754,9 @@
   .obdf{padding:2px 0 8px}
   .obdf-eye{margin:0;font-size:12px;color:var(--color-neutral-400)}
   .obdf-t{margin:4px 0 10px;font:400 19px/1.25 var(--font-doc);color:var(--color-text)}
-  .obdf-ring{display:flex;gap:14px;align-items:center;padding:6px 0 14px;border-bottom:1px solid var(--color-divider)}
-  .obdf-ring b{display:block;font-weight:var(--w-strong);font-size:14px}
-  .obdf-ring small{display:block;font-size:12.5px;color:var(--color-neutral-400)}
+  
+  
+  
   .obdf-q{margin:0;padding:10px 0 12px;border-bottom:1px solid var(--color-divider);font:italic 13.5px/1.45 var(--font-doc);color:var(--color-quiet)}
   .obdf-fact{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--color-divider);font-size:13.5px}
   .obdf-fact span:first-child{color:var(--color-neutral-400)}
@@ -5914,8 +5880,7 @@
   .hist-q input{ border:0; outline:0; background:transparent; font:inherit; font-size:var(--t-body); color:var(--color-text); min-width:0; flex:1; }
   .hist-q:focus-within{ outline:2px solid var(--focus-color,var(--color-accent-600)); outline-offset:-1px; }
   #hist-filter-btn{ display:inline-flex; align-items:center; gap:6px; }
-  .hist-fn{ display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:999px;
-    background:var(--color-accent-100); color:var(--accent-ink); font-size:var(--t-micro); }
+  
   #ws-history-pane #hist-filters{ padding:10px var(--s-4) 0; }
   .hist-day-h{ padding:7px var(--s-4); background:var(--surface-2); border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider);
     font-size:var(--t-meta); color:var(--color-neutral-600); }
@@ -5987,7 +5952,7 @@
   .hist-inside .hist-text{ font-size:var(--t-meta); font-weight:var(--w-body); line-height:18px; color:inherit; }
   .hist-inside .hist-body{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .hist-inside .hist-lock{ display:inline-flex; color:var(--color-neutral-600); }
-  .hist-mid-more{ max-width:560px; width:100%; }
+  
   @media (max-width:700px){ .hist-trail.is-lanes{ grid-template-columns:minmax(0,1fr); }
     .hist-trail.is-lanes::before, .hist-lh.is-m{ display:none; }
     .hist-trail.is-lanes .hist-ev.is-ours, .hist-trail.is-lanes .hist-ev.is-theirs, .hist-lh.is-l, .hist-lh.is-r{ grid-column:1; justify-content:flex-start; text-align:left; padding:0; } }
@@ -6056,8 +6021,7 @@
   .hist-dot.is-eye svg{ width:var(--hist-dot); height:var(--hist-dot); }
   .hist-ev.is-open .hist-text{ color:var(--color-neutral-600); }
   .hist-body{ min-width:0; }
-  .hist-round{ font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-500);
-    font-variant-numeric:tabular-nums; line-height:20px; text-align:right; }
+  
   /* An entry in no round: the canvas's dash, in the ink this product keeps for
      an absence. */
   .hist-round.is-none{ font-weight:var(--w-body); color:var(--color-neutral-400); }
@@ -6937,7 +6901,7 @@
   .hm-greet .ui-btn{align-self:center;}
   .hm-sec-sub{font-size:var(--t-label);color:var(--color-neutral-600);flex:none;margin-right:auto;}
   .hm-sec .hm-sec-sub+.hm-rule{display:none;}
-  .hm-big .hm-s{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:baseline;}
+  
   .hm-rverb{flex:none;display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--btn-edge);border-radius:var(--radius);
     background:var(--color-surface);font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;}
   .hm-row:hover .hm-rverb{border-color:var(--color-accent);color:var(--accent-ink);}
@@ -7202,10 +7166,9 @@
      gap sitting between a title and its number, which is the band this change
      exists to remove, put back by the mechanism removing it. The COLUMN gap is
      the one that separates cards and is untouched. */
-  .hm-tiles{display:grid;gap:0 var(--s-3);
-    grid-template-rows:minmax(var(--hm-r1),auto) minmax(var(--hm-r2),auto) minmax(var(--hm-r3),auto);}
-  .hm-tiles.is-work{grid-template-columns:repeat(4,minmax(0,1fr));}
-  .hm-tiles.is-port{grid-template-columns:1.9fr 1fr 1fr 1fr;}
+  
+  
+  
   /* PURE WHITE, and it is the token that is pure (owner-asked 24 Aug 2026:
      "the white backgrounds have to be pure white with no shade of any kind").
      --color-surface is #ffffff; nothing here mixes it with anything. */
@@ -7269,13 +7232,13 @@
      own: --hm-r1 is what the row reserves, and the detail keeps its 1.35em
      floor so a card with nothing to say there still leaves the line rather
      than pulling its figure up out of line with its neighbours'. */
-  .hm-head{display:block;min-width:0;}
+  
   /* THE LABEL IS QUIET AND THE FIGURE IS LOUD (Young ruled 21 Sep 2026, the
      reference's own relationship): .kpi .l reads 12/500 in the secondary ink,
      so the eye lands on the number. It was 13/600 in the page ink, which made
      every tile shout its own caption. */
-  .hm-t{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-500);padding-right:18px;}
-  .hm-s{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-500);margin-top:1px;}
+  
+  
   .hm-tile .hm-s{min-height:1.35em;}
   /* THE FIGURE SITS IN THE MIDDLE OF ITS OWN REGION. --hm-r2 is the tallest
      thing any card puts there (the lifecycle bar), so an ordinary numeral has
@@ -7287,9 +7250,9 @@
   /* .hm-sp IS RETIRED — flag any mention as stale. It was the spacer that
      swallowed a fixed card's leftover and became the hole the owner ringed;
      with the regions owning the layout there is no leftover for it to hold. */
-  .hm-go{position:absolute;top:11px;right:11px;color:var(--color-neutral-400);}
+  
   .hm-tile:hover .hm-go{color:var(--accent-ink);}
-  .hm-big{display:flex;align-items:baseline;gap:7px;min-width:0;}
+  
   /* ---- THE LINE BOX HOLDS THE FACE, NOT THE FACE THAT WAS HERE (25 Aug 2026) ----
      1.05 was tuned to Inter's metrics and IBM Plex Sans does not fit inside it:
      MEASURED on the dashboard, the box computed 34px against a scrollHeight of
@@ -7301,14 +7264,13 @@
      "counts", so this reads the ladder rather than inventing a number: 38.4px
      against the 37 the face needs. `.hm-m` below carried the identical value
      for the identical reason and moves with it — one fault, two places. */
-  .hm-n{font-size:26px;font-weight:var(--w-title);line-height:var(--lh-tight);color:var(--color-text);
-    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  
   /* ---- THE UNIT TAKES ITS NUMERAL'S INK (the black ink, 24 Aug 2026) ----
      "13 agreements", "8 docs", "74 %" — the figure and its unit are one
      reading, and the unit was 14px text on the secondary shade beside a
      numeral in the primary one. The design gives both the same ink. Matched to
      .hm-n rather than given a colour of its own, so the two cannot drift. */
-  .hm-u{font-size:var(--t-body);color:var(--color-text);font-weight:var(--w-body);}
+  
   /* NO HAIRLINE ABOVE THE TILE'S LAST LINE (21 Sep 2026): the reference's
      .kpi .d is a quiet line at the foot with nothing drawn over it. The gap
      is kept, so the tile's height does not move. */
@@ -7324,26 +7286,23 @@
 
   /* THE LIFECYCLE TILE'S THREE BLOCKS ARE THREE DOORS. This is what replaced
      the pipeline ring, and the stage list with it: the count is the handle. */
-  .hm-life{display:flex;align-items:flex-end;gap:22px;min-width:0;}
-  .hm-stack{display:flex;gap:6px;flex:none;}
-  .hm-stg-wrap{display:block;}
-  .hm-stg{display:flex;flex-direction:column;align-items:stretch;gap:var(--s-1);width:100%;
-    background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;}
-  .hm-stg:hover .hm-bar{filter:brightness(.88);}
-  .hm-stg:hover .hm-sl,.hm-stg:hover .hm-sn{color:var(--accent-ink);}
-  .hm-stg:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:3px;}
-  .hm-stg[disabled]{cursor:default;}
-  .hm-sn{font-size:var(--t-micro);font-weight:var(--w-title);line-height:1;color:var(--color-text);
-    font-variant-numeric:tabular-nums;}
-  .hm-bar{width:100%;height:10px;background:var(--color-neutral-300);}
-  .hm-stg.is-review .hm-bar{background:var(--st-amber-dot);}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   .hm-stg.is-signed .hm-bar{background:var(--st-green-dot);}
   .hm-stg.is-zero .hm-bar{background:none;border:1px dashed var(--color-neutral-300);}
-  .hm-sl{font-size:var(--t-micro);color:var(--color-quiet);line-height:1;white-space:nowrap;}
-  .hm-money{flex:1 1 auto;min-width:0;}
-  .hm-m{display:block;font-size:26px;font-weight:var(--w-title);line-height:var(--lh-tight);white-space:nowrap;
-    color:var(--color-text);font-variant-numeric:tabular-nums;}
-  .hm-ml{display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:3px;line-height:1.3;}
+  
+  
+  
+  
 
   /* NEEDS YOUR DECISION — full-width rows, the tone on a 3px left rule. */
   .hm-rows{background:var(--color-surface);border:1px solid var(--color-divider);}
@@ -7354,7 +7313,7 @@
   .hm-row:last-child{border-bottom:0;}
   .hm-row:hover{background:var(--row-hover);}
   .hm-row:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
-  .hm-rdot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-400);}
+  
   .hm-row.is-crit .hm-rdot{background:var(--st-amber-dot);}
   .hm-row.is-neg .hm-rdot{background:var(--st-ruby-dot);}
   .hm-rb{flex:1 1 auto;min-width:0;}
@@ -7366,7 +7325,7 @@
     font-variant-numeric:tabular-nums;}
   .hm-row.is-crit .hm-rtag{color:var(--st-amber-fg);}
   .hm-row.is-neg .hm-rtag{color:var(--st-ruby-fg);}
-  .hm-rchev{flex:none;color:var(--color-neutral-400);}
+  
   /* PREPARED BY COPILOT (28 Sep 2026) — one row per agent with work ready;
      the row is not a press, its Review button is. */
   .hm-row.is-agent{cursor:default;min-height:56px;}
@@ -7697,47 +7656,36 @@
      above the rows it is a picture of. */
   .hm-rw{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;
     padding:12px 14px 6px;border-bottom:1px solid var(--color-divider);}
-  .hm-rw-main{flex:1 1 380px;min-width:0;}
-  .hm-rw-ends{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px;}
-  .hm-rw-end{min-width:0;font-size:var(--t-micro);font-weight:var(--w-strong);
-    color:var(--color-quiet);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  
+  
+  
   .hm-rw-end.is-past{color:var(--st-ruby-fg);}
   .hm-rw-rail{position:relative;height:76px;border-radius:var(--radius);overflow:hidden;}
-  .hm-rw-wash{position:absolute;top:0;bottom:21px;}
+  
   .hm-rw-wash.is-past{left:0;background:var(--st-ruby-bg);}
-  .hm-rw-wash.is-ahead{right:0;background:var(--color-neutral-100);}
-  .hm-rw-base{position:absolute;left:0;right:0;bottom:21px;height:1px;background:var(--rule-strong);}
-  .hm-rw-now{position:absolute;top:0;bottom:13px;width:2px;margin-left:-1px;background:var(--color-text);}
-  .hm-rw-pins{position:absolute;left:0;right:0;bottom:27px;height:44px;}
+  
+  
+  
+  
   /* EVERY DOT IS A DOOR onto its own contract — the rows below do no more. */
-  .hm-rw-pin{position:absolute;width:9px;height:9px;margin-left:-4.5px;padding:0;
-    border:0;border-radius:50%;cursor:pointer;}
-  .hm-rw-pin:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-text) 14%,transparent);}
-  .hm-rw-pin:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px;}
-  .hm-rw-tick{position:absolute;bottom:2px;white-space:nowrap;font-family:var(--font-mono);
-    font-variant-numeric:tabular-nums;font-size:var(--t-figure);color:var(--color-neutral-500);}
+  
+  
+  
+  
   .hm-rw-tick.is-past{color:var(--st-ruby-fg);}
   .hm-rw-tick.is-now{font-weight:var(--w-strong);color:var(--color-text);transform:translateX(-50%);}
-  .hm-rw-tick.is-end{transform:translateX(-100%);}
-  .hm-rw-side{flex:0 0 226px;min-width:0;display:flex;flex-direction:column;
-    border-left:1px dashed var(--rule-strong);padding-left:14px;}
-  .hm-rw-sidehead{margin-bottom:5px;font-size:var(--t-micro);font-weight:var(--w-strong);
-    color:var(--color-quiet);}
-  .hm-rw-nc{display:flex;align-items:center;gap:9px;width:100%;padding:5px 0;
-    border:0;border-bottom:1px solid var(--rule-faint);background:none;
-    font:inherit;font-family:var(--font-body);color:inherit;text-align:left;cursor:pointer;}
-  .hm-rw-nc:last-child{border-bottom:0;}
-  .hm-rw-nc:hover{background:var(--nav-well);}
-  .hm-rw-nc:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
-  .hm-rw-ncd{flex:none;width:8px;height:8px;border-radius:50%;}
-  .hm-rw-ncn{flex:none;width:22px;font-family:var(--font-mono);font-variant-numeric:tabular-nums;
-    font-size:var(--t-md);font-weight:var(--w-strong);}
-  .hm-rw-ncw{flex:1 1 auto;min-width:0;font-size:var(--t-meta);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   @media (max-width:900px){
-    .hm-rw-side{flex-basis:100%;border-left:0;padding-left:0;padding-top:10px;
-      border-top:1px dashed var(--rule-strong);}
+    
   }
   /* ---- AUTO-TRIAGE'S CARD (owner-approved design, 9 Sep 2026) ----
      A row in this same list, in this same vocabulary — so folded it is
@@ -7766,10 +7714,8 @@
   .kt-tri-head{display:flex;align-items:center;gap:var(--s-2);}
   .kt-tri-t{flex:1;min-width:0;font-size:var(--t-body);font-weight:var(--w-title);
     color:var(--color-text);}
-  .kt-tri-x{flex:none;border:0;background:none;padding:2px 4px;font:inherit;
-    font-size:var(--t-label);color:var(--color-neutral-600);cursor:pointer;
-    text-decoration:underline;}
-  .kt-tri-x:hover{color:var(--color-text);}
+  
+  
   .kt-tri-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px;margin-top:9px;}
   .kt-tri-tile{border:1px solid var(--color-divider);border-radius:var(--radius);
@@ -8007,12 +7953,11 @@
   .ho-route-say{margin:4px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
   .ho-grid{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px 16px;align-items:start;
     font-size:var(--t-body);color:var(--color-text);}
-  .ho-l{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);padding-top:3px;}
+  
   .ho-sub{font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin-top:2px;}
   .ho-how{display:grid;gap:6px;}
   .ho-radio{display:flex;align-items:center;flex-wrap:wrap;gap:6px;cursor:pointer;}
-  .ho-lock{margin:var(--s-4) 0 0;padding:8px 10px;border-radius:var(--radius);
-    background:var(--color-neutral-100);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700);}
+  
   .ho-err{margin-top:var(--s-3);font-size:var(--t-label);color:var(--st-ruby-fg);}
   .ho-card .kt-tri-head{flex-wrap:wrap;}
   .ho-chip{flex:none;display:inline-flex;align-items:center;padding:1px 6px;border-radius:var(--radius);
@@ -8067,9 +8012,9 @@
   .ho-tick.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .ho-signers{display:grid;gap:3px;margin:5px 0;}
   .ho-signer{display:flex;align-items:flex-start;gap:6px;cursor:pointer;}
-  .ho-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin-top:6px;}
-  .ho-dates label,.ho-via{display:grid;gap:3px;font-size:var(--t-label);color:var(--color-neutral-600);}
-  .ho-dates input{width:100%;min-width:0;}
+  
+  .ho-via{display:grid;gap:3px;font-size:var(--t-label);color:var(--color-neutral-600);}
+  
   .ho-via{margin-top:9px;}
   .ho-file-foot{display:flex;align-items:flex-start;gap:var(--s-2);margin-top:auto;padding-top:var(--s-4);flex-wrap:wrap;}
   #ho-f-acts{display:flex;flex-wrap:wrap;gap:var(--s-2);justify-content:flex-end;}
@@ -8149,10 +8094,8 @@
      THE SUB-LINE IS A FACT, NOT A WARNING: it counts what is prepared and says
      plainly that nothing was sent or filed, so it takes the label shade and no
      tone of its own. */
-  .hm-desk-sub{font-size:var(--t-label);color:var(--color-neutral-500);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
-  .hm-empty{background:var(--color-surface);border:1px solid var(--color-divider);
-    padding:18px 14px;font-size:var(--t-meta);color:var(--color-neutral-500);}
+  
+  
 
   /* Below the design's own desktop measure the two tile rows stack two-up
      rather than crushing four labels into a third of a word each. The design
@@ -8163,7 +8106,7 @@
        rule used to carry has nothing left to undo. */
   }
   @media (max-width:680px){
-    .hm-tiles.is-work,.hm-tiles.is-port{grid-template-columns:minmax(0,1fr);}
+    
     .hm-greet{flex-wrap:wrap;}
   }
   /* A FLOOR, so the row cannot be crushed instead of the page scrolling.
@@ -8172,10 +8115,10 @@
      while the page reported itself as fitting. The floor makes the page scroll
      — which it is set up to do — once there is genuinely more to show than
      there is room for. */
-  .hm-main-row{flex:1 1 auto;min-height:230px;}
+  
   .hm-pipe-card{display:flex;flex-direction:column;min-height:0;}
-  .hm-pipe-cols{flex:1;min-height:0;}
-  .hm-pipe-list{flex:1;min-height:96px;overflow-y:auto;}
+  
+  
 
   /* ---- THE PIPELINE CARD'S INSIDE: one ring, one list (13 Aug 2026) ----
      THE CARD'S BOX IS NOT TOUCHED BY ANY OF THIS. Its height comes from
@@ -8185,9 +8128,7 @@
 
      Type comes from the app's own tokens — --font-heading for the figure and
      the stage name, everything else inherits --font-body. */
-  .hm-pipe-chart{min-height:0;min-width:0;overflow:hidden;border:0;
-    border-radius:var(--radius);background:none;padding:6px 2px;
-    display:flex;flex-direction:column;justify-content:flex-start;gap:var(--s-2);}
+  
   /* A GRID, NOT A FLEX ROW: as flex items the key could be sized below its own
      content, and on a short card its three rows were squeezed into 24px and
      pushed out through the bottom of the pane. Grid items take their content
@@ -8196,62 +8137,55 @@
   .hm-ring-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:18px;min-height:0;}
   .hm-ring-row.hm-stack{grid-template-columns:minmax(0,1fr);justify-items:center;gap:10px;}
   .hm-ring-row.hm-stack .hm-key{width:100%;}
-  .hm-ring-block{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
-  .hm-ring-stage{position:relative;display:grid;place-items:center;}
+  
+  
   /* --hm-ring is measured off the pane by hmFit and is the ONLY thing that
      sizes the chart: the card's height decides the ring, never the reverse. */
-  .hm-ring-stage svg{width:var(--hm-ring,200px);height:var(--hm-ring,200px);display:block;}
-  .hm-seg{fill:none;stroke-linecap:butt;cursor:pointer;transition:stroke-width var(--dur-2) ease;}
-  .hm-seg:focus{outline:none;}
-  .hm-seg:focus-visible{outline:2px solid var(--accent-solid);outline-offset:4px;}
-  .hm-ring-centre{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;}
-  .hm-ring-fig{font-family:var(--font-heading);font-weight:var(--w-strong);line-height:1;letter-spacing:-.03em;
-    color:var(--color-text);font-size:calc(var(--hm-ring,200px) * .2);font-variant-numeric:tabular-nums;}
-  .hm-ring-of{margin-top:var(--s-1);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);}
+  
+  
+  
+  
+  
+  
+  
   /* The stage name sits UNDER the ring, not in it — in the hole it ran wider
      than the hole is, and the fix for that is a slot with room in it. */
-  .hm-ring-what{text-align:center;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
-  .hm-ring-what small{display:block;margin-top:1px;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);}
-  .hm-ring-hint{flex:none;text-align:center;font-size:var(--t-label);color:var(--color-neutral-500);}
-  .hm-ring-hint[hidden],.hm-tight .hm-ring-hint{display:none;}
+  
+  
+  
+  
 
-  .hm-key{min-width:0;display:flex;flex-direction:column;gap:3px;}
-  .hm-leg{flex:none;display:grid;grid-template-columns:11px 1fr auto auto;align-items:center;
-    gap:3px 10px;width:100%;background:none;border:1px solid transparent;border-radius:var(--radius);
-    padding:var(--s-2) 10px;cursor:pointer;text-align:left;font:inherit;color:var(--color-text);}
-  .hm-leg:hover{background:var(--color-surface);border-color:var(--color-divider);}
-  .hm-leg:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px;}
-  .hm-leg[aria-pressed="true"]{background:var(--color-surface);border-color:var(--color-divider);box-shadow:var(--shadow-sm);}
-  .hm-leg-dot{width:11px;height:11px;border-radius:var(--radius);}
-  .hm-leg-name{font-size:var(--t-meta);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .hm-leg-n{font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;}
-  .hm-leg-pct{font-size:var(--t-label);color:var(--color-neutral-500);width:30px;text-align:right;font-variant-numeric:tabular-nums;}
+  
+  
+  
+  
+  
+  
+  
+  
+  
   /* The ring says share by angle; the bar says it by length — the same fact in
      the form that is easiest to compare. First thing to go when space is short. */
-  .hm-leg-bar{grid-column:2/-1;height:4px;border-radius:var(--radius);background:var(--color-neutral-100);overflow:hidden;}
-  .hm-leg-bar i{display:block;height:100%;border-radius:var(--radius);}
-  .hm-vtight .hm-leg-bar{display:none;}
-  .hm-vtight .hm-leg{padding:6px 10px;}
+  
+  
+  
+  
 
-  .hm-pipe-side{display:flex;flex-direction:column;min-width:0;min-height:0;
-    border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;}
+  
   /* ---- THE STAGE HEAD SHARES THE CARD-HEADING LINE (owner-asked 23 Aug 2026)
      It was the first row inside the bordered list box, 34px below the two card
      headings; it is now a grid cell in the pipeline's first row, beside the
      card's own <h4>. Its left padding is the box's own content inset (1px
      border + 9px) so the stage name still starts on the same vertical as the
      rows it names. */
-  .hm-pipe-title{display:flex;align-items:center;gap:10px;min-width:0;}
-  .hm-side-head{display:flex;align-items:center;gap:var(--s-2);padding:0 10px;min-width:0;}
-  .hm-side-title{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);margin:0;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .hm-side-count{margin-left:auto;flex:none;border:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-title);
-    padding:3px 9px;border-radius:var(--radius);cursor:pointer;font-variant-numeric:tabular-nums;}
-  .hm-pipe-side .hm-pipe-list{padding:0 9px 5px;display:flex;flex-direction:column;gap:5px;}
-  .hm-side-foot{flex:none;padding:6px 11px 7px;}
-  .hm-side-foot:not(:empty){border-top:1px solid var(--color-divider);}
-  .hm-side-more{border:0;background:none;padding:2px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
-    color:var(--accent-ink-700);cursor:pointer;text-align:left;}
+  
+  
+  
+  
+  
+  
+  
+  
 
   /* THE PIPELINE CARD'S OWN ROW IS RETIRED with the ring it sat beside
      (24 Aug 2026). Its rules are DELETED rather than left dormant, and that is
@@ -8262,14 +8196,12 @@
      A stale class name is not inert when a live one takes its name.
      .hm-row-name / -meta / -flag / -sep / -cp / -none below belong to the same
      retired card and are kept only because nothing else claims those names. */
-  .hm-row-name{display:block;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-text);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .hm-row-meta{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:var(--t-label);
-    color:var(--color-neutral-500);min-width:0;}
-  .hm-row-flag{display:inline-flex;align-items:center;gap:var(--s-1);font-weight:var(--w-strong);white-space:nowrap;flex:none;}
-  .hm-row-sep{color:var(--color-neutral-400);}
-  .hm-row-cp{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .hm-row-none{font-size:var(--t-label);color:var(--color-neutral-500);padding:var(--s-1) 2px;}
+  
+  
+  
+  
+  
+  
 
   /* The hero banner (Hero B, 20 Aug 2026) — replaces the Portfolio strip.
      The retired hm-strip, hm-foot and hm-foot-card classes are stale — flag
@@ -8326,7 +8258,7 @@
      preference about the four cards under it, not an act on the portfolio.
      A fixed height so the line cannot grow and start costing the page more
      than the banner gave up for it. */
-  .hm-kpi-bar{display:flex;align-items:center;justify-content:flex-end;height:26px;padding:0 2px;}
+  
   .hm-cz{display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0 4px;min-height:var(--tap-min);border-radius:var(--radius);
     font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;}
   .hm-cz:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
@@ -8343,15 +8275,14 @@
      the words on one line rather than merely in one row — the h4 and the
      stage title are different sizes and would otherwise sit on their own
      tops. */
-  .hm-pipe-cols{grid-template-columns:2fr 1fr;grid-template-rows:auto minmax(0,1fr);
-    column-gap:11px;row-gap:var(--s-3);}
-  .hm-pipe-cols > .hm-pipe-title{grid-column:1;grid-row:1;align-self:center;}
-  .hm-pipe-cols > .hm-side-head{grid-column:2;grid-row:1;align-self:center;}
-  .hm-pipe-cols > .hm-pipe-chart{grid-column:1;grid-row:2;}
-  .hm-pipe-cols > .hm-pipe-side{grid-column:2;grid-row:2;}
+  
+  
+  
+  
+  
   /* Home — pipeline beside decisions (was 2fr 1fr). The decisions card fills
      its column absolutely, so when the row stacks it needs a height to fill. */
-  .hm-main-row{grid-template-columns:2fr 1fr;}
+  
   /* ---- ONCE THE TWO CARDS HAVE TO STACK, THE PAGE SCROLLS (13 Aug 2026) ----
      THE DEFECT: below 1200px there is no room for the two cards side by side,
      so the row stacks them — but .hm-page is exactly --view-h tall and refuses
@@ -8384,12 +8315,12 @@
        directly under the card's heading with the whole ring between it and
        the rows it names. Placement is released and ORDER puts them back in
        reading order: heading, ring, stage name, list. */
-    .hm-pipe-cols{grid-template-columns:minmax(0,1fr);grid-template-rows:none;row-gap:11px;}
-    .hm-pipe-cols > *{grid-column:auto;grid-row:auto;align-self:auto;}
-    .hm-pipe-cols > .hm-pipe-title{order:1;}
-    .hm-pipe-cols > .hm-pipe-chart{order:2;}
-    .hm-pipe-cols > .hm-side-head{order:3;padding:0;}
-    .hm-pipe-cols > .hm-pipe-side{order:4;}
+    
+    
+    
+    
+    
+    
     .hm-pipe-card{min-height:560px;}
   }
 
@@ -8953,7 +8884,7 @@
      a reader can see rather than by a point. */
   .na-sec + .na-sec{ margin-top:20px; }
   .na-sec-h{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-height:var(--field-h,32px); }
-  .na-sec-label{ font-size:var(--t-micro);   color:var(--color-quiet); font-weight:var(--w-title); white-space:nowrap; }
+  
   .na-lob{ margin-left:auto; display:flex; align-items:center; gap:6px; font-size:var(--t-label); color:var(--color-neutral-600); }
   /* The one control in this row is the same size as the controls in the card
      beside it: at 26px against the form's 32px it read as a different class of
@@ -9046,19 +8977,19 @@
   .na-one .na-rail{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg); padding:12px 14px; gap:10px; }
   .na-step{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .na-step b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text); }
-  .na-n{ flex:none; display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--color-accent-50); color:var(--accent-ink); font-size:11.5px; font-weight:var(--w-strong); }
+  
   .na-one .na-card-h .na-n{ margin-right:-2px; }
-  .na-w-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .na-w-h b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text); }
-  .na-w-h q{ color:var(--color-text); font-style:italic; min-width:0; overflow-wrap:anywhere; }
-  .na-w-read{ display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; }
-  .na-w-c{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-  .na-w-c span{ font-size:var(--t-label); color:var(--color-neutral-600); }
-  .na-w-c b{ font-weight:var(--w-strong); color:var(--color-text); }
-  .na-w-c b i{ font-style:normal; font-weight:400; color:var(--color-neutral-600); }
+  
+  
+  
+  
+  
+  
+  
+  
   .na-w-c.is-owed b{ color:var(--st-amber-fg); }
-  .na-w-ai{ margin-left:auto; }
-  .na-w-ai em{ font-style:normal; color:var(--color-neutral-600); font-weight:400; }
+  
+  
   .na-closest{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
   /* THE TAG NEVER WRAPS, THE NAME GIVES WAY (the tidy sweep, 22 Oct 2026: the
      owner's picture had "the closest" folded onto two lines inside its 18px
@@ -9277,8 +9208,8 @@
   .field-grid input[type="date"]::-webkit-inner-spin-button{ display:none; }
 
   /* Settings & Rules — members beside the settings stack (was 1.5fr 1fr) */
-  .tm-cols{grid-template-columns:1.5fr 1fr;}
-  @media (max-width:1099px){ .tm-cols{grid-template-columns:minmax(0,1fr);} }
+  
+  @media (max-width:1099px){  }
 
   /* Our standards — clause library beside the playbook (was 1.4fr 1fr) */
 
@@ -9380,7 +9311,7 @@
      on a narrow window they hung off the right edge with nothing to scroll to.
      A ceiling costs nothing on a wide screen and keeps them reachable on a
      small one. */
-  #new-menu,#ws-export-menu,.rd-menu,[data-menu-pop]{
+  #new-menu,.rd-menu,[data-menu-pop]{
     max-width:calc(100vw - 24px);
   }
 
@@ -9496,10 +9427,10 @@
   /* HOME'S PAPER SIDE, NOTHING CHOSEN YET (7 Oct 2026): one card, the book's
      contracts as rows, most recently touched first. */
   .ig-pick{height:100%;overflow:auto;padding:28px 24px 48px}
-  .ig-pick-card{max-width:720px;margin:0 auto;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);padding:20px 22px}
-  .ig-pick-card h2{margin:0;font-size:var(--t-title,18px);font-weight:var(--w-title);color:var(--color-text)}
-  .ig-pick-sub{margin:4px 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600)}
-  .ig-pick-find{width:100%;height:var(--field-h);border:1px solid var(--field-line,var(--color-neutral-300));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--field-size,13px);background:var(--color-surface);color:var(--color-text);margin-bottom:10px}
+  
+  
+  
+  
   .ig-pick-list{display:flex;flex-direction:column}
   .ig-pick-row{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;text-align:left;border:0;border-top:1px solid var(--color-neutral-200);background:none;padding:9px 6px;font:inherit;color:var(--color-text);cursor:pointer;border-radius:0}
   .ig-pick-row:first-child{border-top:0}
@@ -9508,17 +9439,17 @@
   .ig-pick-row .q{grid-column:2;font-size:var(--t-meta);color:var(--color-neutral-600)}
   /* THE WALL OF PAPER (owner picked "Wall of paper", 13 Oct 2026): every contract as a small paper, its number beneath */
   .ig-wall{padding:18px 22px 48px}
-  .igw-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
-  .igw-tools .ig-pick-find{flex:1 1 260px;width:auto;min-width:0;margin:0}
-  .igw-sort{height:var(--field-h);border:1px solid var(--field-line,var(--color-neutral-300));border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--field-size,13px);padding:0 8px}
+  
+  
+  
   .igw-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:16px}
-  .igw-chip{height:var(--ctl-h-sm,28px);padding:0 12px;border-radius:999px;border:1px solid var(--btn-edge,var(--color-divider));background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);cursor:pointer;white-space:nowrap}
+  
   .igw-chip .n{color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
-  .igw-chip:hover{border-color:var(--color-accent-600)}
-  .igw-chip[aria-pressed="true"]{background:var(--color-accent-50);border-color:var(--color-accent-600);color:var(--accent-ink)}
+  
+  
   .igw-chip[aria-pressed="true"] .n{color:inherit}
   /* the set's chip (Open party) carries its drawn × beside the name */
-  .igw-chip.igw-only{display:inline-flex;align-items:center;gap:6px}
+  
   .igw-count{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;white-space:nowrap}
   .igw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:20px 14px}
   .igw-card{display:grid;gap:5px;align-content:start;min-width:0;text-align:left;background:none;border:0;padding:0;font:inherit;color:var(--color-text);cursor:pointer;content-visibility:auto;contain-intrinsic-size:auto 240px}
@@ -9979,7 +9910,7 @@
   #pd-fillface .pd-ff-use{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
   #pd-fillface .pd-ff-asked{color:var(--color-neutral-700)}
   .det-nda-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:var(--t-body)}
-  .det-nda-sug{font-size:12px;color:var(--color-neutral-600)}
+  
   /* AN NDA'S FACT AS DRAWN (the gaps, round 8): the reading in a box, the line under it, where it was read */
   .det-nda-box{display:block;margin-top:2px;padding:6px 10px;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
   .det-nda-box i{font-style:normal;color:var(--color-neutral-600)}
@@ -10120,24 +10051,24 @@
   .reg-table .ac-sub{display:block;font-size:11.5px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis}
   .reg-table .ac-dash{color:var(--color-text)}
   /* DISCOVER STAGE 2 (owner, 25 Oct 2026): the legend in the list's foot, the drawn counts, the name's hint */
-  i.ac-lg-green{background:var(--st-green-dot)} i.ac-lg-amber{background:var(--st-amber-dot)} i.ac-lg-ruby{background:var(--st-ruby-dot)} i.ac-lg-gray{background:var(--st-gray-dot)}
+   i.ac-lg-amber{background:var(--st-amber-dot)}  
   #ig-dock .ac-next{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
   /* NO GREY (owner, 29 Oct 2026, the Legora way): yes green, no blue, a plain fact its answer's own colour,
      nothing found an empty ring; red is a risk alone. One set of rules for every place an answer is drawn
      (the list, Jambo's panel, Reads, the read table, Key terms), at an id's weight so the older scoped
      rules above give way. The five value colours sit beside the status tones: violet, pink, teal, cocoa, indigo (none near amber, green or the blue of no). */
   :root{--ac-v1:var(--st-violet-dot);--ac-v2:var(--st-pink-dot);--ac-v3:#1F8A8A;--ac-v4:#8C5A3C;--ac-v5:#4F5BD5;--ac-more:#1D1D1F;--ac-no:var(--st-steel-dot)}
-  :is(#ig-dock, html) .ac-ans.tone-green>i, :is(#ig-dock, html) i.ac-lg-green{background:var(--st-green-dot);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-steel>i, :is(#ig-dock, html) i.ac-lg-steel{background:var(--ac-no);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-green>i{background:var(--st-green-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-steel>i{background:var(--ac-no);box-shadow:none}
   :is(#ig-dock, html) .ac-ans.tone-amber>i, :is(#ig-dock, html) i.ac-lg-amber{background:var(--st-amber-dot);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-ruby>i, :is(#ig-dock, html) i.ac-lg-ruby{background:var(--st-ruby-dot);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-v1>i, :is(#ig-dock, html) i.ac-lg-v1{background:var(--ac-v1);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-v2>i, :is(#ig-dock, html) i.ac-lg-v2{background:var(--ac-v2);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-v3>i, :is(#ig-dock, html) i.ac-lg-v3{background:var(--ac-v3);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-v4>i, :is(#ig-dock, html) i.ac-lg-v4{background:var(--ac-v4);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-v5>i, :is(#ig-dock, html) i.ac-lg-v5{background:var(--ac-v5);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-more>i, :is(#ig-dock, html) i.ac-lg-more{background:var(--ac-more);box-shadow:none}
-  :is(#ig-dock, html) .ac-ans.tone-none>i, :is(#ig-dock, html) i.ac-lg-none{background:transparent;box-shadow:inset 0 0 0 1.8px var(--ac-no)}
+  :is(#ig-dock, html) .ac-ans.tone-ruby>i{background:var(--st-ruby-dot);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v1>i{background:var(--ac-v1);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v2>i{background:var(--ac-v2);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v3>i{background:var(--ac-v3);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v4>i{background:var(--ac-v4);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-v5>i{background:var(--ac-v5);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-more>i{background:var(--ac-more);box-shadow:none}
+  :is(#ig-dock, html) .ac-ans.tone-none>i{background:transparent;box-shadow:inset 0 0 0 1.8px var(--ac-no)}
   :is(#ig-dock, html) .ac-ans.tone-none{color:var(--st-steel-fg);font-style:italic}
   /* AN ITALIC WORD IS NEVER CUT (owner, 9 Nov 2026: "The column … is cutting off some of the words"): a leaning last
      letter reaches past its box; where the box clips (an ellipsis cell), it keeps that much room at its right */
@@ -10155,9 +10086,9 @@
   #ig-dock .ac-prog{height:4px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
   #ig-dock .ac-prog>i{display:block;height:100%;background:var(--accent-solid);border-radius:2px;transition:width .2s linear}
   /* THE THREAD (owner picked it, 28 Oct 2026): the choice 50 | 100 inside the sentence; the progress line under a column's facts */
-  .ac-size-b{border:0;background:none;font:inherit;font-size:12px;font-weight:var(--w-label);line-height:18px;padding:0 9px;border-radius:999px;color:var(--color-text);cursor:pointer}
+  
   .ac-size-b.on{background:var(--color-text);color:#fff}
-  .ac-size-b:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  
   #ig-dock .ac-th-prog{display:flex;flex-direction:column;gap:4px;margin-top:2px}
   #ig-dock .ac-th-prog .ac-next{margin-top:2px}
   /* DISCOVER STAGE 4: the company's facts in Settings and in Key terms */
@@ -10216,7 +10147,7 @@
   .ap-what-r small{display:block;color:var(--color-text);font-size:11.5px;margin-top:2px}
   .ap-what-dep{margin:0;padding-left:16px;display:grid;gap:4px}
   .ap-what-dep q{display:block;font-family:var(--font-doc);color:var(--color-text)}
-  .ap-what-brief{margin:0}
+  
   .pd-rd-card .ap-what{margin:10px 0}
   /* DISCOVER STAGE 9: Before the call, in the chosen party's panel */
   .cu-br-host:empty{display:none}
@@ -10484,7 +10415,7 @@
   [data-pd-mid] .dlg-pg-crumb .pd-trail-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-neutral-600)}
   [data-pd-mid] .dlg-pg-crumb .pd-trail-w b{font-weight:var(--w-label);color:var(--color-text)}
   [data-pd-mid] .dlg-pg-crumb .pd-trail-w i{font-style:normal}
-  [data-pd-mid] .deal-h .deal-sub{margin-left:12px;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);white-space:nowrap}
+  
   /* as drawn: the middle is one white page, no sheet on the desk (Key terms and Jambo's work keep theirs) */
   [data-pd-mid^="deal:"] .dlg-pg-body{background:var(--color-surface);padding:8px 28px 32px}
   [data-pd-mid^="deal:"] .dlg-pg-body > .deal-mid{max-width:1040px;margin:0;background:transparent;border:0;padding:0}
@@ -10506,45 +10437,45 @@
   [data-pd-mid^="deal:"] .dlg-pg-row{align-items:center;gap:32px}
   [data-pd-mid^="deal:"] .dlg-pg-title{flex:1 1 auto;min-width:0}
   [data-pd-mid^="deal:"] .dlg-pg-acts{flex:0 1 380px;min-width:240px}
-  [data-pd-mid] .deal-plan-h{font-family:var(--font-title);font-size:var(--t-page);line-height:1.25;font-weight:var(--w-title-serif);text-wrap:balance}
-  [data-pd-mid] .deal-plan-h .deal-sub{display:block;margin:4px 0 0;white-space:normal}
-  .deal-road{display:flex;flex-direction:column;gap:8px;width:100%}
-  .deal-road-bar{display:flex;gap:2px;height:12px;border-radius:6px;overflow:hidden}
-  .deal-road-bar i,.deal-road-key i{display:block;background:var(--color-neutral-300)}
+  
+  
+  
+  
+  
   .deal-road i.is-go{background:var(--st-green-fg)}
   .deal-road i.is-wait{background:var(--accent-ink)}
-  .deal-road i.is-agreed{background:var(--st-green-fg);opacity:.35}
-  .deal-road-key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .deal-road-key span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-  .deal-road-key i{width:8px;height:8px;border-radius:50%}
-  .deal-road-key b{font-weight:var(--w-label);color:var(--color-text);font-variant-numeric:tabular-nums}
-  .deal-grp{padding:12px 0 2px}
-  .deal-grp + .deal-grp{padding-top:18px}
-  .deal-grp-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin:0 0 2px}
-  .deal-grp-h h3{margin:0;font-family:var(--font-title);font-size:var(--t-section);font-weight:var(--w-title-serif);color:var(--color-text)}
-  .deal-grp-h span{font-size:var(--t-label);color:var(--color-neutral-600)}
-  .deal-pr{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) 200px 200px;gap:18px;align-items:center;padding:12px 0;border-bottom:1px solid var(--color-divider)}
-  .deal-pr-nm{min-width:0;display:flex;flex-direction:column;gap:2px}
-  .deal-pr-nm b{font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .deal-pr-nm span{font-size:var(--t-label);color:var(--color-neutral-600)}
-  .deal-pr-why{margin:0;min-width:0;color:var(--color-neutral-600);font-size:var(--t-label);line-height:1.45}
-  .deal-pr-st{min-width:0;display:flex;flex-direction:column;gap:6px}
-  .deal-pr-room{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
-  .deal-track{position:relative;display:block;height:6px;border-radius:3px;background:var(--color-neutral-200);max-width:200px}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   .deal-track i.fb{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;background:var(--color-neutral-600)}
-  .deal-track b{position:absolute;top:-2px;width:10px;height:10px;margin-left:-5px;border-radius:50%}
+  
   .deal-track b.y{background:var(--accent-ink)}
   .deal-track b.t{background:var(--st-ruby-fg)}
-  .deal-tag{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .deal-tag i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-300)}
+  
+  
   .deal-tag.is-ok i{background:var(--st-green-fg)}
   .deal-tag.is-ruby i{background:var(--st-ruby-fg)}
   .deal-tag.is-wait i{background:var(--accent-ink)}
-  .deal-tag.is-agreed i{background:var(--st-green-fg);opacity:.35}
-  .deal-pr-acts{display:flex;justify-content:flex-end;gap:14px;white-space:nowrap}
-  .deal-go{flex:none;background:none;border:0;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
-  .deal-go:hover{text-decoration:underline}
-  .deal-empty{padding:16px 0;color:var(--color-neutral-600)}
+  
+  
+  
+  
+  
   [data-pd-mid] .pd-kt-fact > span{font-size:12px;color:var(--color-neutral-600)}
   [data-pd-mid] .pd-kt-fact > b{font-weight:var(--w-label);font-size:13.5px;color:var(--color-text);white-space:nowrap}
   [data-pd-mid] .pd-kt-file .pd-kt-cat{color:var(--color-neutral-600)}
@@ -10694,7 +10625,7 @@
   .pd-row>span:not(.pd-row-acts){font-weight:var(--w-label);color:var(--color-text);line-height:1.4;min-width:0;overflow-wrap:anywhere}
   .pd-row i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:12px;background:var(--st-gray-bg);color:var(--st-gray-fg)}
   .pd-row i.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)} .pd-row i.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
-  .pd-row-acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  
   .pd-party small,.pd-row small,.pd-ev small,.pd-ob small{display:block;color:var(--cap-ink);font-size:11.5px;font-weight:400}
   .pd-go{border:0;background:none;color:var(--accent-ink);font-weight:var(--w-label);font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:4px 6px;border-radius:var(--radius);white-space:nowrap}
   .pd-go:hover{background:var(--color-accent-50)}
@@ -10709,11 +10640,11 @@
   .pd-kv dt{font-size:10.5px;color:var(--cap-ink)}
   .pd-kv dd{margin:2px 0 0;font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere}
   .pd-ob{padding:8px 0;border-bottom:1px solid var(--color-neutral-200)}
-  .pd-ob-h{display:flex;align-items:flex-start;gap:8px}
+  
   /* the duty reads as plain words, not a heading (owner, 11 Oct 2026: "the obligations should not be in bold") */
-  .pd-ob-h .pd-ob-t{font-weight:400;line-height:1.4}
+  
   .pd-ob>small{margin:3px 0 0}
-  .pd-tag{flex:none;font-size:10.5px;font-weight:var(--w-strong);padding:1px 7px;border-radius:999px;margin-top:1px}
+  
   .pd-tag.is-theirs{background:var(--color-accent-50);color:var(--accent-ink)} .pd-tag.is-ours{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .pd-trail{position:relative;padding-left:20px}
   .pd-trail::before{content:"";position:absolute;left:5px;top:6px;bottom:8px;width:1.5px;background:var(--color-neutral-200)}
@@ -10811,13 +10742,13 @@
   .ca-gap > span{flex:1;min-width:0}
   .ca-gap > .ui-btn{flex:none}
   .ca-said.is-ok{color:var(--st-green-fg)} .ca-said.is-warn{color:var(--st-amber-fg)} .ca-said.is-bad{color:var(--st-ruby-fg)}
-  .ca-opt-card{border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);padding:10px 12px;margin:0 0 8px;background:var(--color-surface)}
-  .ca-opt-card.is-best{border-color:var(--accent-solid);box-shadow:0 0 0 1px var(--accent-solid) inset}
-  .ca-oc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
-  .ca-oc-h b{font-weight:var(--w-strong)}
-  .ca-opt-card p{margin:4px 0 8px;font-size:12px;color:var(--color-neutral-600);line-height:1.45}
-  .ca-oc-f{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .ca-oc-f small{font-size:11.5px;color:var(--color-quiet)}
+  
+  
+  
+  
+  
+  
+  
   .ig-pick-none,.ig-pick-more{font-size:var(--t-meta);color:var(--color-neutral-600);margin:8px 0 0}
   .ig-paper[hidden]{display:none}
   .ig-paper-wrap{position:relative;height:100%;display:flex;min-height:0}
@@ -12168,7 +12099,7 @@
   .stk-r1{--stk:var(--stk-r1)} .stk-r2{--stk:var(--stk-r2)} .stk-r3{--stk:var(--stk-r3)} .stk-r4{--stk:var(--stk-r4)} .stk-r5{--stk:var(--stk-r5)}
   .stk-r6{--stk:var(--stk-r6)} .stk-r7{--stk:var(--stk-r7)} .stk-r8{--stk:var(--stk-r8)} .stk-r9{--stk:var(--stk-r9)} .stk-r10{--stk:var(--stk-r10)}
   .stk-head{padding:10px 14px 12px;border-bottom:1px solid var(--color-divider);display:grid;gap:8px}
-  .stk-count{display:flex;align-items:center;gap:10px;font-size:var(--t-label);color:var(--color-neutral-600);font-weight:var(--w-label)}
+  
   .stk-sub{margin:0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)}
   /* a private contract's Clauses wait for a press: the state, as the panel says it */
   .stk-head .jb-state{display:inline-flex;align-self:flex-start;justify-self:start;width:fit-content;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-neutral-600);border:1px solid var(--btn-edge);border-radius:var(--radius);padding:0 7px;white-space:nowrap}
@@ -12338,17 +12269,16 @@
   .pd-th .doc-th-top:empty{display:none}
   .pd-th .doc-th-home-plain{padding:0 6px 10px 2px;display:grid;gap:6px}
   .stk-st{color:var(--color-text);font-weight:400}
-  .stk-go{border:1px solid var(--btn-edge,var(--field-line));background:var(--color-surface);color:var(--accent-ink);border-radius:6px;padding:2px 8px;
-    font:inherit;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
-  .stk-go:hover{background:color-mix(in srgb,var(--accent-fill) 8%,var(--color-surface))}
-  .stk-go:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  
+  
+  
   .stk-miss{position:relative;padding:12px 0 0 24px}
   .stk-miss-h{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-quiet);padding-bottom:4px}
-  .stk-miss-row{position:relative;padding:4px 0 0}
-  .stk-miss-bead{position:absolute;left:-23px;top:8px;width:12px;height:12px;border-radius:50%;box-sizing:border-box;border:2px dashed var(--st-ruby-dot);background:var(--color-surface)}
-  .stk-miss-bead.is-other{border-style:solid;border-color:var(--st-amber-dot);background:var(--st-amber-dot)}
-  .stk-miss-t{display:block;width:100%;text-align:left;border:0;background:none;color:var(--color-text);cursor:pointer;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);line-height:1.35;padding:3px 0 4px}
-  .stk-miss-t:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  
+  
+  
+  
+  
   /* THE DEEP DIVE: its own panel in the list's place, with a way back */
   .pd-th.is-stk-dive > :not(.stk-dive){display:none}
   .stk-dive{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
@@ -12631,11 +12561,11 @@
   .ig-sv-new:focus-visible,.ig-sv-a:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
   @media (hover:hover){ .ig-sv-a:hover .ig-sv-n{text-decoration-color:var(--st-steel-fg)} .ig-sv-new:hover{text-decoration-color:var(--accent-ink)} }
   .ig-sv-form{display:flex;align-items:center;gap:6px;min-width:0}
-  .ig-sv-in{flex:1;min-width:0;height:var(--ctl-h);box-sizing:border-box;border:1px solid var(--field-line);border-radius:var(--radius-sm);padding:0 var(--field-pad-x);font:inherit;font-size:var(--t-body);background:var(--color-surface);color:var(--color-text)}
-  .ig-sv-ok,.ig-sv-no{all:unset;box-sizing:border-box;cursor:pointer;height:var(--ctl-h);padding:0 var(--s-3);border-radius:999px;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;display:inline-flex;align-items:center}
-  .ig-sv-ok{background:var(--accent-solid);color:var(--color-surface)}
-  .ig-sv-no{background:var(--color-neutral-100);color:var(--color-text)}
-  .ig-sv-ok:focus-visible,.ig-sv-no:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  
+  
+  
+  
+  
   .hb-board .hb-book.hb-card{background:var(--hb-card);border:1px solid rgba(var(--hb-ln),.18);box-shadow:var(--hb-shadow)}
   .hb-board .hb-book.hb-card>.hb-ch{border-bottom:1px solid rgba(var(--hb-ln),.12);padding:10px 12px 10px var(--s-4);min-height:40px}
   .hb-board .hb-book.hb-card>.hb-cb{padding:0 0 14px}
@@ -12846,11 +12776,11 @@
   .mnode.hi .chipbg{stroke:var(--color-accent);stroke-width:2;}
   .mnode.sel .chipbg{stroke:var(--color-accent-700);stroke-width:2.4;}
   .mnode.dim{opacity:.18;transition:opacity var(--dur-1);}
-  #map-svg{cursor:grab;}
+  
   #map-svg.panning{cursor:grabbing;}
 
-  .qdot{cursor:pointer;transition:r var(--dur-1);}
-  .qdot:hover{stroke:var(--color-accent-900);stroke-width:2;}
+  
+  
   #party-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #party-scrim.open{opacity:1;pointer-events:auto;}
   .modal-in{animation:viewIn .2s cubic-bezier(.22,.61,.36,1);}
@@ -13937,12 +13867,12 @@
   .rb-btn[disabled]:hover{background:transparent;}
   .rb-btn b,.rb-btn u,.rb-btn s{font-weight:var(--w-title);}
   .rb-btn i{font-family:Georgia,'Times New Roman',serif;}
-  .rb-wide{width:auto;padding:0 6px;gap:5px;grid-auto-flow:column;align-items:center;}
-  .rb-a{font-weight:var(--w-strong);font-size:var(--t-card);}
-  .rb-sw{display:block;width:17px;height:4px;margin-top:2px;}
+  
+  
+  
   /* An ink class sets `color`, so the swatch borrows it; a highlight class sets
      `background` and already paints itself. Two selectors, no !important. */
-  .rb-sw[class*="hati-ink-"]{background:currentColor;}
+  
   .rb-car{display:inline-flex;align-items:center;font-size:var(--t-micro);color:var(--color-quiet);}
   /* The caret is drawn inside a tool button, where .rb-btn svg scales the
      tools to 18 — one class heavier, so it keeps its own small size. */
@@ -13954,8 +13884,7 @@
     font:inherit;color:var(--color-text);cursor:pointer;border-radius:var(--radius);}
   .rb-size:hover{border-color:var(--color-neutral-400);}
   .rb-size:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
-  .rb-size-v{font-size:var(--t-body);min-width:20px;text-align:center;
-    font-variant-numeric:tabular-nums;}
+  
 
   /* the two pickers the bar opens — one shape, two contents */
   .rb-pop{position:fixed;z-index:64;background:var(--surface-3,var(--color-surface));
@@ -14649,7 +14578,7 @@
   .reg-vtab-saved>button{border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:0;}
   .reg-vtab-saved>button.x{color:var(--color-neutral-500);font-size:var(--t-body);padding:0 6px;border-radius:var(--radius);display:inline-grid;place-items:center;}
   .reg-vtab-saved>button.x:hover{color:var(--st-ruby-fg);background:var(--st-ruby-bg);}
-  .reg-views-end{margin-left:auto;flex:none;align-self:center;padding-bottom:6px;}
+  
   .reg-vtab-act{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;padding:0 8px;min-height:var(--tap-min);display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius);white-space:nowrap;}
   .reg-vtab-act:hover{color:var(--color-text);background:var(--surface-2);}
   /* THE CHIP IS THE HIT AREA, END TO END (Young, 21 Sep 2026 — the filters
@@ -15089,8 +15018,8 @@
   .jov5-group.is-form{box-shadow:inset 0 0 0 1.5px var(--color-neutral-300);}
   .jov5-group.is-form .jov5-row{min-height:40px;padding-top:6px;padding-bottom:6px;}
   .jov5-group.is-form input{flex:1;min-width:0;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--color-neutral-300);background:var(--surface-3);font:inherit;font-size:13.5px;color:var(--color-text);}
-  .jov5-ff{display:flex;align-items:center;gap:8px;padding:8px 12px 10px;border-top:1px solid var(--color-divider);}
-  .jov5-sug{margin:0;padding:2px 12px 8px 108px;font-size:12px;line-height:1.4;color:var(--color-neutral-400);}
+  
+  
   .jov5-ic{width:14px;height:14px;}
   .jov5-k{flex:none;width:84px;font-size:13px;color:var(--color-neutral-400);}
   .jov5-rt{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -15110,10 +15039,10 @@
   .fm-road i{font-style:normal;color:var(--color-neutral-400);}
   .jov5-v{flex:none;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums;}
   .jov5-v.is-need{color:var(--st-amber-fg);}
-  .jov5-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:118px;padding:14px;border-radius:12px;border:1.5px dashed var(--color-accent-300);background:var(--jb-card-fill);text-align:center;font-size:12px;color:var(--color-quiet);cursor:pointer;}
-  .jov5-drop b{font-size:13.5px;font-weight:var(--w-strong);color:var(--color-text);}
+  
+  
   .jov5-drop.is-over,.jov5-drop:hover{border-color:var(--accent-ink);}
-  .jov5-up{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--accent-ink);}
+  
   .jov5-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
   .jov5-day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 0;border-radius:var(--radius);background:var(--jb-card-fill);color:var(--color-text);}
   .jov5-day small{font-size:11px;font-weight:var(--w-label);color:var(--color-neutral-400);}
@@ -15416,8 +15345,8 @@
      step, a Kind column instead of the two tabs; the band says how many are
      yours and how many wait on others, Approval rules at its end. */
   .ap-band{display:flex;align-items:center;gap:12px;min-height:38px}
-  .ap-facts{font-size:var(--t-meta);color:var(--color-neutral-600)}
-  .ap-band-sp{flex:1}
+  
+  
   /* PART 8 ("tabs only", 21 Oct 2026): the group rows (.ap-grp) went with
      their rules; the list head's tabs say who owes the next step */
   .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:var(--radius);font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
@@ -15627,7 +15556,7 @@
   .ins-cardhead{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
   .ins-cardhead-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
   .ins-cardhead-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
-  .ins-bar[hidden]{display:none;}
+  
   .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ob-id > .ins-c2{min-width:0;flex:1;}
   /* the list language on Obligations (27 Oct 2026): the first week's card names its columns; the money right-aligned */
@@ -15643,10 +15572,10 @@
   .ins-cnt.is-bad{color:var(--st-ruby-fg);}
   .ins-cnt.is-warn{color:var(--st-amber-fg);}
   .ins-legal{color:var(--st-ruby-fg);font-weight:var(--w-label);}
-  .ins-road-close{color:var(--st-ruby-fg);font-weight:var(--w-label);}
-  .ins-road-lane{color:var(--st-green-fg);font-weight:var(--w-label);}
-  .ins-road-routine{color:var(--color-neutral-600);font-weight:var(--w-label);}
-  .ins-road-standard{color:var(--color-text);font-weight:var(--w-label);}
+  
+  
+  
+  
   /* ---- THE PANEL, FOR ANYTHING THAT IS NOT A CONTRACT ----
      The title is a sentence, so it may take two lines; the line under it may
      wrap. A wide fact takes the whole row. */
@@ -15718,7 +15647,7 @@
   .obt-tabs .reg-vtab.is-late .n{color:var(--st-ruby-fg);}
   .ob-nobody{color:var(--st-amber-fg);}
   :root #obt-panel .ins-facts dt:not(#_), :root .obt-head ~ .ins-scroll .ob-lt th:not(#_){text-transform:none;letter-spacing:0;font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .obt-line{display:flex;align-items:center;gap:14px;flex:none;flex-wrap:wrap;}
+  
   .obt-line .facts{color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
   .obt-line .facts b{color:var(--color-text);font-weight:var(--w-label);}
   .obt-line .sp{flex:1;}
@@ -15733,7 +15662,7 @@
   .ins-page > .st-tabs-pin{margin:0;padding:0;}
   .ins-body[hidden]{display:none;}
   .ins-c2 > b.is-req{font-weight:var(--w-title);}
-  .sd-moves{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  
   /* ---- WHAT YOU HAVE SETTLED FOR: THE EVIDENCE AND THE DECISION (7 Oct 2026, O-18–O-21) ----
      The settled-at figure wears the helper colour (--alt), the preferred
      line the accent, the fallback grey; text never wears a series colour. */
@@ -16145,7 +16074,7 @@
   /* SAP benchmark (owner-approved 9 Oct 2026): the table's title and count,
      initials beside the counterparty, a decision just made in green. */
   .ap-card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
-  .ap-card-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
+  
   .ap-card-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .ap-card-m{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
   .ap-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
@@ -16264,16 +16193,16 @@
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:hover .reg-f-v{border:1px solid var(--color-neutral-400);}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:focus-within .reg-f-v{border:1px solid var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip.on .reg-f-v{border-color:var(--color-accent);color:var(--accent-ink);}
-  .ik-fb-find{display:flex;align-items:center;gap:8px;margin:0;}
+  
   .ik-fb-l{font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap;}
   .ik-fb-find .ik-search{width:176px;}
-  .ik-fb-clear{white-space:nowrap;font-size:var(--t-meta);}
+  
   /* the head: "Requests 4 open · what colleagues ask Legal for · advice too" */
   .ik-hf-n{color:var(--color-neutral-600);}
   .ik-hf-s{margin-left:12px;font-size:var(--t-meta);color:var(--color-neutral-600);}
   /* the list's head note ("oldest waiting first") and its count's pill */
-  .ins-cardhead-t .ik-card-n{margin-left:2px;}
-  .ins-cardhead-t .ik-card-m{margin-left:6px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
+  
+  
   /* the list's card ends after its last row (as drawn), the foot under it */
   #content .ik-ins .ins-body:has(> #ins-panel.is-jambo),
   #content .mn-ins .ins-body:has(> #ins-panel.is-jambo){align-items:start;}
@@ -16645,9 +16574,9 @@
   .ag-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin:0;}
   .ag-kv dt{font-size:var(--t-micro);color:var(--color-quiet);font-weight:var(--w-label);}
   .ag-kv dd{margin:2px 0 0;font-weight:var(--w-label);color:var(--color-text);overflow-wrap:anywhere;}
-  .ag-tiles{list-style:none;margin:0;padding:0;border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
-  .ag-tiles li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border-top:1px solid var(--color-divider);}
-  .ag-tiles li:first-child{border-top:0;}
+  
+  
+  
   .ag-tiles .d{width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--color-neutral-500);}
   .ag-tiles li.is-green .d{background:var(--st-green-dot);}
   .ag-tiles li.is-amber .d{background:var(--st-amber-dot);}
@@ -16735,10 +16664,10 @@
   .ag-rnd-acts .ag-sb-note{flex:1 1 220px;min-width:0;width:auto;}
   .ag-rnd-acts .ag-rnd-away{margin-left:auto;color:var(--color-neutral-600);}
   .ag-panel .br-fig{font-weight:var(--w-title);color:var(--accent-ink);}
-  .ag-watch{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
-  .ag-watch li{display:grid;gap:2px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot);color:var(--color-text);}
-  .ag-watch-w{font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);}
-  .ag-watch-w b{color:var(--color-text);font-weight:var(--w-strong);}
+  
+  
+  
+  
   .ag-dep{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;display:grid;gap:6px;}
   .ag-dep-h{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .ag-dep-h b{min-width:0;font-weight:var(--w-title);color:var(--color-text);}
@@ -16777,24 +16706,24 @@
      a token; the card wears the card corner. js/approvals.js draws the first
      two, js/views/settings.js the third. */
   .sa-dlg{padding:var(--s-6);}
-  .sa-h{margin:0;font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-title);color:var(--color-text);}
-  .sa-sub{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .sa-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 14px;margin-top:14px;}
+  
+  
+  
   .sa-lbl{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px;}
   .sa-who{display:flex;align-items:center;gap:var(--s-2);}
   .sa-av{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-label);font-weight:var(--w-strong);}
   .sa-who-t{display:block;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);}
   .sa-who-s{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .sa-box{margin-top:14px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;}
-  .sa-boxh{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);margin-bottom:8px;}
+  
+  
   .sa-kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 10px;font-size:var(--t-body);}
   .sa-k{color:var(--color-neutral-600);}
   .sa-v{color:var(--color-text);min-width:0;}
-  .sa-note{margin-top:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  
   .sa-dlg > .sa-lbl{margin-top:14px;}
   .sa-inp{display:block;width:100%;box-sizing:border-box;border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);padding:7px 10px;font:inherit;font-size:var(--t-body);color:var(--color-text);resize:vertical;}
   .sa-foot{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4);flex-wrap:wrap;}
-  .sa-foot-note{flex:1 1 200px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  
   .sa-card{background:var(--color-surface);border:1px solid var(--st-amber-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
   /* LAND ON IT (owner, 18 Oct 2026) — ONE LIGHT FOR EVERY ARRIVAL: whatever a
      press sent the reader to (landOn, js/components.js; the approval email's
@@ -17123,30 +17052,30 @@
      strip; the 1200px cap and its centring went 19 Oct 2026). Its floors keep their height on the
      1536×730 laptop because the drawing no longer scales up past three quarters of its logical
      size: a wider page draws a WIDER house (js/views/jambohouse.js, JH_K_MAX and _jhW). */
-  .cn-in{width:680px;max-width:100%;display:flex;flex-direction:column;gap:12px}
-  .cn-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0}
+  
+  
   /* CHAMBERS (owner picked it by name, 20 Oct 2026): the question reads from the left — the ✦, the serif question, the box, the links */
   .cn-ask{padding:26px 30px 22px;text-align:left;display:flex;flex-direction:column;gap:12px}
   .cn-ask .cn-face{margin:0 0 -6px;display:block}
   /* the greeting as drawn (round 23): large, 26px at the semibold weight */
   .cn-ask h1{font-family:var(--font-title);font-size:28px;font-weight:var(--w-title-serif);margin:0;color:var(--color-text);letter-spacing:-.005em;line-height:1.25}
-  .cn-wrap{position:relative}
+  
   /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box"): it
      hugs the box it speaks of, read from the box's own left edge */
-  .cn-box{display:flex;align-items:flex-end;gap:8px;min-height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:1px 6px 1px 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
-  .cn-box textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:15px;line-height:22px;color:var(--color-text);height:40px;max-height:120px;padding:9px 0;margin:0;resize:none;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;display:block}
+  
+  
   .cn-box > .ui-btn{margin-bottom:6px;flex:none}
-  .cn-box textarea::placeholder{color:var(--color-neutral-500)}
-  .cn-box textarea:focus-visible{outline:none;box-shadow:none}   /* the box wears its own ring */
-  .cn-wrap .cn-pop{left:0;right:0;top:calc(100% + 4px);max-height:340px;text-align:left}
-  .cn-wrap .cn-pop[hidden]{display:none}
+  
+     /* the box wears its own ring */
+  
+  
   /* CHAMBERS (20 Oct 2026): the suggestions under Home's question are links, left-aligned under the box (see .jb-chip) */
   .cn-chips{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:flex-start}
   .cn-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left;white-space:nowrap}
   .cn-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
-  .cn-h{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--color-divider);min-height:40px}
-  .cn-t{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text);white-space:nowrap}
-  .cn-cnt{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  
+  
+  
   .cn-r{display:flex;align-items:center;gap:12px;padding:7px 16px;border-bottom:1px solid var(--color-divider)}
   .cn-r:last-child{border-bottom:0}
   .cn-w{flex:1;min-width:0}
@@ -17157,10 +17086,10 @@
   /* THE ONE DESK (Round A, the owner picked "The Legora Way", 22 Oct 2026): Needs you as one reading.
      HOME: two groups (Jambo prepared it · Your move), the top three each, a row two lines that never
      grows (its words end in "…"), a Waited column, then ONE button width with a one-word label. */
-  .nd-sum{margin-left:auto;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  
   .nd-g{display:flex;align-items:baseline;gap:6px;padding:7px 16px 5px;background:var(--surface-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-label)}
   .nd-g-t{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
-  .nd-g .nd-all{margin-left:auto;font-size:var(--t-label);white-space:nowrap}
+  
   .nd-r .cn-w b{flex-wrap:nowrap;min-width:0}
   .nd-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nd-when{flex:none;width:96px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -17231,11 +17160,11 @@
   }
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-quiet);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
-  .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}
-  .cn-co-ic .cn-pill-ic{width:14px;height:14px}
-  .cn-foot{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
-  .cn-foot:last-child{border-bottom:0}
-  .cn-foot-said{flex:1;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  
+  
+  
+  
+  
 
   /* ==== THE BRIEF — JAMBO'S PANEL ON EVERY COMPUTER HOST (owner picked "The Brief" by name, 21 Oct 2026;
      artifact YYsKmyj6C1kjgNZ1SH4nv7) ====
@@ -17817,10 +17746,10 @@
   /* -- THE LIST LANGUAGE (owner, 27 Oct 2026; listMarkHtml, listWordHtml, listChipHtml in js/listlang.js):
      a mark leads a row, a reading is a dot and words with a grey line under it, a kind is a soft chip -- */
   .ls-mark{display:inline-grid;place-items:center;width:22px;height:22px;flex:none}
-  .ls-row{display:flex;align-items:center;gap:12px;min-width:0}
-  .ls-txt{display:flex;flex-direction:column;min-width:0}
-  .ls-t{font-weight:var(--w-strong);font-size:13.5px;line-height:18px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ls-m{font-size:12px;line-height:16px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  
+  
+  
+  
   .ls-sep{color:var(--color-text);font-weight:400;margin:0 2px}
   .ls-word{display:inline-flex;flex-direction:column;gap:1px;min-width:0;max-width:100%}
   .ls-word-v{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:var(--w-label);line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -18347,14 +18276,14 @@
   .sc-run-box > button{flex:none;white-space:nowrap}
   /* A POINT OPENS TO COMPARE (owner picked option 2, 25 Oct 2026), kept inside the Close Plan (owner, 25 Oct: "Both"):
      a point they asked on opens on its name, both wordings whole under the row, the moved words marked */
-  .deal-pr .deal-tg{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-width:0;background:none;border:0;padding:0;font:inherit;color:var(--color-text);cursor:pointer;text-align:left}
-  .deal-pr .deal-tg:hover b{color:var(--accent-ink)}
-  .deal-pr .deal-chev{flex:none;font-size:11px;color:var(--color-quiet)}
-  .deal-pr .deal-cmp{grid-column:1 / -1;display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px 12px;align-items:baseline;padding:2px 0 4px;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .deal-pr .deal-w{min-width:0;font-family:var(--font-doc);font-size:14px;line-height:1.6;color:var(--color-text)}
-  .deal-pr .deal-w p{margin:0 0 6px}
-  .deal-pr .deal-w p:last-child{margin-bottom:0}
-  .deal-pr .deal-none{color:var(--color-neutral-500)}
+  
+  
+  
+  
+  
+  
+  
+  
   /* ROUND 3: CLAUSES AND REDLINES WEAR ONE HEAD (owner's pick "The SAP Way"): the name in the serif, its count, a grey line */
   .pd-th .stk-head.is-mq .stk-mq-t.stk-mq-t{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;font-size:18px;line-height:24px;font-weight:var(--w-title-serif);text-wrap:wrap}
   .pd-th .stk-head.is-mq .stk-mq-t .stk-mq-n{font-style:normal;font-family:var(--font-ui);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
@@ -25874,9 +25803,6 @@
   html.lg-new .nsn-prow{min-height:var(--nsn-row-h);box-sizing:border-box}
   html.lg-new .nsn-pcount{padding:8px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new .nsn-more{align-self:flex-start}
-  html.lg-new .nsn-head{display:flex;align-items:baseline;gap:8px;padding-bottom:6px}
-  html.lg-new .nsn-head .sp{flex:1}
-  html.lg-new .nsn-h{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new .nsn-n,html.lg-new .nsn-meta{font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new .nsn-top{display:flex;align-items:center;gap:8px}
   html.lg-new .nsn-name{flex:1;min-width:0;font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -26860,19 +26786,19 @@
   .ld-dot.is-must{background:var(--st-ruby-dot)} .ld-dot.is-push{background:var(--st-amber-dot)} .ld-dot.is-nice{background:var(--st-green-dot)} .ld-dot.is-never{background:var(--color-text)}
   .ld-firm{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:var(--t-body)}
   .ld-main{flex:1;min-width:0;padding:var(--s-6) var(--s-8);overflow-y:auto;display:flex;flex-direction:column;gap:var(--s-3)}
-  .ld-top{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:nowrap}
+  
   .ld-title{font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;margin:0;line-height:1.25;flex:0 1 auto;min-width:0}
   .ld-top-a{margin-left:auto;display:flex;gap:var(--s-2);align-self:center;flex:none}
   /* a long standard's name wraps on its own line's left; how firm and the two buttons keep the title's line (1366) */
-  .ld-top .ld-firm{flex:none}
-  .ld-back{margin-left:auto}
+  
+  
   .ld-why{margin:0;color:var(--color-quiet);font-size:var(--t-body);max-width:72ch}
   .ld-quiet{color:var(--color-neutral-400);font-size:var(--t-meta)}
   .ld-empty{color:var(--color-neutral-400);font-size:var(--t-body);margin:var(--s-4) var(--s-6)}
-  .ld-cols,.ld-rung{display:grid;grid-template-columns:minmax(0,1fr) 180px 160px;gap:var(--s-4)}
-  .ld-cols{padding-left:30px;font-size:var(--t-meta);color:var(--color-neutral-400)}
-  .ld-rungs{position:relative;padding-left:30px}
-  .ld-rungs::before{content:"";position:absolute;left:9px;top:18px;bottom:18px;width:2px;background:var(--color-divider)}
+  .ld-rung{display:grid;grid-template-columns:minmax(0,1fr) 180px 160px;gap:var(--s-4)}
+  
+  
+  
   .ld-rung{position:relative;padding:11px 0;border-bottom:1px solid var(--color-divider);align-items:start}
   .ld-mark{position:absolute;left:-30px;top:11px;width:20px;height:20px;border-radius:50%;background:var(--st-gray-dot);box-shadow:0 0 0 3px var(--color-surface)}
   .ld-mark.is-green{background:var(--st-green-dot)} .ld-mark.is-amber{background:var(--st-amber-dot)} .ld-mark.is-dark{background:var(--color-text)}
@@ -26881,9 +26807,9 @@
   .ld-w.is-none{color:var(--color-neutral-400);font-style:italic}
   .ld-who,.ld-cnt{font-size:var(--t-body);min-width:0}
   .ld-who small{display:block;color:var(--color-neutral-400);font-size:var(--t-meta)}
-  .ld-bar{display:block;height:6px;border-radius:3px;background:var(--surface-2);margin-top:6px;overflow:hidden}
-  .ld-bar i{display:block;height:100%;background:var(--st-green-dot)}
-  .ld-deps{display:flex;flex-direction:column;gap:var(--s-2)}
+  
+  
+  
   .ld-dep,.ld-soft{display:flex;align-items:center;gap:var(--s-3);background:var(--surface-2);border-radius:var(--radius);padding:var(--s-3) var(--s-4)}
   .ld-dep-t{flex:1;min-width:0;font-size:var(--t-body)}
   .ld-dep-p{display:block;font-weight:var(--w-strong)}
@@ -26893,19 +26819,19 @@
   .ld-tag{font-size:var(--t-micro);color:var(--st-amber-fg);background:var(--st-amber-bg);border-radius:999px;padding:1px 7px;white-space:nowrap}
   .ld-gov{display:flex;gap:var(--s-6);flex-wrap:wrap;margin:0;font-size:var(--t-meta);color:var(--color-quiet)}
   .ld-gov b{color:var(--color-text);font-weight:var(--w-label)}
-  .ld-n{color:var(--color-neutral-400);font-weight:var(--w-body)}
-  .ld-hrow{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 0;border-bottom:1px solid var(--color-divider)}
-  .ld-hs{flex:none;width:84px;font-size:var(--t-meta);color:var(--color-quiet)}
-  .ld-hs.is-waiting{color:var(--st-amber-fg)} .ld-hs.is-approved{color:var(--st-green-fg)} .ld-hs.is-refused{color:var(--st-ruby-fg)}
-  .ld-ht{flex:1;min-width:0}
-  .ld-ht small{display:block;color:var(--color-neutral-400);font-size:var(--t-meta)}
+  
+  
+  
+  .ld-hs.is-waiting{color:var(--st-amber-fg)}  .ld-hs.is-refused{color:var(--st-ruby-fg)}
+  
+  
   .ld-edit{gap:var(--s-4)}
-  .ld-ehead{display:flex;align-items:baseline;gap:var(--s-3)}
-  .ld-erow{display:flex;gap:var(--s-4);align-items:flex-end}
-  .ld-fld{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
-  .ld-fld > span{font-size:var(--t-body);font-weight:var(--w-strong)}
-  .ld-fld.is-grow{flex:1}
-  .ld-in{height:34px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-body);background:var(--color-surface);color:var(--color-text);min-width:160px}
+  
+  
+  
+  
+  
+  
   .ld-pick{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);text-align:left;cursor:pointer;width:100%}
   .ld-segs{display:flex;gap:6px}
   .ld-seg{height:34px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 10px;display:inline-flex;align-items:center;gap:7px;background:var(--color-surface);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;color:var(--color-text)}
@@ -26913,34 +26839,34 @@
   .ld-seg.is-on.is-push{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
   .ld-seg.is-on.is-nice{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg)}
   .ld-seg.is-on.is-never{background:var(--surface-2);border-color:var(--color-text)}
-  .ld-firm-says{margin:-6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-400)}
-  .ld-ladhead{display:flex;align-items:center;gap:var(--s-2)}
-  .ld-ladhead b{font-size:var(--t-body);font-weight:var(--w-strong)}
-  .ld-ladhead small{font-size:var(--t-meta);color:var(--color-neutral-400);margin-right:var(--s-2)}
-  .ld-ladwho{margin-left:auto;width:228px;font-size:var(--t-meta);color:var(--color-neutral-400)}
-  .ld-erungs{position:relative;display:flex;flex-direction:column;gap:var(--s-2)}
-  .ld-erungs::before{content:"";position:absolute;left:9px;top:16px;bottom:16px;width:2px;background:var(--color-divider)}
-  .ld-erung{display:flex;gap:var(--s-3);align-items:flex-start;position:relative;padding-left:32px}
-  .ld-erung .ld-mark{left:0;top:9px}
-  .ld-ebox{flex:1;min-width:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 12px 4px;background:var(--color-surface);display:flex;flex-direction:column}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   .ld-box{width:100%;border:0;resize:vertical;font-family:var(--font-title);font-size:14px;line-height:1.5;background:transparent;color:var(--color-text);padding:0;min-height:44px}
   .ld-fld > .ld-box{border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 12px}
   .ld-box::placeholder{font-style:italic;color:var(--color-neutral-400)}
-  .ld-who-sel{width:190px;height:34px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-body);background:var(--color-surface);margin-top:2px}
-  .ld-who-fix{width:228px;flex:none;font-size:var(--t-body);color:var(--color-quiet);padding-top:10px}
+  
+  
   .ld-x{margin-top:6px}
-  .ld-add{margin:0 0 0 32px;font-size:var(--t-body)}
+  
   .ld-books-pop{position:absolute;top:100%;left:0;z-index:20;margin-top:4px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:var(--s-2);display:flex;flex-direction:column;min-width:240px}
   .ld-bk{display:flex;gap:var(--s-2);align-items:center;padding:6px var(--s-2);font-size:var(--t-body);border-radius:var(--radius-sm);cursor:pointer}
   .ld-bk:hover{background:var(--surface-2)}
   .ld-dlg{display:flex;flex-direction:column;gap:var(--s-2);max-width:520px}
   .ld-dlg h3{margin:0}
-  .ld-dlg-p{margin:0;font-size:var(--t-body)}
-  .ld-dlg-l{margin:var(--s-2) 0 0;font-size:var(--t-meta);color:var(--color-quiet)}
+  
+  
   .ld-dlg .ld-box{border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 10px;font-family:inherit;font-size:var(--t-body)}
   .ld-dw,.ld-diff{margin:0;font-family:var(--font-title);font-size:14px;line-height:1.5}
   .ld-dlg-ul{margin:0;padding-left:18px;font-size:var(--t-body)}
-  .ld-dlg-f{display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-3)}
+  
   .ld-jdraft{border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px 14px;background:var(--color-surface);display:flex;flex-direction:column;gap:2px;font-family:var(--font-title);font-size:14px;line-height:1.5}
   .ld-jl{font-family:var(--font-body);font-size:var(--t-micro);color:var(--color-neutral-400);margin-top:4px}
   .ld-jl:first-child{margin-top:0}
