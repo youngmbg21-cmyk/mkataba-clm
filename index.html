@@ -27112,6 +27112,9 @@
   html.lg-new:not(#_) #na-root.na-one .na-ask-top .na-hint{display:none}
   html.lg-new:not(#_) #na-root.na-one .na-ask-top .na-fill{font-size:12.5px;padding-bottom:10px}
   html.lg-new:not(#_) #na-root.na-one .na-ptabs{gap:22px;margin-bottom:-1px}
+  /* THE TABS STAY WITH THE TITLE (owner, 26 Nov 2026: the tabs slid up half-hidden under "New agreement" once the sheet
+     scrolled): the tab row holds at the top of the sheet's scroller, on the sheet's own white, and the form scrolls under it */
+  html.lg-new:not(#_) #na-root.na-one .na-ask-top{position:sticky;top:0;z-index:3;background:var(--color-surface);margin-top:4px;padding-top:10px}
   html.lg-new:not(#_) #na-root.na-one .na-ptab{height:auto;padding:0 0 10px;font-size:14px;font-weight:var(--w-label);color:var(--color-quiet);border-bottom:2px solid transparent}
   html.lg-new:not(#_) #na-root.na-one .na-ptab[aria-selected="true"]{color:var(--accent-ink);border-bottom-color:var(--accent-ink)}
   html.lg-new:not(#_) #na-root.na-one .na-askbox{padding:9px 10px 9px 16px}
