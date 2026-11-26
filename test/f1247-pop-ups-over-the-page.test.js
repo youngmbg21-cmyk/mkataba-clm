@@ -37,3 +37,14 @@ test('f1247 (3) a pop-up\'s list floats over everything, under its box', () => {
   assert.match(read('js/review.js'), /if \(open && typeof window\.popListFloat === 'function'\) window\.popListFloat\(list, box\.closest\('\.lgp-v'\) \|\| box\.parentElement \|\| box\);/, 'the one picker, the desk\'s and the review\'s');
   assert.match(read('js/desk.js'), /reviewWirePicker\(c, \{ prefix: 'dk'/, 'the desk uses the review\'s picker');
 });
+
+/* (4) ONE NUMBERING, BOTH PAPERS (owner, 26 Nov 2026: "the notes are numbered differently between clean and redline"):
+   the redlined paper's notes are grouped and named by the paper's own numbered row, as the clean paper's are */
+test('f1247 (4) redline notes take the clean paper\'s numbered rows and names', () => {
+  const P = read('js/paperdesk.js');
+  const r = fn(P, 'pd2RedBlocks');
+  assert.match(r, /docXrayRows\(c, cv\)/, 'the same rows as pd2Groups');
+  assert.match(r, /const key = k >= 0 \? 'row:' \+ k :/, 'grouped by the row');
+  assert.match(r, /if \(k >= 0 && typeof docXrayLabel === 'function'\) label = docXrayLabel\(rows\[k\]\);/, 'named as the clean paper names it');
+  assert.match(fn(P, 'pd2Groups'), /docXrayLabel\(rows\[at\]\)/, 'the clean paper\'s own naming');
+});
