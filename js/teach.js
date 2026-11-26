@@ -128,6 +128,8 @@ function teachSet(v){
 }
 /* the one writer the boxes call: keeps the answer, gives back the turn to draw */
 function teachSay(q){
+  /* a lesson about one's DATA ("walk me through my renewals") is Jambo's walk_through, not the Handbook's (js/walkplan.js) */
+  if (typeof walkAsked === 'function' && walkAsked(q)) return null;
   const turn = teachTurn(q);
   if (turn){ try { teachSet(turn.ask); } catch (_){} return turn; }
   /* HaTi's own words ("what is a dossier?"), free for everyone; "what can I do here?" while teaching is on */
@@ -136,7 +138,7 @@ function teachSay(q){
   return w;
 }
 /* does the sentence belong to the instructor? (the boxes ask this before any other reader) */
-function teachTakes(q){ return !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachHowOf(q)); }
+function teachTakes(q){ return !(typeof walkAsked === 'function' && walkAsked(q)) && !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachHowOf(q)); }
 
 /* THE HINT: a person's first days, while they have said neither */
 function teachHintOn(u){

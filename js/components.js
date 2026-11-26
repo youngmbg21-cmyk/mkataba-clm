@@ -1589,7 +1589,9 @@ function jamboTurnHtml(m, i, H, host){
   const born = jamboBornOf(m);
   let inner = '';
   try {
-    inner = born === 'ai' ? (typeof window.aiMsgHtml === 'function' ? window.aiMsgHtml(m, i) : '')
+    /* WALK ME THROUGH IT (js/lesson.js): a lesson draws itself, whichever host shows the conversation */
+    inner = (m && m.lesson && typeof window.lessonTurnHtml === 'function') ? window.lessonTurnHtml(m)
+      : born === 'ai' ? (typeof window.aiMsgHtml === 'function' ? window.aiMsgHtml(m, i) : '')
       : born === 'st' ? (typeof window.stJbTurnHtml === 'function' && m.st ? window.stJbTurnHtml(m.st) : '')
       : (typeof window.igMsgHTML === 'function' ? window.igMsgHTML(m, i, H) : '');
   } catch (_){ inner = ''; }

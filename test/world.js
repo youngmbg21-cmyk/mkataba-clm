@@ -47,12 +47,14 @@ const MODULES = [
   'js/stdladder.js',   // the Ladder: a standard's rules (17 Nov 2026)
   'js/graphwhere.js',   // the graph's `where` predicate, one for both hosts (Copilot audit phase 4)
   'js/hatisearch.js',   // the one search's words, both hosts (Jambo works like Copilot, stage 1)
+  'js/walkplan.js',     // walk me through it: the lesson's plan, both hosts (owner, 26 Nov 2026)
   'js/notebook.js',     // the notebook's cutter and status, both hosts (owner's pick, 23 Nov 2026)
   'js/section.js',      // the section grammar: a pure builder, read by five views
   'js/listlang.js',     // the list language: a row's mark, its readings in words, its chips (27 Oct 2026)
   'js/richdoc.js',
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
   'js/aichart.js',   // the chart recipes: pure functions of state
+  'js/lesson.js',    // walk me through it: the lesson's drawings, filled from HaTi's own counting (owner, 26 Nov 2026)
   'js/redline.js',
   'js/spell.js',
   'js/clausemodel.js',

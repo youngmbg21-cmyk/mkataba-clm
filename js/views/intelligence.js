@@ -3352,6 +3352,16 @@ async function intelAsk(qRaw, opts){
   if(typeof window.teachSay==='function'){ const tt=teachSay(q);
     if(tt){ intel.history.push({role:'user', text:q}, Object.assign({role:'assistant', host:'ai', text:tt.html, read:tt.read}, tt.choices?{ choices:tt.choices }:{})); renderIntelDock(); return; }
     if(typeof window.teachDid==='function') teachDid('ask'); }
+  /* WALK ME THROUGH IT (js/walkplan.js walkAsked): a lesson about one's data is the conversation's, ahead of the
+     Board's and the page's own readers, which would take "my contracts" for a place or a picture */
+  if(typeof window.walkAsked==='function'&&walkAsked(q)){
+    intel.history.push({role:'user', text:q});
+    intel.busy=true; renderIntelDock(); updateIntelNote();
+    try{ await intelChatAsk(q); }
+    catch(e){ intel.history.push(igFailTurn(e, q)); }
+    intel.busy=false; renderIntelDock();
+    return;
+  }
   intel.fdTab=false; intel.dayTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
   /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the
@@ -4256,6 +4266,13 @@ function igFmtRich(raw){
     .join(`<div class="ai-chart-host" id="${b.key}">${b.html}</div>`);
   return { html, blocks };
 }
+/* WALK ME THROUGH IT (js/lesson.js): an answer that is a lesson is pushed as one, drawn by the one conversation's builder */
+function igLessonTake(res){
+  const L=(res&&res.lesson&&typeof window.lessonFromAnswer==='function')?lessonFromAnswer(res):null;
+  if(!L) return false;
+  intel.history.push(Object.assign({ role:'assistant' }, L));
+  return true;
+}
 function intelPushChatResult(res, q){
   const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
   /* THE NOTE IS DRAFTED HERE (owner picked "The Legora Way", 13 Nov 2026): a note for the open send screen is a
@@ -4421,6 +4438,8 @@ async function intelChatAsk(q, opts){
     if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
     const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
     if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;
+    /* WALK ME THROUGH IT (js/lesson.js): the lesson is the answer, drawn by the one conversation's builder */
+    if(igLessonTake(res)) return;
     intelPushChatResult(res, q);
     if(opts&&opts.controls&&res&&Array.isArray(res.page)&&res.page.length&&typeof window.lhControlsRun==='function'){
       let lines=[]; try{ lines=lhControlsRun(res.page)||[]; }catch(_){ lines=[]; }
@@ -12951,6 +12970,7 @@ async function igPaperAsk(q,cid){
   msgs.push({ role:'user', content:`${last.content}\n\n${IG_PAPER_RULE}${story.text?`\n\n${IG_PAPER_CHANGES_RULE}`:''}\n\n=== THE WORDING OF ${ref} (${c.name}) ===\n${wording}${story.text?`\n\n${story.text}`:''}` });
   try{
     const res=await copilotAsk(msgs, { view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true }, null, IG_QUIET);
+    if(igLessonTake(res)) return;   /* a lesson about this contract (js/lesson.js) */
     intelPushChatResult(res, q);
     igPinsMint(c,res,intel.history.length-1);
   }catch(e){

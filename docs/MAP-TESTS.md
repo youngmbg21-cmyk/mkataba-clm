@@ -1276,3 +1276,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE POP-UPS, THE SAP WAY (26 Nov 2026, over the page, ribbon, lists)
 - f1247-pop-ups-over-the-page; re-pointed f1101 (2).
+
+## WALK ME THROUGH IT — LESSONS IN JAMBO'S PANEL (26 Nov 2026)
+- f1248-walk-me-through-it (the plan's check, walkAsked, one tool on both hosts, no drawn number from the AI, money only with money rights, both books); browser test/chromium/walk-through-verify.js (GitHub: arrives, Board's counts, Next/Replay/Save, no stutter, reload, no money, ordinary question, three screens). f705 (8) and f804 pins kept: the two parts stand after 'listask'.

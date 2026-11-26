@@ -2854,6 +2854,8 @@ function caReadNarrowOnly(q){
    'builder', 'bar'. */
 function caUnderstand(q, opts = {}){
   const t0 = String(q || '').trim(); if (!t0) return null;
+  /* WALK ME THROUGH IT (js/walkplan.js): a lesson about one's data moves nowhere; Jambo answers it */
+  if (typeof walkAsked === 'function' && walkAsked(t0)) return null;
   let t = t0; try { t = caRefFix(t0); } catch (_){ t = t0; }
   /* booking or finding time is the Calendar's Jambo's (igBookAsk → calHandOff) */
   try { if (typeof igBookAsk === 'function' && igBookAsk(t)) return null; } catch (_){}
@@ -3097,6 +3099,12 @@ function caAskAnywhere(text, opts = {}){
      itself: no question or card is handed to another Jambo; a place or a
      contract still opens, and a booking still goes to the Calendar (above) */
   const win = !!opts.win;
+  /* WALK ME THROUGH IT (js/walkplan.js): a lesson is the conversation's — Home's box on Home, the box's own elsewhere */
+  if (!opts.cal && typeof walkAsked === 'function' && walkAsked(t)){
+    if (!win && typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+      && typeof state !== 'undefined' && state && state.view === 'dashboard'){ intelAsk(t); return true; }
+    return false;
+  }
   /* "ADD GRACE WAMBUI, HEAD OF BUYING, … AS THE CONTACT FOR NAIVAS" (owner, 19 Nov 2026): the one contact sheet opens
      filled in from the words (cuContactAsk, js/views/customers.js); nothing is saved until the person presses Add */
   if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t, opts.say); } catch (_){ pc = false; } if (pc) return pc; }
