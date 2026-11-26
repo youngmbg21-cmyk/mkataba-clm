@@ -785,33 +785,53 @@ function nsnFirstWords(d) {
 }
 const nsnBadgeOf = l => l.mode === 'jambo' ? ['green', 'nsn_b_jambo'] : (String(l.note || '').trim() ? ['steel', 'nsn_b_note'] : ['amber', 'nsn_b_say']);
 function nsnBadgeHtml(l, i) { const [t, k] = nsnBadgeOf(l); return `<span class="tb-bdg is-${t}" id="nsn-bd-${i}"><i></i>${nsEsc(i18t(k))}</span>`; }
+/* THE CARD WAY IN (owner's pick, 26 Nov 2026, as drawn): nothing linked = ONE dashed card (book mark, a heading, one line,
+   Link a document); the press opens it into the shelves the reader may see (Company · Mine) with a search, FOUR ROWS
+   SHOWN and the rest scrolling inside the card (shelves and search held), a count under it; a linked document is a
+   solid card of the same shape (mark, name, badge, ×; shelf · kind · size · its first to last label; first words
+   quoted; Let Jambo decide · Say what to bring; what to bring TYPED in words, a hint under it); "+ Link another" under
+   the cards. */
+const NSN_ROWS_SHOWN = 4;
+const NSN_BOOK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/><path d="M9 7h6"/></svg>';
+const nsnShelfOf = d => d.shelf || (d.mine ? 'mine' : 'company');
+function nsnPickRowsHtml(st) {
+  const E = nsEsc, L = st.nb || [];
+  const shelf = st.nbShelf === 'mine' ? 'mine' : 'company', q = String(st.nbQ || '').trim().toLowerCase();
+  const docs = (_nsnList || []).filter(d => nsnShelfOf(d) === shelf && (!q || String(d.name || '').toLowerCase().includes(q)));
+  const full = L.length >= NSN_MAX;
+  const rows = docs.length ? docs.map(d => { const on = L.some(l => l.id === d.id);
+    return `<div class="nsn-prow"><div class="nsn-pt"><span class="nsn-pn">${E(d.name)}</span><span class="nsn-meta">${d.kind ? E(i18t('nb_kind_' + d.kind)) + ' · ' : ''}${E(i18tn('nsn_secs', d.sections || 0, { n: d.sections || 0 }))}</span></div>`
+      + (on ? `<span class="nsn-meta">${E(i18t('nsn_is_linked'))}</span>` : `<button type="button" class="ui-btn nsn-lk" data-nsn-link="${E(d.id)}"${full ? ` disabled title="${E(i18t('nsn_max', { n: NSN_MAX }))}"` : ''}>${E(i18t('nsn_link_one'))}</button>`) + '</div>'; }).join('')
+    : `<p class="nsn-say">${E(i18t(q ? 'nsn_none_match' : 'nsn_shelf_empty'))}</p>`;
+  const count = docs.length > NSN_ROWS_SHOWN ? `<div class="nsn-pcount">${E(i18tn('nsn_count', docs.length, { n: docs.length }))}</div>` : '';
+  return `<div class="nsn-plist" id="nsn-plist">${rows}</div>${count}`;
+}
 function nsnHtml(st) {
   const E = nsEsc, L = st.nb || [];
-  const head = `<div class="nsn-head"><span class="nsn-h">${E(i18t('nsn_head'))}</span>${L.length ? `<span class="nsn-n">${E(i18tn('nsn_linked', L.length, { n: L.length }))}</span>` : ''}<span class="sp"></span><button type="button" class="nsl-or" data-nsn-pick aria-expanded="${st.nbPick ? 'true' : 'false'}">${E(i18t('nsn_link'))}</button></div>`;
+  const mark = `<span class="nsn-ic">${NSN_BOOK}</span>`;
   const pick = () => {
     if (!st.nbPick) return '';
-    if (st.nbErr) return `<div class="nsn-pick"><p class="nsn-say is-err">${E(st.nbErr)}</p></div>`;
-    if (!_nsnList) return `<div class="nsn-pick"><p class="nsn-say">${typeof busyHtml === 'function' ? busyHtml(i18t('nsn_loading')) : E(i18t('nsn_loading'))}</p></div>`;
-    const shelf = st.nbShelf === 'mine' ? 'mine' : 'company';
-    const docs = _nsnList.filter(d => (d.shelf || (d.mine ? 'mine' : 'company')) === shelf);
-    const full = L.length >= NSN_MAX;
-    const rows = docs.length ? docs.map(d => { const on = L.some(l => l.id === d.id);
-      return `<div class="nsn-prow"><div class="nsn-pt"><span class="nsn-pn">${E(d.name)}</span><span class="nsn-meta">${E(i18tn('nsn_secs', d.sections || 0, { n: d.sections || 0 }))}${d.kind ? ' · ' + E(i18t('nb_kind_' + d.kind)) : ''}</span></div>`
-        + (on ? `<span class="nsn-meta">${E(i18t('nsn_is_linked'))}</span>` : `<button type="button" class="ui-btn nsn-lk" data-nsn-link="${E(d.id)}"${full ? ` disabled title="${E(i18t('nsn_max', { n: NSN_MAX }))}"` : ''}>${E(i18t('nsn_link_one'))}</button>`) + '</div>'; }).join('')
-      : `<p class="nsn-say">${E(i18t('nsn_shelf_empty'))}</p>`;
-    return `<div class="nsn-pick"><div class="nsn-ptabs">${['company', 'mine'].map(k => `<button type="button" class="nsn-pt-b${shelf === k ? ' is-on' : ''}" data-nsn-shelf="${k}">${E(i18t('nsn_shelf_' + k))}</button>`).join('')}<span class="sp"></span><button type="button" class="nsl-or" data-nsn-pick>${E(i18t('nsn_done'))}</button></div>${rows}</div>`;
+    const inner = st.nbErr ? `<p class="nsn-say is-err">${E(st.nbErr)}</p>`
+      : !_nsnList ? `<p class="nsn-say">${typeof busyHtml === 'function' ? busyHtml(i18t('nsn_loading')) : E(i18t('nsn_loading'))}</p>`
+      : `<div class="nsn-ptabs">${['company', 'mine'].map(k => `<button type="button" class="nsn-pt-b${(st.nbShelf === 'mine' ? 'mine' : 'company') === k ? ' is-on' : ''}" data-nsn-shelf="${k}">${E(i18t('nsn_shelf_' + k))}</button>`).join('')}</div>
+        <label class="nsn-srch"><span aria-hidden="true">⌕</span><input type="search" id="nsn-q" value="${E(st.nbQ || '')}" placeholder="${E(i18t('nsn_search_ph'))}" aria-label="${E(i18t('nsn_search_ph'))}"></label>
+        <div id="nsn-pbody">${nsnPickRowsHtml(st)}</div>`;
+    return `<div class="nsn-card is-empty is-pick"><div class="nsn-chead">${mark}<div class="nsn-cbody"><div class="nsn-ct">${E(i18t('nsn_pick_t'))}</div><div class="nsn-meta">${E(i18t('nsn_pick_s'))}</div></div><button type="button" class="nsl-or" data-nsn-pick aria-expanded="true">${E(i18t('nsn_done'))}</button></div><div class="nsn-pick">${inner}</div></div>`;
   };
-  const rows = L.map((l, i) => {
+  if (!L.length && !st.nbPick) return `<div class="nsn"><div class="nsn-card is-empty">${mark}<div class="nsn-cbody"><div class="nsn-ct">${E(i18t('nsn_empty_t'))}</div><div class="nsn-meta">${E(i18t('nsn_empty_s'))}</div></div><button type="button" class="ui-btn nsn-lk" data-nsn-pick aria-expanded="false">${E(i18t('nsn_link_doc'))}</button></div></div>`;
+  const cards = L.map((l, i) => {
     const d = l.doc, labels = nsnLabels(d);
-    const shown = labels.slice(0, 4).join(' · ') + (labels.length > 4 ? ' · ' + i18t('nsn_more', { n: labels.length - 4 }) : '');
+    const facts = [i18t('nsn_shelf_' + (l.shelf === 'mine' ? 'mine' : 'company')), l.kind ? i18t('nb_kind_' + l.kind) : '', l.n ? i18tn('nsn_secs', l.n, { n: l.n }) : '',
+      labels.length > 1 ? i18t('nsn_range', { a: labels[0], b: labels[labels.length - 1] }) : (labels[0] || ''), d ? '' : i18t('nsn_loading')].filter(Boolean).join(' · ');
     const first = nsnFirstWords(d), q = first ? first.q : '';
-    return `<div class="nsn-doc"><div class="nsn-top"><span class="nsn-name">${E(l.name)}</span>${nsnBadgeHtml(l, i)}<button type="button" class="nsn-x" data-nsn-x="${E(l.id)}" aria-label="${E(i18t('nsn_unlink', { name: l.name }))}">×</button></div>
-      <div class="nsn-meta">${E(i18t('nsn_shelf_' + (l.shelf === 'mine' ? 'mine' : 'company')))}${shown ? ' · ' + E(shown) : (d ? '' : ' · ' + E(i18t('nsn_loading')))}</div>
+    return `<div class="nsn-card">${mark}<div class="nsn-cbody"><div class="nsn-top"><span class="nsn-name">${E(l.name)}</span>${nsnBadgeHtml(l, i)}<button type="button" class="nsn-x" data-nsn-x="${E(l.id)}" aria-label="${E(i18t('nsn_unlink', { name: l.name }))}">×</button></div>
+      <div class="nsn-meta">${E(facts)}</div>
       ${q ? `<p class="nsn-q">“${E(q)}” <span>${E(first.n)}</span></p>` : ''}
       <div class="nsn-mode" role="group" aria-label="${E(l.name)}"><button type="button" data-nsn-mode="jambo" data-nsn-id="${E(l.id)}" aria-pressed="${l.mode === 'jambo'}">${E(i18t('nsn_m_jambo'))}</button><button type="button" data-nsn-mode="note" data-nsn-id="${E(l.id)}" aria-pressed="${l.mode === 'note'}">${E(i18t('nsn_m_note'))}</button></div>
-      ${l.mode === 'note' ? `<textarea class="nsn-note" rows="2" maxlength="${NSN_NOTE_MAX}" data-nsn-note="${E(l.id)}" data-nsn-i="${i}" placeholder="${E(i18t('nsn_note_ph'))}">${E(l.note || '')}</textarea>` : ''}</div>`;
+      ${l.mode === 'note' ? `<textarea class="nsn-note" rows="2" maxlength="${NSN_NOTE_MAX}" data-nsn-note="${E(l.id)}" data-nsn-i="${i}" placeholder="${E(i18t('nsn_note_ph'))}">${E(l.note || '')}</textarea><p class="nsn-hint">${E(i18t('nsn_note_hint'))}</p>` : ''}</div></div>`;
   }).join('');
-  return `<div class="nsn">${head}${pick()}${rows}</div>`;
+  const more = L.length && !st.nbPick && L.length < NSN_MAX ? `<button type="button" class="nsl-or nsn-more" data-nsn-pick aria-expanded="false">${E(i18t('nsn_link_another'))}</button>` : '';
+  return `<div class="nsn">${cards}${pick()}${more}</div>`;
 }
 /* the ids and notes Propose sends; a note left empty is Jambo's to decide */
 /* where a section's words will come from, as the contents page and the panel say it: "Data Processing Agreement, § 3, § 7" */
@@ -820,7 +840,7 @@ const nsnBody = st => (st.nb || []).map(l => ({ id: l.id, note: l.mode === 'note
 function nsLgScratch(o = {}) {
   nsStyle(); nsShelfWire();
   const ai = typeof copilotAvailable === 'function' && copilotAvailable();
-  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '', sel: -1, extra: [], nb: [], nbPick: false, nbShelf: 'company', nbErr: '' };
+  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '', sel: -1, extra: [], nb: [], nbPick: false, nbShelf: 'company', nbErr: '', nbQ: '' };
   _nsShelf = { st, kept: () => (st.list || []).filter(x => x.on).length };
   const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai', nb: 'tb_src_nb' };
   const nameOf = () => st.name || nsNameFromSentence(st.said) || '';
@@ -898,14 +918,14 @@ function nsLgScratch(o = {}) {
   nsLgWire(host, {
     click: (e, t) => {
       const ex = t.closest('[data-nss-ex]'); if (ex) { st.said = i18t('nsl_ex' + ex.getAttribute('data-nss-ex')); paint(); return; }
-      if (t.closest('[data-nsn-pick]')) { st.nbPick = !st.nbPick; paint();
+      if (t.closest('[data-nsn-pick]')) { st.nbPick = !st.nbPick; st.nbQ = ''; paint();
         if (st.nbPick && !_nsnList) nsnListLoad().then(() => { st.nbErr = ''; paint(); }, e2 => { st.nbErr = nsWhy(e2); paint(); });
         return; }
       const sh = t.closest('[data-nsn-shelf]'); if (sh) { st.nbShelf = sh.getAttribute('data-nsn-shelf'); paint(); return; }
       const lk = t.closest('[data-nsn-link]'); if (lk) { const id = lk.getAttribute('data-nsn-link'); const d = (_nsnList || []).find(x => x.id === id);
         if (!d || st.nb.some(l => l.id === id) || st.nb.length >= NSN_MAX) return;
-        const l = { id, name: d.name, shelf: d.shelf || (d.mine ? 'mine' : 'company'), mode: 'jambo', note: '', doc: _nsnFull.get(id) || null };
-        st.nb.push(l); paint();
+        const l = { id, name: d.name, shelf: nsnShelfOf(d), kind: d.kind || '', n: d.sections || 0, mode: 'jambo', note: '', doc: _nsnFull.get(id) || null };
+        st.nb.push(l); st.nbPick = false; st.nbQ = ''; paint();
         if (!l.doc) nsnDocLoad(id).then(doc => { l.doc = doc; paint(); }, () => {});
         return; }
       const ux = t.closest('[data-nsn-x]'); if (ux) { const id = ux.getAttribute('data-nsn-x'); st.nb = st.nb.filter(l => l.id !== id); paint(); return; }
@@ -919,6 +939,7 @@ function nsLgScratch(o = {}) {
       const op = t.closest('[data-nss-open]'); if (op) { if (!kept()) { nsLgSay(nsLgHost(), i18t('tb_pb_none_ticked'), true); return; } open(op, true); }
     },
     input: e => {
+      if (e.target && e.target.id === 'nsn-q') { st.nbQ = e.target.value || ''; const pb = document.getElementById('nsn-pbody'); if (pb) pb.innerHTML = nsnPickRowsHtml(st); return; }
       const nn = e.target && e.target.getAttribute && e.target.getAttribute('data-nsn-note');
       if (nn) { const l = st.nb.find(x => x.id === nn); if (!l) return; l.note = String(e.target.value || '').slice(0, NSN_NOTE_MAX);
         const i = Number(e.target.getAttribute('data-nsn-i')), b = document.getElementById('nsn-bd-' + i);
