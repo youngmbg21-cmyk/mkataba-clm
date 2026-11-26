@@ -156,8 +156,11 @@ const READ = () => {
            links row offers no "fill in" on their paper, and the door itself (pdFillGo) is pressed instead */
         const linked5 = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .jb-ways button')].find(x => /^fill in$/i.test(x.textContent.trim()));
           if (!b) return false; b.click(); return true; });
+        /* the link stands where Jambo's chips offer "fill" (caChipShut: owed details on a contract this reader owns, Needs you's
+           own reading); where it is not offered, the door itself is pressed */
+        const shut5 = await page.evaluate(() => typeof caChipShut === 'function' && !!caChipShut(getContract('MK-A2'), 'fill'));
         if (!linked5) await page.evaluate(() => pdFillGo('MK-A2'));
-        const press5 = linked5 || !owed5;
+        const press5 = linked5 || shut5;
         const said5 = press5 && (owed5
           ? await until(page, () => typeof pdFormShows === 'function' && pdFormShows()
               && ![...document.querySelectorAll('#pd-og [data-pd-og-row]')].some(e => /^up_/.test(e.getAttribute('data-pd-og-row') || '')), null, 5000)
@@ -167,7 +170,7 @@ const READ = () => {
           fill: !!document.querySelector('#ig-dock .pd2-dossier.is-fill'), same: JSON.stringify([getContract('MK-A2').fields || {}, getContract('MK-A2').fills || null]) === b,
           scrolls: document.getElementById('ig-paper-scroll').scrollHeight > document.getElementById('ig-paper-scroll').clientHeight + 100 }), before5);
         check('5 their paper: the links row\'s fill in says so, turns no space into a box, writes nothing, the paper still scrolls',
-          press5 && said5 && F5.boxes === 0 && !F5.head && !F5.fill && F5.same && F5.scrolls, { owed5, linked5, said5, ...F5 });
+          press5 && said5 && F5.boxes === 0 && !F5.head && !F5.fill && F5.same && F5.scrolls, { owed5, linked5, shut5, said5, ...F5 });
         const srv5 = await page.evaluate(async () => { const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json();
           const f = (j.contract || j).fields || {}; return Object.keys(f).filter(k => /^up_/.test(k) && String(f[k] || '').trim()); });
         check('5b and the server holds no answer for their paper\'s spaces', Array.isArray(srv5) && srv5.length === 0, { srv5 });
