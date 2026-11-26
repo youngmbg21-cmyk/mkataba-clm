@@ -81,7 +81,9 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
       const rows = [...og.querySelectorAll('tr.pd-og-row:not(.is-saved)')].filter(r => /^(kt|nda|tplf|blank)$/.test(r.getAttribute('data-pd-og-kind') || ''))
         .map(r => ({ k: r.getAttribute('data-pd-og-row'), vis: vis(r), top: Math.round(r.getBoundingClientRect().top), label: ((r.querySelector('.pd-og-f b') || {}).textContent || '').trim() }));
       const head = document.querySelector('#pd-needs .pd-gl-h b');
-      return { head: head ? head.textContent.trim() : '', headTop: head ? Math.round(head.getBoundingClientRect().top) : null, rows, left: detailsOf(pdContract()).left,
+      const dd = detailsOf(pdContract());
+      return { head: head ? head.textContent.trim() : '', headTop: head ? Math.round(head.getBoundingClientRect().top) : null, rows, left: dd.left,
+        blankItems: (dd.items || []).filter(x => x && x.kind === 'blank').map(x => x.key), theirs: window.pd2FillHeldWhy ? pd2FillHeldWhy(pdContract()) : null,
         fold: kt ? (kt.querySelector('summary') || {}).textContent.replace(/\s+/g, ' ').trim() : '', foldTop: kt ? Math.round(kt.getBoundingClientRect().top) : null,
         open: !!mid, ktRows: [...ktT.querySelectorAll('tr[data-pd-og-row]')].map(r => ({ k: r.getAttribute('data-pd-og-row'), vis: !!mid && vis(r) })) }; };
     const PAPER_AT = () => { const sc = document.getElementById('ig-paper-scroll'), sh = document.querySelector('#ig-paper .pg-sheet, #ig-paper .doc-surface');
@@ -99,8 +101,13 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     /* 1 one worklist */
     const at0 = await openFill('MK-0405');
     const F = await page.evaluate(FACE);
-    check('1a Still owed\'s grid: one row per owed fact (detailsOf\'s count), the details and the paper\'s questions alike',
-      !!F && F.rows.length === F.left && F.rows.every(r => r.vis && r.top > F.headTop) && F.rows.some(r => /Start date/.test(r.label)) && F.rows.some(r => /Effective/.test(r.label)), JSON.stringify(F));
+    /* RE-POINTED 26 Nov 2026 (owner, #1035: "For counter party contracts or 3rd party contracts, they should be filled in
+       using their tools"): every upload is their paper (uploadBlanksTheirs), so its spaces ("[Start date]") are no longer
+       owed facts nor rows of the form; the form holds our record's details only, one row each, and Fill in on the paper
+       answers 'theirs' */
+    check('1a Still owed\'s grid: one row per owed fact (detailsOf\'s count); on their paper (an upload) its spaces are not ours to fill',
+      !!F && F.left >= 2 && F.rows.length === F.left && F.rows.every(r => r.vis && r.top > F.headTop) && F.rows.some(r => /Effective/.test(r.label)) && F.rows.some(r => r.k === 'value')
+        && !F.rows.some(r => /^up_/.test(r.k || '') || /Start date|Notice period/.test(r.label)) && F.blankItems.length === 0 && F.theirs === 'theirs', JSON.stringify(F));
     /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the owed facts stand in the form the Fill in door
        opens; the answered ones are Key terms' one line on the Dossier, the form's way back */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier draws no Key terms line; the
@@ -120,44 +127,47 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     await shot(page, 'owed-first-1440x780');
 
     /* 2 a box answered stays put under the hand */
-    await ckOpenRowOf(page, '#pd-og [data-blankf="up_notice_period"]'); await page.click('#pd-og [data-blankf="up_notice_period"]');
+    /* RE-POINTED 26 Nov 2026 (owner, #1035: an upload is their paper, "filled in using their tools"): the upload's notice
+       period is no box of ours any more, so the claim is held on the box the form still owes here, the contract's value
+       (written as typed by its own writer, wireKeyTerms); every other part of the claim as before */
+    const VAL = '#pd-og input[data-kt="value"]';
+    await ckOpenRowOf(page, VAL); await page.click(VAL);
     /* RE-POINTED 31 Oct 2026 (round 1 of the Legora way, the doors above Jambo's box): measured inside the form, not
        on the screen. The doors take a line at the panel's foot, so Tab's next box can sit a few pixels under it and the
        browser scrolls the form to show it; that is the browser's own reveal, not a repaint moving the row. A row that
        jumps on a repaint still moves inside the form, and fails here. */
-    const IN_FORM = () => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'), f = document.getElementById('pd-og');
+    const IN_FORM = () => { const b = document.querySelector('#pd-og input[data-kt="value"]'), f = document.getElementById('pd-og');
       return b && f ? Math.round(b.getBoundingClientRect().top - f.getBoundingClientRect().top) : null; };
     const before = await page.evaluate(IN_FORM);
     /* THE CARET IS IN THE NOTICE BOX BEFORE A LETTER IS TYPED (11 Nov 2026): twice on GitHub the click landed while the
        form was still settling and "6 months" answered another owed box (left fell by one, the notice period stayed
        owed). Asked for, bounded, pressed again if it is elsewhere; which box held the caret is said if it never gets there. */
-    const NOTICE = '#pd-og [data-blankf="up_notice_period"]';
+    const NOTICE = VAL;
     let inBox = false;
     for (let i = 0; i < 4 && !inBox; i++){
       inBox = await until(s => document.activeElement === document.querySelector(s), NOTICE, 2000);
       if (!inBox){ await ckOpenRowOf(page, NOTICE); await page.click(NOTICE); }
     }
-    if (!inBox) check('2 the caret reaches the notice box before typing', false, await page.evaluate(() => { const a = document.activeElement; return a ? (a.getAttribute('data-blankf') || a.id || a.tagName) : 'none'; }));
-    await page.keyboard.type('6 months');
+    if (!inBox) check('2 the caret reaches the value box before typing', false, await page.evaluate(() => { const a = document.activeElement; return a ? (a.getAttribute('data-blankf') || a.id || a.tagName) : 'none'; }));
+    await page.keyboard.type('250000');
     await page.keyboard.press('Tab');
     await until(l => detailsOf(pdContract()).left === l - 1, F.left, 5000);
-    const after = { top: await page.evaluate(IN_FORM), ...(await page.evaluate(() => ({ inGrid: !!document.querySelector('#pd-og [data-blankf="up_notice_period"]'), left: detailsOf(pdContract()).left }))) };
-    check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1, JSON.stringify({ before, after }));
+    const after = { top: await page.evaluate(IN_FORM), ...(await page.evaluate(() => ({ inGrid: !!document.querySelector('#pd-og input[data-kt="value"]'), left: detailsOf(pdContract()).left, value: (getContract('MK-0405') || {}).value }))) };
+    check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1 && Number(after.value) === 250000, JSON.stringify({ before, after }));
     await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form keeps the row it opened with, ticked */
-    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 15000);
+    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="value"]') && !((detailsOf(pdContract()) || {}).items || []).some(x => x && x.key === 'value' && x.open), null, 15000);
     /* the wait is bounded at 15s (was 4s): the save and the repaint after the blur can lag on a busy runner (11 Nov 2026) */
-    const seen2b = again ? '' : await page.evaluate(() => JSON.stringify({ row: (document.querySelector('#pd-og [data-pd-og-row="up_notice_period"]') || {}).className || null,
-      form: !!document.querySelector('#pd-og.is-form'), kt: pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'),
-      owed: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.key === 'up_notice_period').map(x => ({ open: !!x.open, kind: x.kind })),
+    const seen2b = again ? '' : await page.evaluate(() => JSON.stringify({ row: (document.querySelector('#pd-og [data-pd-og-row="value"]') || {}).className || null,
+      form: !!document.querySelector('#pd-og.is-form'),
+      owed: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.key === 'value').map(x => ({ open: !!x.open, kind: x.kind })),
       left: (detailsOf(pdContract()) || {}).left,
       openNow: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.open).map(x => x.key),
       /* WHICH BOX THE LETTERS WENT TO (20 Nov 2026: once on GitHub the value was paid and the notice stayed owed with the
          caret proved in the notice box before typing): the boxes holding "6", so a stolen caret names its thief */
-      typedIn: [...document.querySelectorAll('#pd-og [data-blankf], #pd-og input, #pd-og textarea')].filter(b => /6/.test(String(b.value || b.textContent || ''))).map(b => b.getAttribute('data-blankf') || b.name || b.id || b.tagName),
-      value: (pdContract() || {}).value,
-      field: JSON.stringify(((pdContract() || {}).fields || {}).up_notice_period === undefined ? null : pdContract().fields.up_notice_period).slice(0, 60) }));
-    check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again, seen2b);
+      typedIn: [...document.querySelectorAll('#pd-og [data-kt], #pd-og input, #pd-og textarea')].filter(b => /25/.test(String(b.value || b.textContent || ''))).map(b => b.getAttribute('data-kt') || b.name || b.id || b.tagName),
+      value: (pdContract() || {}).value }));
+    check('2b the hand gone: no longer owed; the form keeps its row, answered (ticked)', !!again, seen2b);
 
     /* 3 the paper holds still */
     const at1 = await page.evaluate(PAPER_AT);
