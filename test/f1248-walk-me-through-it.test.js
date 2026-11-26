@@ -338,13 +338,15 @@ describe('f1248 (12) the other readings tell the truth', () => {
 describe('f1248 (13) the question bank', () => {
   const lessons = ['Walk me through my contracts', 'walk me through the status of our contracts but for the marketing folder', 'Walk me through my renewals for next quarter',
     'take me through our duties this month', 'talk me through the negotiation with Naivas', 'run me through my approvals', 'teach me where our money is',
-    'explain my renewals', 'explain our book step by step', 'break down my contracts by stream', 'give me a tour of my portfolio', 'step by step, my risks please',
+    'explain our book step by step', 'give me a tour of my portfolio', 'step by step, my risks please',
     'walk me through this contract', 'walk me through the changes on this agreement', 'explain this negotiation step by step', 'walk me through what needs me',
     'walk me through our signed contracts with Bidco', 'walk me through my contracts ending next year', 'walk us through the procurement stream', 'teach me my Board figures',
-    'gå igenom mina avtal', 'gå igenom våra förnyelser', 'förklara våra risker steg för steg', 'lär mig var pengarna finns', 'bryt ner mina avtal per värdeström'];
+    'gå igenom mina avtal', 'gå igenom våra förnyelser', 'förklara våra risker steg för steg', 'lär mig var pengarna finns', 'take us through our approvals', 'walk me through my duties for Kabras'];
   const notLessons = ['walk me through sending a contract', 'walk me through how to sign this', 'walk me through adding a colleague', 'walk me through uploading a file',
     'teach me how to set up approvals', 'why is the Naivas value high?', 'change the payment days to 500', 'what ends this quarter?', 'open contracts', 'renewals',
-    'show me the marketing folder', 'how many contracts do we have', 'teach me', "I'm new", 'hur skickar jag ett avtal', 'gå till inställningar'];
+    'show me the marketing folder', 'how many contracts do we have', 'teach me', "I'm new", 'hur skickar jag ett avtal', 'gå till inställningar',
+    /* the Board's own chart questions: drawn on the Board's page, never a lesson (owner, 27 Nov 2026) */
+    'explain my renewals', 'break down my contracts by stream', 'show value by stream', 'compare our streams by value', 'explain why our value is high', 'bryt ner mina avtal per värdeström', 'förklara våra risker'];
   for (const q of lessons) test('reaches Jambo as a lesson: ' + q, () => assert.equal(W.walkAsked(q), true));
   for (const q of notLessons) test('not a lesson: ' + q, () => assert.equal(W.walkAsked(q), false));
   const ctx = lessonWorld({});

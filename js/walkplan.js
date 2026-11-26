@@ -93,7 +93,9 @@ const AI_WALK_RULE = 'A LESSON, ONLY WHEN ASKED FOR ONE: when the person asks to
 /* WORDS THAT ASK FOR A LESSON ABOUT ONE'S DATA — read by the boxes so no free reader (a page's name, the Handbook,
    the Board's own reader) takes the sentence first; the AI decides the rest. An ask about how to DO something in
    HaTi ("walk me through sending a contract") is not one: the Handbook keeps it. */
-const WALK_LEAD_RE = /\b(walk me through|walk us through|take me through|talk me through|run me through|teach me|explain|break down|give me a tour|a tour of|step by step|gå igenom|visa steg för steg|steg för steg|lär mig|förklara|bryt ner)\b/i;
+/* ONLY WORDS THAT ASK TO BE TAKEN THROUGH SOMETHING: "explain", "break down", "show", "compare" are the Board's (it
+   draws them on its own page, hbAnalyticAsk) and every other box's ordinary answer — never a lesson by themselves */
+const WALK_LEAD_RE = /\b(walk me through|walk us through|take me through|take us through|talk me through|run me through|teach me|give me a tour|a tour of|step by step|gå igenom|visa steg för steg|steg för steg|lär mig)\b/i;
 const WALK_DO_RE = /\b(how (?:to|do i|can i|should i)|sending|send|signing a|sign a|adding|add a|uploading|upload|creating|create|drafting a|set(?:ting)? up|invite|inviting|använd|hur (?:gör|skickar|lägger)|skicka|ladda upp|skapa)\b/i;
 const WALK_DATA_RE = /\b(my|our|this|the|mina|vår|våra|det här|detta)\b[\s\S]*\b(contracts?|agreements?|deals?|book|portfolio|renewals?|duties|duty|obligations?|risks?|negotiations?|changes|redlines|approvals?|streams?|counterpart(?:y|ies)|parties|customers|suppliers|value|money|figures|board|playbook|findings|signing|pipeline|avtal|förnyelser|åtaganden|risker|förhandling(?:en)?|godkännanden|värde|pengar)\b|\bwhat needs me\b|\bwhere (?:my|our) money\b|\b(?:pengarna|avtalen|förnyelserna|åtagandena|riskerna|förhandlingen|godkännandena)\b/i;
 function walkAsked(q){
