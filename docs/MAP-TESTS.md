@@ -679,6 +679,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- A MOVE IS STYLED ONCE (26 Nov 2026): f1240 (six parts, all red at the parent): no `:has()` rule ending on a bare `:not()`/`*`; the panel heads hide the same parts at no added weight; `insRoom` once a turn, afresh next turn and on resize; `sddPut` writes only what changed; the panel frame's guarded writes. Browser: our-paper-as-drawn-verify and the panel checks on GitHub.
 - ONE HOME FOR A HALF-TYPED QUESTION (13 Nov 2026, the flash survey, Part A): f1044 (seven parts); test/chromium/jambo-box-keeps-what-you-typed-verify.js (red at the parent 1-5).
 - THE SEND SCREEN TURNS IN PLACE (13 Nov 2026, the flash survey, Part B): f1045 (six parts); test/chromium/send-screen-keeps-its-way-back-verify.js (red at the parent 1-3).
 - ONE POP-UP TAKING ANOTHER'S PLACE DOES NOT ARRIVE AGAIN (13 Nov 2026, the flash survey, Part C): f1046 (six parts); test/chromium/a-popup-replaced-does-not-arrive-again-verify.js (red at the parent 2-4).
