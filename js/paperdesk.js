@@ -10910,15 +10910,44 @@ function pd2NegoSeq(root){
    `fill`: the answers by blank, sig~n), not yet sent. Fill in shows that clause as it stands with our answers back in
    their spaces, and a save files the clause again from the standing wording with every answer, so our one change is
    replaced, never a second one beside it. */
+/* A FILL IN CHANGE MADE BEFORE ITS ANSWERS WERE KEPT ON IT (before 26 Nov 2026; the owner's MK-469: "the ambers are not
+   filled in but also in the panel there is nothing point to how i should fill those spaces"): known by Fill in's own note
+   (pd2_nb_note, either book), its answers read back off the change — a company standard's field from its form's answer,
+   a placeholder from the words the change put where it stood. Nothing read = not ours to give back. */
+const PD2_NB_NOTES = ['Filled in on the paper', 'Ifyllt på pappret'];
+function pd2NegoFillRead(c, x, clauseId){
+  try {
+    const note = String(x.note || '').trim(); const mine = new Set(PD2_NB_NOTES.concat([_pdT('pd2_nb_note')]));
+    if (!mine.has(note)) return null;
+    const cl = typeof negoClauseNowById === 'function' ? negoClauseNowById(c, clauseId) : null; if (!cl) return null;
+    const host = document.createElement('div'); host.innerHTML = cl.bodyHtml || (typeof textToRich === 'function' ? textToRich(cl.text || '') : '<p>' + _pdE(cl.text || '') + '</p>');
+    const seq = pd2NegoSeq(host); if (!seq.length) return null;
+    const vals = (c.templateForm && c.templateForm.values) || {}, out = {};
+    /* the standing words with each placeholder a hole, matched against what the change says */
+    const was = String(cl.text || ''), now = String(x.newText || '');
+    const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    let re = null; const us = seq.filter(b => b.kind === 'u');
+    if (us.length){ let at = 0, src = ''; for (const b of us){ const i = was.indexOf(b.raw, at); if (i < 0){ src = ''; break; } src += esc(was.slice(at, i)) + '([\\s\\S]*?)'; at = i + b.raw.length; }
+      if (src){ src += esc(was.slice(at)); try { re = new RegExp('^' + src + '$'); } catch (_){ re = null; } } }
+    const m = re ? re.exec(now) : null;
+    seq.forEach(b => { const k = b.sig + '~' + b.n;
+      if (b.kind === 'f'){ const v = vals[b.fk]; if (v != null && String(v).trim() && now.includes(String(v))) out[k] = String(v); }
+      else if (m){ const v = m[us.indexOf(b) + 1]; if (v != null && String(v).trim() && String(v) !== b.raw) out[k] = String(v).trim(); } });
+    return Object.keys(out).length ? out : null;
+  } catch (_){ return null; }
+}
 function pd2NegoOwnFill(c, clauseId){
   const L = (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && String(x.clauseId) === String(clauseId) && !x.withdrawn
     && (x.status === 'pending' || x.status === 'countered'));
   if (L.length !== 1) return null;
-  const x = L[0]; if (x.authorSide !== 'owner' || x.status !== 'pending' || !x.fill || typeof x.fill !== 'object') return null;
+  const x = L[0]; if (x.authorSide !== 'owner' || x.status !== 'pending') return null;
+  /* READING MUST NOT WRITE: an older change's answers are read into what is handed back, never onto the record */
+  let fill = (x.fill && typeof x.fill === 'object') ? x.fill : null;
+  if (!fill){ fill = pd2NegoFillRead(c, x, clauseId); if (!fill) return null; }
   const at = c.negotiation && c.negotiation.turnAt;
   let unsent = !at || String(x.createdAt || '') > String(at);
   try { if (!unsent && typeof window.negoUnsentAsks === 'function') unsent = window.negoUnsentAsks(c, 'owner').some(y => y && y.id === x.id); } catch (_){}
-  return unsent ? x : null;
+  return unsent ? { id: x.id, fill } : null;
 }
 function pd2NegoMark(c){
   if (!pd2NegoFillOn(c)) return 0;
@@ -11232,6 +11261,63 @@ function pd2FillLeaveCheck(){
   if (!_pd2Fill || _pd2FillAsking || pd2FillHere()) return;
   const c = typeof getContract === 'function' ? getContract(_pd2Fill.id) : null;
   if (!c || !pd2FillChanged(c)){ pd2FillStop(); return; }
+  pd2FillAsk(c, 'pd2_fl_leave_sub');
+}
+/* EXIT: back to the paper with its notes; something typed asks Save or Discard first (the one question) */
+/* a press on a space on the paper: Fill in opens (its one door, pd2FillStart) with the caret in that space */
+/* is the press on a placeholder's words ("[Premises Address]", "{{date}}") — read where the caret would land; handed back
+   as the key Fill in will give that space (its clause, its words, which occurrence), read BEFORE anything moves */
+function pd2PressOnPlaceholder(x, y){
+  try {
+    let node = null, off = 0;
+    if (typeof document.caretRangeFromPoint === 'function'){ const r = document.caretRangeFromPoint(x, y); if (r){ node = r.startContainer; off = r.startOffset; } }
+    else if (typeof document.caretPositionFromPoint === 'function'){ const p = document.caretPositionFromPoint(x, y); if (p){ node = p.offsetNode; off = p.offset; } }
+    if (!node || node.nodeType !== 3 || typeof upHits !== 'function') return null;
+    if (node.parentElement && node.parentElement.closest('del, .ig-signpaper')) return null;
+    const hit = upHits(node.data).find(h => off >= h.s && off <= h.e); if (!hit) return null;
+    const reg = node.parentElement && node.parentElement.closest('section.rl-clause[data-clause], header.rl-paper-head[data-clause]');
+    let clauseId = reg ? reg.getAttribute('data-clause') : '';
+    let roots = reg ? [reg] : [];
+    if (!reg){ const rec = node.parentElement && node.parentElement.closest('.rl-recital'); const fh = rec && rec.previousElementSibling;
+      if (fh && fh.matches('header.rl-paper-head[data-clause]')){ clauseId = fh.getAttribute('data-clause'); roots = [fh, rec]; } }
+    else if (reg.matches('header.rl-paper-head')){ const nx = reg.nextElementSibling; if (nx && nx.classList.contains('rl-recital')) roots.push(nx); }
+    /* which occurrence of these words in the clause, counted as pd2NegoSeq counts them (never inside a deletion) */
+    let n = 0, done = false;
+    for (const r of roots){ if (done) break;
+      const w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT); let tn;
+      while ((tn = w.nextNode())){
+        if (tn.parentElement && tn.parentElement.closest('del, h4.rl-clause-h, .rl-gutter, .rl-hang-n, button')) continue;
+        for (const h of upHits(tn.data)){ if (tn === node && h.s === hit.s){ done = true; break; } if (h.raw === hit.raw) n++; }
+        if (done) break; } }
+    return clauseId ? { key: 'nb~' + clauseId + '~u:' + hit.raw + '~' + n } : { key: '' };
+  } catch (_){ return null; }
+}
+function pd2FillFromPress(sp, pt){
+  try {
+    if (!pd2On()) return false;
+    const c = typeof pdContract === 'function' ? pdContract() : null; if (!c) return false;
+    const full = (typeof getContract === 'function' && getContract(c.id)) || c;
+    if (pd2Sealed(full) || (typeof window.igTheirsOn === 'function' && window.igTheirsOn(full))) return false;
+    if (typeof window.mayActOn === 'function' && !window.mayActOn(full)) return false;
+    if (sp && sp.closest('.ig-signpaper')) return false;
+    if (!pd2FillStart(full.id, '')) return false;
+    /* the space pressed carries its key now (the marks are made on the same element), else the first left to fill */
+    let k = (pt && pt.key) || (sp && sp.isConnected ? pd2BlKey(sp) : null);
+    /* or the box now standing where the press was */
+    if (!k && pt && typeof document.elementFromPoint === 'function'){ const el = document.elementFromPoint(pt.x, pt.y);
+      const box = el && el.closest ? el.closest('[data-pd2-bl], [data-pd2-nb]') : null; k = box ? (box.getAttribute('data-pd2-bl') || pd2BlKey(box)) : null; }
+    if (k && _pd2Fill && _pd2Fill.walk.includes('b:' + k)) pd2FillGoTo('b:' + k);
+    return true;
+  } catch (_){ return false; }
+}
+function pd2FillExit(){
+  if (!_pd2Fill || _pd2FillAsking) return;
+  const c = typeof getContract === 'function' ? getContract(_pd2Fill.id) : null;
+  if (!c || !pd2FillChanged(c)){ pd2FillStop(); return; }
+  pd2FillAsk(c, 'pd2_fl_exit_sub');
+}
+/* THE ONE QUESTION: Save or Discard, closed only by one of them */
+function pd2FillAsk(c, subKey){
   if (typeof window.lgpOpen !== 'function'){ pd2FillStop(); return; }
   _pd2FillAsking = true;
   /* the bar goes at once: the page moved to stands with its own line; the typed values wait in the record of the sitting */
@@ -11243,7 +11329,7 @@ function pd2FillLeaveCheck(){
     /* a negotiated paper's blanks are filed as our change, which waits on the server: Fill in ends once it is done */
     let r = null; if (save){ try { r = pd2FillSave(); } catch (_){ r = null; } }
     Promise.resolve(r).catch(() => null).then(() => { try { pd2FillStop(); } catch (_){} }); };
-  window.lgpOpen({ title: _pdT('pd2_fl_leave_q'), sub: _pdT('pd2_fl_leave_sub', { name: String(c.name || '') }), focus: false,
+  window.lgpOpen({ title: _pdT('pd2_fl_leave_q'), sub: _pdT(subKey, { name: String(c.name || '') }), focus: false,
     primary: { label: _pdT('og_save'), attr: 'data-pd2-fl-save' }, alt: { label: _pdT('pd2_fl_discard'), attr: 'data-pd2-fl-stop' }, noCancel: true,
     onBeforeClose: () => decided });
   const root = document.getElementById('modal-root');
@@ -11330,9 +11416,10 @@ function pd2FillPaint(c){
   const strip = document.getElementById('ig-strip');
   if (strip && !document.getElementById('pd2-fill-head')){
     const h = document.createElement('div'); h.id = 'pd2-fill-head'; h.className = 'pd2-fill-head';
-    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span>`;
+    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span><button type="button" class="ui-btn pd2-fh-exit" data-pd2-fill-exit>${E(_pdT('pd2_fh_exit'))}</button>`;
     /* NO STOP OR SAVE ON THE BAR (owner, 26 Nov 2026: "the top bar remove the buttons for save and stop"): Enter on the
-       last space saves; moving away asks Save or Discard (pd2FillLeaveCheck) */
+       last space saves; moving away asks Save or Discard (pd2FillLeaveCheck); EXIT goes back to the paper with its notes,
+       asking Save or Discard first when something was typed (pd2FillExit) */
     strip.parentElement.insertBefore(h, strip);
   }
   /* the foot under the paper: last in the column the paper's line heads (a flex column), so the paper keeps its scroll */
@@ -11603,14 +11690,18 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd2-bl], [data-pd2-ps-name], [data-pd2-ps-mail]')) return;
     const sp = t.closest('#ig-canvas [data-pd2-nb], #ig-canvas [data-upblank], #ig-canvas [data-field-key], #ig-canvas [data-field], #ig-canvas [data-sync]');
-    if (sp){ e.preventDefault(); e.stopPropagation(); return; }
+    /* A PRESS ON A SPACE STARTS FILL IN THERE (owner, 26 Nov 2026: "i want to be able to fill in by just placing my cursor
+       on the paper as well"; REVERSES 13 Nov's "a blank pressed on the paper does nothing"): through Fill in's one way in,
+       the caret in the space pressed. Never on a sealed paper, Their view, for a reader who may not act, nor while Fill in
+       already holds the paper (its own boxes answer then). */
+    if (sp){ e.preventDefault(); e.stopPropagation(); if (!_pd2Fill) pd2FillFromPress(sp, { x: e.clientX, y: e.clientY }); return; }
+    /* on a paper with redlines a placeholder is still words until Fill in marks it: a press on those words starts it too */
+    if (!_pd2Fill && t.closest('#ig-canvas')){ const ph = pd2PressOnPlaceholder(e.clientX, e.clientY);
+      if (ph){ e.preventDefault(); e.stopPropagation(); pd2FillFromPress(null, { x: e.clientX, y: e.clientY, key: ph.key }); return; } }
     if (!pd2On()) return;
-    if (t.closest('[data-pd2-fill-save]')){ e.preventDefault(); pd2FillSave(); return; }
-    if (t.closest('[data-pd2-fill-discard]')){ e.preventDefault(); const c = _pd2Fill && getContract(_pd2Fill.id);
-      /* STOP WITH SOMETHING TYPED ASKS AGAIN, in its own words, for four seconds; a second press leaves */
-      if (c && pd2FillChanged(c) && !(_pd2Fill.stopAsk && Date.now() - _pd2Fill.stopAsk < 4000)){ _pd2Fill.stopAsk = Date.now(); pd2FillCount(c);
-        setTimeout(() => { const cc = _pd2Fill && getContract(_pd2Fill.id); if (cc) pd2FillCount(cc); }, 4100); return; }
-      pd2FillStop(); return; }
+    /* EXIT (owner, 26 Nov 2026: "add an exit button so you can go to the paper with the notes"): typed something → Save or
+       Discard first; nothing typed → back to the paper at once */
+    if (t.closest('[data-pd2-fill-exit]')){ e.preventDefault(); pd2FillExit(); return; }
     const use = t.closest('#ig-dock [data-pd2-fp-use]');
     if (use && _pd2Fill){ e.preventDefault(); const k = use.getAttribute('data-pd2-fp-use'), v = use.getAttribute('data-pd2-fp-v') || '';
       _pd2Fill.vals[k] = v; document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(b => { b.value = v; });
@@ -11942,7 +12033,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
-Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoFillRead, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* THE ARRIVAL VEIL: a page in the middle that opens only once its paper stands (History, pay, Key terms; pdMidArriving)
    has the page's own ground stand over the paper meanwhile, so the paper is never seen on the way; bounded (CV_LAND_MS).
    (The Cover page these were first built for was deleted, owner, 20 Nov 2026: "Delete it, open the Dossier instead".) */

@@ -211,8 +211,10 @@ const endOf = (page, sel) => page.evaluate(sel => {
       const s7b = await page.evaluate(() => { const a = document.activeElement;
         return { box: !!(a && a.closest && a.closest('#pd-og, [data-pd-mid-kt], #ig-canvas [data-pd2-bl]')),
           mid: typeof pdMidUp === 'function' && !!pdMidUp(), filling: typeof pd2FillOn === 'function' && !!pd2FillOn('MK-CT2') }; });
-      ok('6b a press on one opens nothing (only Fill in the contract fills)', !s7b.box && !s7b.mid && !s7b.filling, JSON.stringify(s7b));
-    } else ok('6b a press on one opens nothing (only Fill in the contract fills)', false, 'no blanks');
+      /* RE-POINTED 26 Nov 2026 (owner: "fill in by just placing my cursor on the paper"; f1244): the press opens Fill in on
+         the paper, never a middle page */
+      ok('6b a press on one opens Fill in there, no middle page', !s7b.mid && s7b.filling, JSON.stringify(s7b));
+    } else ok('6b a press on one opens Fill in there, no middle page', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 
     /* ===== 7. A TABLET (820px) ===== */

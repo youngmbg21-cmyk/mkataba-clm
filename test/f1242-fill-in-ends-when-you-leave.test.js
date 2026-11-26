@@ -24,8 +24,9 @@ test('f1242 (1a) Fill in stands only on its contract\'s paper, Dossier tab, no R
   assert.match(h, /igRedOn\(pc\)/); assert.match(h, /pdMidUp\(\)/);
 });
 test('f1242 (1b) nothing typed simply ends; typed asks Save or Stop, closing only on one of them', () => {
-  const k = fnSrc(PD, 'pd2FillLeaveCheck');
-  assert.match(k, /if \(!c \|\| !pd2FillChanged\(c\)\)\{ pd2FillStop\(\); return; \}/);
+  /* RE-POINTED 26 Nov 2026 (f1244): the question is one function, asked by leaving and by Exit */
+  assert.match(fnSrc(PD, 'pd2FillLeaveCheck'), /if \(!c \|\| !pd2FillChanged\(c\)\)\{ pd2FillStop\(\); return; \}/);
+  const k = fnSrc(PD, 'pd2FillAsk');
   assert.match(k, /lgpOpen\(\{ title: _pdT\('pd2_fl_leave_q'\)/);
   assert.match(k, /primary: \{ label: _pdT\('og_save'\)/); assert.match(k, /alt: \{ label: _pdT\('pd2_fl_discard'\)/); /* RE-POINTED 26 Nov 2026: "the options should be save and discard" */
   assert.match(k, /noCancel: true/); assert.match(k, /onBeforeClose: \(\) => decided/);
