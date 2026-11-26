@@ -759,20 +759,30 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       await page.click('#igd-input'); await page.fill('#igd-input', ''); await page.type('#igd-input', word, { delay: 10 });
       /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): the free readers, asked as a chip asks (chipEnter) */ await chipEnter(page, '#igd-input'); return true; };
     const R1owed = await owedFor('MK-R1');
+    /* RE-POINTED 26 Nov 2026 (NEGOTIATE, THEN FILL IN, owner: "You should negotiate or redline a contract and once you are
+       done, you then fill in the contract right before signing"): while a change is still open on MK-R1 (their round is
+       in), Fill in waits and its door says so and takes the reader to Redlines beside the paper (pd2FillHeldWhy 'open' →
+       pd2FillHeldSay → pdRedOpen); only a clear table fills */
+    const R1open = await page.evaluate(() => { const c = getContract('MK-R1'); return !!(c && typeof negoFillOpenCount === 'function' && negoFillOpenCount(c) > 0); });
+    const fillWant = R1open ? E.red('MK-R1') : R1owed ? E.fill('MK-R1') : E.paper('MK-R1');
+    const fillSays = R1open ? SAYS.red + ' (Fill in waits for the open changes)' : SAYS.fill;
+    /* each word pressed from the bare paper, as the chips are: since the ruling above, "fill in" leaves Redlines open,
+       and the next word must be measured from the paper with Jambo, not from the face the last word opened */
+    const onBarePaper = id => async () => { await page.evaluate(() => ['pdFillClose', 'pdRedClose', 'pdSignClose', 'pdAmendClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} })); await onPaper(id)(); };
     const WORDS = [
       ['redline', E.red('MK-R1'), SAYS.red], ['sign', E.signing('MK-R1'), SAYS.signing],
       /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): the word lands where the Duties card does — the contract's
          Duties page in the middle (the hidden tab it used to turn is gone) */
-      ['fill in', R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), SAYS.fill], ['obligations', E.obTab('MK-R1'), SAYS.obTab],
+      ['fill in', fillWant, fillSays], ['obligations', E.obTab('MK-R1'), SAYS.obTab],
       ['history', E.board('MK-R1', 'hist'), SAYS.strip], ['board', E.face('board'), 'the Board'],
       ['contracts', E.folders, SAYS.folders], ['list', E.list(null), SAYS.list], ['wall', E.wall(null), SAYS.wall], ['calendar', E.face('calendar'), 'Home\'s Calendar'], ['explorer', E.face('explorer'), 'Home\'s Explorer'],
       ['MK-A1', E.paper('MK-A1'), 'that contract\'s paper'],
     ];
     for (const [w, want, says] of WORDS)
-      await door(D, `the word "${w}" (on MK-R1)`, { start: onPaper('MK-R1'), press: say(w), expect: want, says });
+      await door(D, `the word "${w}" (on MK-R1)`, { start: onBarePaper('MK-R1'), press: say(w), expect: want, says });
     const chips = await (async () => { await onPaper('MK-R1')(); return page.evaluate(() => [...document.querySelectorAll('[data-ca-chip]')].map(b => b.getAttribute('data-ca-chip'))); })();
     const CHIP = { redline: E.red('MK-R1'), sign: E.signing('MK-R1'), history: E.board('MK-R1', 'hist'),
-      fill: R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), oblig: E.obTab('MK-R1'),
+      fill: fillWant, oblig: E.obTab('MK-R1'),
       /* RE-POINTED 15 Oct 2026: the chips are the next steps now, so "share" is
          drawn; it answers with Jambo's share card and stays on the paper */
       share: E.paper('MK-R1'),
@@ -782,7 +792,6 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* each chip from the paper with no face open (15 Oct 2026): the chips are
        the next steps now, and an open face (Redlines after the "redline"
        chip) rightly moves them on */
-    const onBarePaper = id => async () => { await page.evaluate(() => ['pdFillClose', 'pdRedClose', 'pdSignClose', 'pdAmendClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} })); await onPaper(id)(); };
     /* RE-POINTED 21 Oct 2026: the chips are the NEXT STEPS (caNextSteps, CA_NEXT_MAX 4) and move on as
        the contract does, so each chip is pressed only while it is still offered on the bare paper — a
        step that has moved off the four is said, not pressed (it is not a door on screen) */

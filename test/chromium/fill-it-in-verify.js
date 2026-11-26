@@ -5,8 +5,10 @@
      1 · the blank point carries Fill it in and Mark reviewed — no Deep dive, no Start redlining
      2 · the real risk keeps Start redlining, Deep dive and Mark reviewed
      3 · Deep dive, Fill it in and Start redlining are green and underlined, as HaTi's links are; Mark reviewed is not
-     4 · Fill it in opens the contract's own fill-in box for that field, free (no Jambo call)
-     5 · once the field is filled, the point is gone from the list and from the number on the tab
+     4 · Fill it in opens the contract's own fill-in box for that field, free (no Jambo call) — on their paper (an upload,
+         as here, since 26 Nov 2026) it opens no box and says the paper is theirs to fill
+     5 · once the field is filled, the point is gone from the list and from the number on the tab — on their paper nothing
+         of ours fills it, so it stays
      6 · the walk ‹ › through the deep dives steps past the blank point
      7 · no page errors
    At the parent (before this change) 1, 3 and 4 fail: every point had the same three buttons. */
@@ -84,27 +86,31 @@ const BREAKDOWN = { head: 'Two things', sub: 'A small cap and an empty address.'
     await until(page, () => !!document.querySelector('#pd-thread [data-stk-fill]'), null, 8000);
 
     /* 4 Fill it in opens the field's own box, free */
+    /* RE-POINTED 26 Nov 2026 (owner, #1035: "For counter party contracts or 3rd party contracts, they should be filled in
+       using their tools"): this contract is an upload, their paper (uploadBlanksTheirs), so its space is no blank of ours
+       (contractBlanks answers none) and Fill it in opens no box: it says, where the reader looks, that the paper is theirs
+       to fill and a change is a redline (pd2FillHeldSay) — still free, no Jambo call */
     const calls0 = await page.evaluate(() => window.__calls);
     const blanks = await page.evaluate(() => contractBlanks(getContract('MK-F1')).map(b => ({ key: b.key, label: b.label, section: b.section, value: b.value })));
     await page.evaluate(() => document.querySelector('#pd-thread [data-stk-fill]').click());
-    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Fill it in is Fill in the contract's own door
-       (stkFillGo → pdFillGo), which fills ON THE PAPER (owner's 11 Nov pick) — the box in the hand is that blank's own
-       line on the paper (#ig-canvas input[data-pd2-bl="<its key>"]), not a box in the panel */
-    const box = await until(page, () => { const a = document.activeElement; return a && a.tagName === 'INPUT' && a.closest('#ig-canvas') ? a.getAttribute('data-pd2-bl') : null; }, null, 10000);
-    check('4 Fill it in opens the contract\'s own fill-in box for that field, free', !!box && blanks.some(b => b.key === box && !b.value) && (await page.evaluate(() => window.__calls)) === calls0, { box, blanks });
+    const said = await until(page, () => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return t.includes(i18t('pd2_fill_theirs')) ? t : null; }, null, 8000);
+    const box = await page.evaluate(() => ({ lines: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length, on: pd2FillOn('MK-F1'), form: !!document.querySelector('#pd-og.is-form'),
+      why: pd2FillHeldWhy(getContract('MK-F1')) }));
+    check('4 Fill it in on their paper opens no box: it says the paper is theirs to fill, free', !!said && blanks.length === 0 && box.lines === 0 && !box.on && !box.form && box.why === 'theirs'
+      && (await page.evaluate(() => window.__calls)) === calls0, { said, box, blanks });
     await page.screenshot({ path: path.join(OUT, 'fill-1440x780.png') });
 
-    /* 5 filled, the point is gone from the list and the tab's number */
+    /* 5 RE-POINTED 26 Nov 2026 (the same ruling): nothing of ours fills their space, so the point stays — on the list,
+       still counted — next to the real risk, until a person marks it reviewed */
     const n0 = await page.evaluate(() => (typeof stkNeedCount === 'function') ? stkNeedCount(getContract('MK-F1')) : null);
-    await page.evaluate(B => { const c = getContract('MK-F1'); B.forEach(b => contractBlankSet(c, b.key, 'Juno House, Nairobi')); }, blanks);
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-F1', 'doc'); });
     await until(page, () => !!document.querySelector('#pd-thread .doc-th-row'), null, 15000);
     await page.evaluate(() => { const r = document.querySelector('#pd-thread [data-stk-run]'); if (r) r.click(); });
-    await page.waitForTimeout(400);
+    await until(page, () => !!document.querySelector('#pd-thread .stk-card, #pd-thread [data-stk-dive]'), null, 10000);
     await page.evaluate(() => document.querySelectorAll('#pd-thread .doc-th-row').forEach(r => { const b = r.querySelector('[aria-expanded="false"], .doc-th-hd, button'); if (b && !r.querySelector('.stk-card')) b.click(); }));
-    await page.waitForTimeout(600);
+    await until(page, () => document.querySelectorAll('#pd-thread .stk-card').length >= 2 ? true : null, null, 10000);
     const after = await cards(), n1 = await page.evaluate(() => (typeof stkNeedCount === 'function') ? stkNeedCount(getContract('MK-F1')) : null);
-    check('5 once the field is filled, the point is gone from the list and the count drops', blanks.length > 0 && !after.some(x => /notice address/.test(x.title)) && after.some(x => /capped/.test(x.title)) && (n0 == null || n1 == null || n1 <= n0), { n0, n1, after: after.map(x => x.title) });
+    check('5 on their paper the blank point stays, beside the real risk, and the count holds', after.some(x => /notice address/.test(x.title)) && after.some(x => /capped/.test(x.title)) && n0 != null && n0 === n1, { n0, n1, after: after.map(x => x.title) });
     check('7 no page errors', !errors.length, errors.slice(0, 3));
   } finally { await browser.close(); await h.stop(); }
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

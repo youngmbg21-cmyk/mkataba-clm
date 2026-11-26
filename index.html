@@ -13867,12 +13867,15 @@
   .rb-btn[disabled]:hover{background:transparent;}
   .rb-btn b,.rb-btn u,.rb-btn s{font-weight:var(--w-title);}
   .rb-btn i{font-family:Georgia,'Times New Roman',serif;}
-  
-  
-  
+  /* the colour, highlight and size tools: their names are BUILT in js/richdoc.js richBarHtml (cls + "-wide", cls + "-sw",
+     cls + "-a", cls + "-size-v", cls defaulting to "rb"), so a search for the whole name never finds them (taken out in
+     error by #1029, put back 26 Nov 2026) */
+  .rb-wide{width:auto;padding:0 6px;gap:5px;grid-auto-flow:column;align-items:center;}
+  .rb-a{font-weight:var(--w-strong);font-size:var(--t-card);}
+  .rb-sw{display:block;width:17px;height:4px;margin-top:2px;}
   /* An ink class sets `color`, so the swatch borrows it; a highlight class sets
      `background` and already paints itself. Two selectors, no !important. */
-  
+  .rb-sw[class*="hati-ink-"]{background:currentColor;}
   .rb-car{display:inline-flex;align-items:center;font-size:var(--t-micro);color:var(--color-quiet);}
   /* The caret is drawn inside a tool button, where .rb-btn svg scales the
      tools to 18 — one class heavier, so it keeps its own small size. */
@@ -13884,7 +13887,8 @@
     font:inherit;color:var(--color-text);cursor:pointer;border-radius:var(--radius);}
   .rb-size:hover{border-color:var(--color-neutral-400);}
   .rb-size:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
-  
+  .rb-size-v{font-size:var(--t-body);min-width:20px;text-align:center;
+    font-variant-numeric:tabular-nums;}
 
   /* the two pickers the bar opens — one shape, two contents */
   .rb-pop{position:fixed;z-index:64;background:var(--surface-3,var(--color-surface));
@@ -19619,8 +19623,6 @@
   html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp.is-cur > .jov5-mk{left:12px}
   html.lg-new #ig-dock .pd2-fp-also > :is(.pd2-fp-order, .pd2-fp-rest){margin:0;padding:12px 0;font-size:13px;line-height:1.45}
   html.lg-new #ig-dock .pd2-fp-also > .pd2-fp-rest + *, html.lg-new #ig-dock .pd2-fp-also > .pd2-fp-order + .pd2-fp-rest{border-top:1px solid var(--color-divider)}
-  html.lg-new .pd2-fill-head .pd2-fh-stop{flex:none;font-size:13px}
-  html.lg-new .pd2-fill-head .pd2-fh-stop.is-asking{color:var(--st-ruby-fg)}
   /* the Fill in form in the middle, laid flat: the page white, its head "‹ Paper" over the title and its line; rows wide */
   html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-head{padding:16px 40px 12px}
   html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-crumb{margin:0 0 6px;padding:0}
@@ -25814,7 +25816,7 @@
   html.lg-new .nsn .tb-bdg.is-green{background:var(--st-green-bg);color:var(--st-green-fg)} html.lg-new .nsn .tb-bdg.is-green i{background:var(--st-green-dot)}
   html.lg-new .nsn .tb-bdg.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)} html.lg-new .nsn .tb-bdg.is-steel i{background:var(--st-steel-dot)}
   html.lg-new .nsn .tb-bdg.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new .nsn .tb-bdg.is-amber i{background:var(--st-amber-dot)}
-  html.lg-new .nsn-x{flex:none;border:0;background:none;color:var(--color-neutral-400);font-size:18px;line-height:1;padding:2px 4px;cursor:pointer}
+  html.lg-new .nsn-x{flex:none;display:inline-flex;align-items:center;border:0;background:none;color:var(--color-neutral-400);line-height:1;padding:2px 4px;cursor:pointer}
   html.lg-new .nsn-x:hover{color:var(--color-text)}
   html.lg-new .nsn-q{margin:4px 0 0;font-family:var(--font-doc);font-style:italic;font-size:var(--t-card);line-height:1.5;color:var(--color-quiet)}
   html.lg-new .nsn-q span{font-family:inherit;font-style:normal;color:var(--color-neutral-400)}

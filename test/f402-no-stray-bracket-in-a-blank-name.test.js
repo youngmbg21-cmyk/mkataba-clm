@@ -49,8 +49,13 @@ test('f402 (3) [wall] the KEY does not move, so an answer already typed is found
   assert.equal(UB.upLead('Price: [USD '), 'Price: [USD');
 });
 
+/* RE-POINTED 26 Nov 2026 (f1246; owner, #1035: "For counter party contracts or 3rd party contracts, they should be
+   filled in using their tools"): every upload is THEIR paper now, so the uploaded-blanks form stands down in the
+   product. The machinery stays (a ruling can be lifted); this keeps proving it reads right under the gate it was built
+   behind — only a file signed outside is theirs — as f342 does. f1246 proves the new gate. */
 test('f402 (4) the uploaded-blanks panel prints the name without the bracket', () => {
   const { win } = buildWorld({ blanks: true, templates: true });
+  win.uploadBlanksTheirs = c => !!(c && c.source === 'upload' && c.signRoute === 'outside');
   const c = { id: 'MK-702', name: 'Supply Agreement', status: 'Under Review', source: 'upload',
     format: 'rich', fields: {}, audit: [], metadata: {},
     redlineText: '<h1>SUPPLY AGREEMENT</h1><h4>1. Parties</h4>'
