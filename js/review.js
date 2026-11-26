@@ -1767,6 +1767,8 @@ function reviewWirePicker(c, cfg = {}){
     list.innerHTML = reviewPickerListHtml(box.value, active, c, cfg);
     list.hidden = !open;
     box.setAttribute('aria-expanded', open ? 'true' : 'false');
+    /* never cut by the pop-up it opens in (popListFloat): under the whole box, over everything */
+    if (open && typeof window.popListFloat === 'function') window.popListFloat(list, box.closest('.lgp-v') || box.parentElement || box);
   };
   const tell = () => {
     /* An empty box is not an error — it is a box nobody has filled in yet, and
