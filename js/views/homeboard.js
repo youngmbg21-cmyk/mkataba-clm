@@ -10991,7 +10991,8 @@ function hbPlace(){
     const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face;
     /* and History standing in the middle (the strip that kept it is gone, 9 Nov 2026): a refresh lands back on it */
     /* and Fill in the contract, on the paper or as the form in the middle: a refresh lands back in it (#762) */
-    if (!face && ((typeof window.pd2FillOn === 'function' && pd2FillOn(c.id)) || (typeof window.pdFormMidUp === 'function' && pdFormMidUp() && document.querySelector(`[data-pd-mid="form:${CSS.escape(String(c.id))}"]`)))) p.paper.fill = true;
+    /* …but NOT Fill in (owner, 26 Nov 2026: a refresh is a move away, and Fill in's bar stood in for the paper's line on
+       every return; its one door, pdFillGo, opens the bar): a refresh lands on the paper, Fill in waits for its press */
     if (typeof window.pd2HistUp === 'function' && pd2HistUp(c.id)) p.paper.mid = 'hist';
     else if (typeof window.pd2StandsUp === 'function' && pd2StandsUp(c.id)) p.paper.mid = 'where';
     /* and the contract's Duties page in the middle (the one door since 23 Nov 2026, where the Obligations tab was kept) */

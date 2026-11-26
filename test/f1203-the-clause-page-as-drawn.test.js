@@ -25,13 +25,13 @@ describe('f1203 (1)-(3) the page body', () => {
   });
 });
 
-describe('f1203 (4) the count line and Checked · nothing found', () => {
-  test('nothing found only on Clauses, once read, never on a section title', () => {
+describe('f1203 (4) the count line, and no Checked · nothing found', () => {
+  test('a clause with nothing on it has nothing beside it (owner, 26 Nov 2026: "Just remove it overall")', () => {
     const g = fnSrc(PD, 'pd2Groups');
-    /* RE-POINTED 24 Nov 2026 (the ticks follow where the notes are drawn: the caller says so, the Approvals preview never) */
-    assert.match(g, /readDone = !!\(opts && opts\.checked\) && typeof window\.stkLivePoints === 'function' && !!window\.stkLivePoints\(c\)/);
-    assert.match(PD, /pd2Groups\(c, cv, notes, \{ checked: onClauses \}\)/);
-    assert.match(g, /window\.docThreadIsSec\(r\)/);
+    /* RE-POINTED 26 Nov 2026: the tick beside a clause with nothing on it is gone, on every paper */
+    assert.doesNotMatch(g, /pd2_g_checked_none/);
+    assert.doesNotMatch(g, /readDone/);
+    assert.doesNotMatch(PD.replace(/\/\*[\s\S]*?\*\//g, ''), /_pdT\('pd2_g_checked_none'\)/, 'drawn nowhere');
   });
   test('the count line reads the margin\'s own groups', () => {
     const l = fnSrc(PD, 'pd2LegendPaint');

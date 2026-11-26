@@ -10523,6 +10523,8 @@ function igDockMarks(head, door){
   if(door){ if(!pg.hasAttribute('data-igd-door')) pg.setAttribute('data-igd-door',''); } else if(pg.hasAttribute('data-igd-door')) pg.removeAttribute('data-igd-door');
 }
 function renderIntelDock(){
+  /* a move away from Fill in (another tab or face) is read once it has landed (pd2FillLeaveSoon) */
+  if(typeof window.pd2FillLeaveSoon==='function') try{ window.pd2FillLeaveSoon(); }catch(_){}
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   if(_igDockHold>0){ _igDockOwed=true; return; }
   if(!_igDockSwap) _igDockPaints++;
