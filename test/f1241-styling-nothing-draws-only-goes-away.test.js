@@ -8,7 +8,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path');
-const DEAD_RULES_MAX = 857;
+/* 831 since 26 Nov 2026: names built from a quoted beginning and a built ending now count as drawn (the writing bar's
+   colour and size tools among them, put back), and Fill in's Stop button's two rules left with it */
+const DEAD_RULES_MAX = 831;
 
 function deadRules(){
 const R = path.join(__dirname, '..');
@@ -21,10 +23,16 @@ for (const f of fs.readdirSync(R)) if (/\.(html|js)$/.test(f) && f !== 'index.ht
 /* every name the code could draw, read once: whole words, and the prefixes it builds names from ('is-' + x, `st-${k}`) */
 const words = new Set(corpus.match(/[\w-]+/g));
 const prefixes = new Set([...corpus.matchAll(/([\w-]+-)(?=\$\{|['"`]\s*\+)/g)].map(m => m[1]));
+/* and the endings it builds names WITH: `${cls}-wide`, cls + '-a' (js/richdoc.js richBarHtml, cls 'rb'). A name counts
+   as drawn when its ending is built so AND its beginning is written in the code as a whole quoted word ('rb'). Missed
+   before 26 Nov 2026: #1029 took the writing bar's colour and size styling out as "nothing draws". */
+const endings = new Set([...corpus.matchAll(/(?:\}|\+\s*['"`])-([\w-]+)/g)].map(m => m[1]));
+const quoted = new Set([...corpus.matchAll(/['"`]([\w-]+)['"`]/g)].map(m => m[1]));
 function alive(tok){
   if (words.has(tok)) return true;
   const segs = tok.split('-');
   for (let i = segs.length - 1; i >= 1; i--) if (prefixes.has(segs.slice(0, i).join('-') + '-')) return true;
+  for (let i = 1; i < segs.length; i++) if (endings.has(segs.slice(i).join('-')) && quoted.has(segs.slice(0, i).join('-'))) return true;
   return false;
 }
 // parse CSS of the hand-written blocks (not the compiled tailwind)

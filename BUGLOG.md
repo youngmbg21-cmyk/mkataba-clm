@@ -23042,3 +23042,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Noticed, not fixed: f148 "every plural key comes as a complete _one/_other pair" is red on main: nsn_link_one has no nsn_link_other in either book.
 - Noticed, not fixed: f1012 (7), f1202 (4) "the writing bar above the clause" and "moved by transform only, kept inside the paper's width" are red on main before this change.
 - Noticed, not fixed: CLAUDE.md is about 107 KB, past its own "keep it under about 80 KB" line, before this change added four lines.
+- 26 Nov 2026 · FIXED (PR #1038): #1029's clean-up took out the clause editor's writing-bar styling for the colour, highlight and size tools (.rb-wide, .rb-a, .rb-sw, .rb-size-v) as "nothing draws" — their names are built in pieces in richBarHtml. Put back; f1241 now counts a name built from a quoted beginning and a built ending as drawn (dead rules 831). Found by review, not by a check; not seen in a browser.
