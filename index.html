@@ -13867,8 +13867,8 @@
   .rb-btn[disabled]:hover{background:transparent;}
   .rb-btn b,.rb-btn u,.rb-btn s{font-weight:var(--w-title);}
   .rb-btn i{font-family:Georgia,'Times New Roman',serif;}
-  /* the colour, highlight and size tools: their names are BUILT in js/richdoc.js richBarHtml (`${cls}-wide`, `${cls}-sw`,
-     cls + '-a', `${cls}-size-v`, cls defaulting to 'rb'), so a search for the whole name never finds them (taken out in
+  /* the colour, highlight and size tools: their names are BUILT in js/richdoc.js richBarHtml (cls + "-wide", cls + "-sw",
+     cls + "-a", cls + "-size-v", cls defaulting to "rb"), so a search for the whole name never finds them (taken out in
      error by #1029, put back 26 Nov 2026) */
   .rb-wide{width:auto;padding:0 6px;gap:5px;grid-auto-flow:column;align-items:center;}
   .rb-a{font-weight:var(--w-strong);font-size:var(--t-card);}
@@ -25816,7 +25816,7 @@
   html.lg-new .nsn .tb-bdg.is-green{background:var(--st-green-bg);color:var(--st-green-fg)} html.lg-new .nsn .tb-bdg.is-green i{background:var(--st-green-dot)}
   html.lg-new .nsn .tb-bdg.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)} html.lg-new .nsn .tb-bdg.is-steel i{background:var(--st-steel-dot)}
   html.lg-new .nsn .tb-bdg.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new .nsn .tb-bdg.is-amber i{background:var(--st-amber-dot)}
-  html.lg-new .nsn-x{flex:none;border:0;background:none;color:var(--color-neutral-400);font-size:18px;line-height:1;padding:2px 4px;cursor:pointer}
+  html.lg-new .nsn-x{flex:none;display:inline-flex;align-items:center;border:0;background:none;color:var(--color-neutral-400);line-height:1;padding:2px 4px;cursor:pointer}
   html.lg-new .nsn-x:hover{color:var(--color-text)}
   html.lg-new .nsn-q{margin:4px 0 0;font-family:var(--font-doc);font-style:italic;font-size:var(--t-card);line-height:1.5;color:var(--color-quiet)}
   html.lg-new .nsn-q span{font-family:inherit;font-style:normal;color:var(--color-neutral-400)}

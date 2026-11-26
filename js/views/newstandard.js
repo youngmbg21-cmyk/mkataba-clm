@@ -801,7 +801,7 @@ function nsnPickRowsHtml(st) {
   const full = L.length >= NSN_MAX;
   const rows = docs.length ? docs.map(d => { const on = L.some(l => l.id === d.id);
     return `<div class="nsn-prow"><div class="nsn-pt"><span class="nsn-pn">${E(d.name)}</span><span class="nsn-meta">${d.kind ? E(i18t('nb_kind_' + d.kind)) + ' · ' : ''}${E(i18tn('nsn_secs', d.sections || 0, { n: d.sections || 0 }))}</span></div>`
-      + (on ? `<span class="nsn-meta">${E(i18t('nsn_is_linked'))}</span>` : `<button type="button" class="ui-btn nsn-lk" data-nsn-link="${E(d.id)}"${full ? ` disabled title="${E(i18t('nsn_max', { n: NSN_MAX }))}"` : ''}>${E(i18t('nsn_link_one'))}</button>`) + '</div>'; }).join('')
+      + (on ? `<span class="nsn-meta">${E(i18t('nsn_is_linked'))}</span>` : `<button type="button" class="ui-btn nsn-lk" data-nsn-link="${E(d.id)}"${full ? ` disabled title="${E(i18t('nsn_max', { n: NSN_MAX }))}"` : ''}>${E(i18t('nsn_link_row'))}</button>`) + '</div>'; }).join('')
     : `<p class="nsn-say">${E(i18t(q ? 'nsn_none_match' : 'nsn_shelf_empty'))}</p>`;
   const count = docs.length > NSN_ROWS_SHOWN ? `<div class="nsn-pcount">${E(i18tn('nsn_count', docs.length, { n: docs.length }))}</div>` : '';
   return `<div class="nsn-plist" id="nsn-plist">${rows}</div>${count}`;
@@ -824,7 +824,7 @@ function nsnHtml(st) {
     const facts = [i18t('nsn_shelf_' + (l.shelf === 'mine' ? 'mine' : 'company')), l.kind ? i18t('nb_kind_' + l.kind) : '', l.n ? i18tn('nsn_secs', l.n, { n: l.n }) : '',
       labels.length > 1 ? i18t('nsn_range', { a: labels[0], b: labels[labels.length - 1] }) : (labels[0] || ''), d ? '' : i18t('nsn_loading')].filter(Boolean).join(' · ');
     const first = nsnFirstWords(d), q = first ? first.q : '';
-    return `<div class="nsn-card">${mark}<div class="nsn-cbody"><div class="nsn-top"><span class="nsn-name">${E(l.name)}</span>${nsnBadgeHtml(l, i)}<button type="button" class="nsn-x" data-nsn-x="${E(l.id)}" aria-label="${E(i18t('nsn_unlink', { name: l.name }))}">×</button></div>
+    return `<div class="nsn-card">${mark}<div class="nsn-cbody"><div class="nsn-top"><span class="nsn-name">${E(l.name)}</span>${nsnBadgeHtml(l, i)}<button type="button" class="nsn-x" data-nsn-x="${E(l.id)}" aria-label="${E(i18t('nsn_unlink', { name: l.name }))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>
       <div class="nsn-meta">${E(facts)}</div>
       ${q ? `<p class="nsn-q">“${E(q)}” <span>${E(first.n)}</span></p>` : ''}
       <div class="nsn-mode" role="group" aria-label="${E(l.name)}"><button type="button" data-nsn-mode="jambo" data-nsn-id="${E(l.id)}" aria-pressed="${l.mode === 'jambo'}">${E(i18t('nsn_m_jambo'))}</button><button type="button" data-nsn-mode="note" data-nsn-id="${E(l.id)}" aria-pressed="${l.mode === 'note'}">${E(i18t('nsn_m_note'))}</button></div>
