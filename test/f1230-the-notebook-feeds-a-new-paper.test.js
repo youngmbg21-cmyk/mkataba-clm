@@ -101,3 +101,26 @@ describe('f1230 (3) the page: linked rows, the contents page and the Builder car
       assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
   });
 });
+
+describe('f1230 (4) the card way in (owner\'s pick, 26 Nov 2026): a dashed card, a searchable shelf of four rows, a card a document', () => {
+  const NS = strip(R('js/views/newstandard.js')), H = R('index.html'), I = R('js/i18n.js');
+  test('nothing linked is ONE dashed card with its one press', () => {
+    assert.match(NS, /if \(!L\.length && !st\.nbPick\) return `<div class="nsn"><div class="nsn-card is-empty">/);
+    assert.match(NS, /nsn_empty_t[\s\S]{0,200}nsn_empty_s[\s\S]{0,200}data-nsn-pick aria-expanded="false">\$\{E\(i18t\('nsn_link_doc'\)\)\}/);
+  });
+  test('the shelf searches, shows four rows and scrolls the rest, with a count', () => {
+    assert.match(NS, /const NSN_ROWS_SHOWN = 4;/);
+    assert.match(NS, /String\(d\.name \|\| ''\)\.toLowerCase\(\)\.includes\(q\)/);
+    assert.match(NS, /docs\.length > NSN_ROWS_SHOWN \? `<div class="nsn-pcount">/);
+    assert.match(NS, /if \(e\.target && e\.target\.id === 'nsn-q'\) \{ st\.nbQ = e\.target\.value \|\| ''; const pb = document\.getElementById\('nsn-pbody'\); if \(pb\) pb\.innerHTML = nsnPickRowsHtml\(st\); return; \}/, 'typing redraws only the list, so the box keeps its words');
+    assert.ok(H.includes('html.lg-new .nsn-plist{max-height:calc(var(--nsn-row-h) * 4);overflow-y:auto;'));
+    assert.ok(H.includes('html.lg-new .nsn-prow{min-height:var(--nsn-row-h);'));
+  });
+  test('a linked document is a card; what to bring is typed, with its hint', () => {
+    assert.match(NS, /return `<div class="nsn-card">\$\{mark\}/);
+    assert.match(NS, /<p class="nsn-hint">\$\{E\(i18t\('nsn_note_hint'\)\)\}<\/p>/);
+    assert.match(NS, /nsn_link_another/);
+    for (const k of ['nsn_empty_t', 'nsn_search_ph', 'nsn_count_other', 'nsn_note_hint', 'nsn_link_another'])
+      assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
+  });
+});

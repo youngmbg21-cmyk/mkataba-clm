@@ -25855,13 +25855,26 @@
   html.lg-new .nsj-bar .is-nb{background:var(--st-pink-dot)}
   /* FROM THE NOTEBOOK on From nothing (owner's pick "The Legora + Stripe way", 26 Nov 2026): one row a linked document —
      name, a soft badge, the sections it prints, its first words quoted in the paper's serif, the choice answered in the row */
-  html.lg-new .nsn{display:flex;flex-direction:column;border-top:1px solid var(--color-divider);padding-top:14px}
+  html.lg-new .nsn{display:flex;flex-direction:column;gap:10px;--nsn-row-h:58px}
+  /* THE CARD WAY IN (owner's pick, 26 Nov 2026): one card a linked document, a dashed one to start or to choose */
+  html.lg-new .nsn-card{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:var(--radius);padding:16px;background:var(--color-surface)}
+  html.lg-new .nsn-card.is-empty{border-style:dashed;align-items:center}
+  html.lg-new .nsn-card.is-pick{flex-direction:column;align-items:stretch;gap:12px}
+  html.lg-new .nsn-chead{display:flex;align-items:center;gap:14px}
+  html.lg-new .nsn-ic{flex:none;width:40px;height:40px;border-radius:var(--radius);background:var(--st-pink-bg);color:var(--st-pink-fg);display:grid;place-items:center}
+  html.lg-new .nsn-cbody{flex:1;min-width:0}
+  html.lg-new .nsn-ct{font-weight:var(--w-label)}
+  html.lg-new .nsn-hint{margin:6px 0 0;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nsn-srch{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-400)}
+  html.lg-new .nsn-srch input{flex:1;min-width:0;border:0;outline:none;background:transparent;font:inherit;font-size:var(--t-body);color:var(--color-text);padding:0}
+  html.lg-new .nsn-plist{max-height:calc(var(--nsn-row-h) * 4);overflow-y:auto;overscroll-behavior:contain}
+  html.lg-new .nsn-prow{min-height:var(--nsn-row-h);box-sizing:border-box}
+  html.lg-new .nsn-pcount{padding:8px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nsn-more{align-self:flex-start}
   html.lg-new .nsn-head{display:flex;align-items:baseline;gap:8px;padding-bottom:6px}
   html.lg-new .nsn-head .sp{flex:1}
   html.lg-new .nsn-h{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new .nsn-n,html.lg-new .nsn-meta{font-size:var(--t-label);color:var(--color-neutral-400)}
-  html.lg-new .nsn-doc{padding:12px 0;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .nsn-doc:last-child{border-bottom:0}
   html.lg-new .nsn-top{display:flex;align-items:center;gap:8px}
   html.lg-new .nsn-name{flex:1;min-width:0;font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   html.lg-new .nsn .tb-bdg{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap;flex:none}
@@ -25878,7 +25891,7 @@
   html.lg-new .nsn-mode button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .nsn-note{display:block;width:100%;margin-top:8px;border:0;border-bottom:1px solid var(--color-neutral-300);border-radius:0;padding:6px 0;background:transparent;font:inherit;font-size:var(--t-body);line-height:1.5;color:var(--color-text);resize:vertical}
   html.lg-new .nsn-note:focus{outline:none;border-bottom:2px solid var(--color-text)}
-  html.lg-new .nsn-pick{border:1px solid var(--color-divider);border-radius:var(--radius);margin:4px 0 8px;max-height:260px;overflow-y:auto}
+  html.lg-new .nsn-pick{border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden}
   html.lg-new .nsn-ptabs{display:flex;align-items:center;gap:14px;padding:8px 14px;border-bottom:1px solid var(--color-divider);position:sticky;top:0;background:var(--color-surface)}
   html.lg-new .nsn-ptabs .sp{flex:1}
   html.lg-new .nsn-pt-b{border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--color-quiet);cursor:pointer}

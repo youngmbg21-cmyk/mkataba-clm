@@ -1258,3 +1258,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## NEW AGREEMENT — the tabs stay with the title (26 Nov 2026)
 - test/f1231-new-agreement-tabs-stay.test.js — the tab row is held at the sheet's top on white, after the rule that places it.
+- f1230 (4) — the card way in: one dashed card, a searchable shelf of four rows then a scroll with a count, a card a linked document, what to bring typed with its hint.
