@@ -610,7 +610,7 @@ function tbOutlineFrom(d, said) {
      propose these" would name one again — so the playbook's additions are
      folded against what is already on the list, and against each other. */
   const fold = h => String(h || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ');
-  const proposed = ((d && d.sections) || []).map(x => ({ heading: x.heading, intent: x.intent || '', on: !x.optional, optional: !!x.optional }));
+  const proposed = ((d && d.sections) || []).map(x => ({ heading: x.heading, intent: x.intent || '', on: !x.optional, optional: !!x.optional, ...(x.nb && x.nb.id ? { nb: x.nb } : {}) }));
   /* A NAME IS NOT THE ONLY WAY TWO SECTIONS ARE ONE. Measured: the model's
      "Limitation of liability" and the playbook's "Liability cap" both went on
      the list, both drew the library's liability clause, and the paper carried
@@ -627,7 +627,8 @@ function tbOutlineFrom(d, said) {
     seen.add(fold(r.category)); if (k) seen.add(k);
     mine.push({ heading: r.category, intent: r.note || '', playbook: true, on: true });
   });
-  return { said, note: (d && d.note) || '', sections: proposed.concat(mine).map(x => ({ ...x, src: tbSourceOf(x.heading) })) };
+  /* A SECTION JAMBO PROPOSED FROM A LINKED NOTEBOOK DOCUMENT says so (owner's pick, 26 Nov 2026): its source is the Notebook */
+  return { said, note: (d && d.note) || '', sections: proposed.concat(mine).map(x => ({ ...x, src: x.nb ? 'nb' : tbSourceOf(x.heading) })) };
 }
 /* Add the ticked sections; then WALK ME THROUGH IT is on by default (the
    owner's decision 2, 13 Sep 2026) — the first empty section is put in hand
@@ -637,6 +638,20 @@ function tbOutlineFrom(d, said) {
    workspace's own approved clause — so the press that adds the section is the
    press that fills it, through tbAddBlock, the one push. Everything else
    arrives empty, for the walk. */
+/* THE NOTEBOOK'S WORDS FOR ONE SECTION, read for the section's own ask: the linked document's labelled sections, through
+   GET /api/notebook/:id (the reader's wall), cut at TB_NB_CHARS and said cut; none linked or none readable = nothing */
+const TB_NB_CHARS = 12000;
+async function tbNbFor(k) {
+  const nb = _tb && _tb.nb && _tb.nb[k]; if (!nb) return {};
+  try {
+    const r = await api('notebook/' + encodeURIComponent(nb.id), 'GET', null, { quiet: true });
+    const want = new Set(nb.refs || []);
+    const secs = ((r && r.doc && r.doc.sections) || []).filter(x => !want.size || want.has(x.n));
+    let text = secs.map(x => (x.part ? '' : (x.n ? x.n + '\n' : '')) + String(x.text || '')).join('\n');
+    const cut = text.length > TB_NB_CHARS; if (cut) text = text.slice(0, TB_NB_CHARS);
+    return text.trim() ? { notebook: text, notebookName: nb.name || '', notebookNote: nb.note || '', notebookCut: cut } : {};
+  } catch (_) { return {}; }
+}
 function tbOutlineAdd(opts = {}) {
   const list = (_tb.outline && _tb.outline.sections || []).filter(x => x.on);
   if (!list.length) { toast(i18t('tb_pb_none_ticked'), 'err'); return; }
@@ -645,6 +660,8 @@ function tbOutlineAdd(opts = {}) {
     const lib = (x.src || tbSourceOf(x.heading)) === 'lib' ? tbLibraryFor(x.heading) : null;
     tbAddBlock('field_group', lib ? tbSafeWords(lib.preferred) : '');
     if (h) _tb.intent[h._k] = x.intent || '';
+    /* the Notebook source rides with the section for this sitting, as its intent does: ids, labels and the note only */
+    if (h && x.nb && x.nb.id) (_tb.nb || (_tb.nb = {}))[h._k] = { id: x.nb.id, name: x.nb.name || '', refs: Array.isArray(x.nb.refs) ? x.nb.refs : [], note: x.nb.note || '' };
   });
   _tb.outline = null;
   _tb.walk = opts.walk !== false;
@@ -1081,6 +1098,7 @@ async function tbDraft(k, said, o = {}) {
       library: lib ? lib.preferred : '',
       standard: tbStandardFor(sec.head) || '',
       precedent: tbPrecedentFor(sec.head) || '',
+      ...(await tbNbFor(sec.k)),
       others: tbContextText(),
     });
     if (_tb !== me) return;
@@ -1214,7 +1232,8 @@ async function tbWholeWrite(o = {}) {
     it.st = 'busy'; tbPaintRail();
     const std = tbStandardFor(sec.head);
     try {
-      const d = await api('ai/section', 'POST', { sentence, heading: sec.head || i18t('tb_untitled'), intent: (_tb.intent && _tb.intent[sec.k]) || '',
+      const nbOf = _tb.nb && _tb.nb[sec.k], nbx = nbOf ? { notebook: { id: nbOf.id, refs: nbOf.refs, note: nbOf.note } } : {};
+      const d = await api('ai/section', 'POST', { sentence, heading: sec.head || i18t('tb_untitled'), intent: (_tb.intent && _tb.intent[sec.k]) || '', ...nbx,
         standards: std ? [{ category: sec.head || '', rule: std }] : [] }, { quiet: true });
       if (_tb !== me || _tb.whole !== w) return;
       _tb.reads++;
@@ -2240,7 +2259,7 @@ function tbOutlineLaneHtml() {
      sentence above COUNTS them (HaTi composes it, never the model). AS DRAWN (23 Nov 2026): no grey card — one quiet
      table, the source a soft badge at the right, the bar of what arrives written and what Jambo drafts; a name
      CHOOSES its row (its intent under it); Add and "I'll write them myself" stand at the panel's foot (tbRailHtml). */
-  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai', nb: 'tb_src_nb' };
   const TONE = { lib: 'gray', std: 'green', ai: 'violet' };
   const pick = o.pick == null ? -1 : o.pick;
   const rows = o.sections.map((x, n) => `<tr class="${n === pick ? 'is-sel' : ''}${x.on ? '' : ' is-off'}"><td class="tb-olt-k"><input type="checkbox" data-tb-out="${n}" ${x.on ? 'checked' : ''} aria-label="${esc(x.heading)}"></td>
