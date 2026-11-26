@@ -23032,3 +23032,8 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ### Noticed, not fixed (26 Nov 2026)
 - f1241 (styling nothing draws only goes down) is red on main before this change: 859 rules against a ceiling of 857 (e.g. Import's .imp-tab.on, .modal-in[data-dlg-sap] .sap-row). Left red.
+
+### Removed or changed on the owner's word (26 Nov 2026, fill-ins are answers)
+- Fill in on an uploaded paper (their paper) is gone, the upload blanks form stands down (uploadBlanksTheirs = every upload). An upload's placeholders stay amber on the paper; a change there is a redline.
+- Noticed, not fixed: on the negotiated canvas, placeholders not yet answered are not drawn amber (they are words there), unlike the plain paper.
+- Noticed, not fixed: negoCommitText (plain-text contracts) does not write Fill in's answers into the wording; only rich papers carry them (negoCommitBody).

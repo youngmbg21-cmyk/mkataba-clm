@@ -2004,6 +2004,152 @@ async function negoFileFilledClause(c, clauseId, bodyHtml, note, fill){
   if (ch && window.persist) persist(c);
   return ch;
 }
+/* ============================================================
+   FILL-INS ARE ANSWERS, NOT REDLINES (owner, 26 Nov 2026: "Fill in should not be a redline and should likely not come
+   before negotiations. You should negotiate or redline a contract and once you are done, you then fill in the contract
+   right before signing", then "build all steps")
+   ============================================================
+   A blank on OUR paper (a placeholder's words, a company standard's gap) is a box on a form, not wording under
+   negotiation. Once nothing is open on the table, Fill in answers it: the answer is kept on `c.fills` — by clause, by
+   blank (its kind and words, and which occurrence: the walk below, the same one Fill in marks the paper with) — and
+   is never filed as a change. It reaches every copy through two doors and no others:
+     · THE DRAWN PAPER (negoFillsPaint, at the end of redlineDocHtml): each answer sits in its space on every face and
+       on the other side's page, never as a mark; Fill in turns it back into its space to change it.
+     · THE WORDING THAT TRAVELS AND IS SEALED (negoCommitBody → negoFillsBody): the committed text carries the answers,
+       so the signing copy, the link, the Word file and the seal read them.
+   The other side reads every answer on the signing copy before they sign. A placeholder a later change keeps is
+   answered again; one it removes simply is no longer there. */
+const NEGO_FILL_SKIP = 'del, s, h4.rl-clause-h, .rl-clause-top > h4, [data-pd-mark], .rl-gutter, .rl-hang-n, button, input, textarea, select, script, style';
+/* THE ONE WALK of a clause's blanks in the order they stand (a mark Fill in made, an answer already drawn, a company
+   standard's gap, a placeholder's words), each with its kind, its words and its occurrence */
+function negoFillSeq(roots){
+  const out = [], seen = new Map(), occ = sig => { const n = seen.get(sig) || 0; seen.set(sig, n + 1); return n; };
+  const R = (Array.isArray(roots) ? roots : [roots]).filter(Boolean);
+  const hits = t => { try { return (typeof window.upHits === 'function') ? window.upHits(t) : []; } catch (_){ return []; } };
+  for (const r of R){
+    let w; try { w = document.createTreeWalker(r, 5, { acceptNode(n){
+      if (n.nodeType === 1){
+        if (n.matches(NEGO_FILL_SKIP)) return 2;
+        if (n.matches('.hati-field[data-field-key], [data-pd2-nb], [data-pd2-nb-ans]')) return 1;
+        return 3; }
+      const pa = n.parentElement; if (!pa || pa.closest('.hati-field[data-field-key], [data-pd2-nb], [data-pd2-nb-ans]')) return 2;
+      return 1; } }); } catch (_){ continue; }
+    for (let n = w.nextNode(); n; n = w.nextNode()){
+      if (n.nodeType === 1){
+        if (n.hasAttribute('data-pd2-nb') || n.hasAttribute('data-pd2-nb-ans')){
+          const fk = n.getAttribute('data-pd2-nb-fk') || '', raw = n.getAttribute('data-pd2-nb-raw') || ''; const sig = fk ? 'f:' + fk : 'u:' + raw;
+          out.push({ el: n, kind: fk ? 'f' : 'u', fk, raw, sig, n: occ(sig), made: true }); continue; }
+        const fk = n.getAttribute('data-field-key') || ''; if (!fk) continue;
+        const sig = 'f:' + fk; out.push({ el: n, kind: 'f', fk, raw: n.textContent || '', sig, n: occ(sig) }); continue; }
+      for (const h of hits(n.data)){ const sig = 'u:' + h.raw; out.push({ node: n, hit: h, kind: 'u', fk: '', raw: h.raw, sig, n: occ(sig) }); }
+    }
+  }
+  return out;
+}
+/* the answers put into the walked blanks: mk(blank, value) makes what stands in the space (text nodes split from the END,
+   so an earlier blank's offsets in the same node still hold) */
+function negoFillsInto(roots, answers, mk){
+  if (!answers) return 0;
+  let n = 0; const jobs = new Map();
+  negoFillSeq(roots).forEach(b => {
+    if (b.made) return;
+    const v = answers[b.sig + '~' + b.n]; if (v == null || !String(v).trim()) return;
+    if (b.el){ b.el.replaceWith(mk(b, String(v))); n++; return; }
+    let L = jobs.get(b.node); if (!L){ L = []; jobs.set(b.node, L); } L.push({ b, v: String(v) });
+  });
+  for (const [tn, L] of jobs){
+    if (!tn.parentNode) continue;
+    const txt = tn.data, frag = document.createDocumentFragment(); let at = 0;
+    for (const { b, v } of L.sort((x, y) => x.b.hit.s - y.b.hit.s)){
+      if (b.hit.s < at) continue;
+      if (b.hit.s > at) frag.appendChild(document.createTextNode(txt.slice(at, b.hit.s)));
+      frag.appendChild(mk(b, v)); n++; at = b.hit.e;
+    }
+    if (at < txt.length) frag.appendChild(document.createTextNode(txt.slice(at)));
+    tn.parentNode.replaceChild(frag, tn);
+  }
+  return n;
+}
+/* the wording has been on the table (a change filed, a round sent): tplFormNegotiated's own reading, RAW */
+function negoWordingShared(c){
+  if (!c) return false;
+  if ((Array.isArray(c.changes) ? c.changes : []).some(x => x && !x.withdrawn)) return true;
+  const n = c.negotiation; if (!n) return false;
+  return !!(n.turnAt || (Array.isArray(n.rounds) && n.rounds.length) || (Number(n.round) || 1) > 1 || (Array.isArray(n.folded) && n.folded.length));
+}
+const negoFillsOn = c => !!(c && c.fills && typeof c.fills === 'object' && Object.keys(c.fills).some(k => c.fills[k] && Object.keys(c.fills[k]).length));
+const negoFillsOf = (c, clauseId) => (negoFillsOn(c) && c.fills[String(clauseId)]) || null;
+/* A FILL IN CHANGE FROM BEFORE (filed as our change, 13–26 Nov 2026): stamped with its answers, or carrying Fill in's note */
+const NEGO_FILL_NOTES = ['Filled in on the paper', 'Ifyllt på pappret'];
+const negoIsFillChange = x => !!(x && x.authorSide === 'owner' && ((x.fill && typeof x.fill === 'object') || NEGO_FILL_NOTES.includes(String(x.note || '').trim())));
+/* what is still open on the table, read RAW: every live ask but an old Fill in change (Step 3 turns those into answers) */
+function negoFillOpenCount(c){
+  return (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && !x.withdrawn && (x.status === 'pending' || x.status === 'countered') && !negoIsFillChange(x)).length;
+}
+/* THE DRAWN PAPER: each answer in its space, marked as an answer (never a change) */
+function negoFillsPaint(c, html){
+  if (!negoFillsOn(c) || typeof document === 'undefined' || !html) return html;
+  try {
+    const t = document.createElement('template'); t.innerHTML = html; const root = t.content;
+    const regions = [...root.querySelectorAll('section.rl-clause[data-clause]')].map(sec => ({ id: sec.getAttribute('data-clause'), roots: sec }));
+    const fh = root.querySelector('header.rl-paper-head[data-clause]');
+    if (fh){ const nx = fh.nextElementSibling; regions.unshift({ id: fh.getAttribute('data-clause'), roots: [fh, nx && nx.classList.contains('rl-recital') ? nx : null] }); }
+    const say = i18t('ng_fill_answer');
+    let n = 0;
+    regions.forEach(({ id, roots }) => {
+      const A = negoFillsOf(c, id); if (!A) return;
+      n += negoFillsInto(roots, A, (b, v) => { const sp = document.createElement('span'); sp.className = 'pd2-nb-ans';
+        sp.setAttribute('data-pd2-nb-ans', 'nb~' + id + '~' + b.sig + '~' + b.n); sp.setAttribute('data-pd2-nb-raw', b.raw); sp.setAttribute('data-pd2-nb-fk', b.fk || '');
+        sp.setAttribute('data-nego-fill', '1'); sp.title = say; sp.textContent = v; return sp; });
+    });
+    if (!n) return html;
+    const d = document.createElement('div'); d.appendChild(root); return d.innerHTML;
+  } catch (_){ return html; }
+}
+/* THE WORDING THAT TRAVELS AND IS SEALED: the answers written into the stored markup (a placeholder becomes its answer, a
+   company standard's gap its answered span) */
+function negoFillsBody(c, body){
+  if (!negoFillsOn(c) || typeof document === 'undefined' || !body || !window.clauseSegment) return body;
+  const mk = (b, v) => { if (b.kind === 'f'){ const sp = document.createElement('span'); sp.className = 'hati-field-done'; sp.setAttribute('data-field-key', b.fk); sp.textContent = v; return sp; }
+    return document.createTextNode(v); };
+  let out = body;
+  for (const id of Object.keys(c.fills)){
+    const A = negoFillsOf(c, id); if (!A || !Object.keys(A).length) continue;
+    try {
+      const cl = negoIsFrontId(id) ? (window.clauseFrontClause ? clauseFrontClause(out) : null) : clauseSegment(out).find(x => x.clauseId === id);
+      if (!cl || !cl.bodyHtml) continue;
+      const host = document.createElement('div'); host.innerHTML = cl.bodyHtml;
+      if (!negoFillsInto(host, A, mk)) continue;
+      const next = negoIsFrontId(id) ? (window.clauseReplaceFront ? clauseReplaceFront(out, host.innerHTML) : null) : clauseReplaceBody(out, id, host.innerHTML);
+      if (next != null) out = next;
+    } catch (_){ /* a clause that cannot be read keeps its wording */ }
+  }
+  return out;
+}
+/* THE ONE WRITER of the answers: one clause's answers (by blank, "sig~n"), an empty one taken back. Refused while the
+   table is open (the redlines are finished first), on signed wording and for a reader who may not act. */
+/* the save after a run of held answers (pd2FillAdoptOld) */
+function negoFillsSave(c){ if (c && window.persist) persist(c); }
+let negoFillLastRefusal = '';
+function negoFillsSet(c, clauseId, answers, opts = {}){
+  negoFillLastRefusal = '';
+  if (!c || !clauseId) return false;
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ negoFillLastRefusal = i18t('viewer_reads_only'); return false; }
+  if (negoWordingFrozen(c)){ negoFillLastRefusal = i18t(negoExecuted(c) ? 'ne_executed_amend' : negoHandedOver(c) ? 'ne_handed_over' : 'ne_signed_frozen'); return false; }
+  const open = negoFillOpenCount(c);
+  if (open && !opts.adopt){ negoFillLastRefusal = i18tn('ng_fill_finish_first', open, { n: open }); return false; }
+  const id = String(clauseId), was = JSON.stringify((c.fills && c.fills[id]) || {});
+  const next = {}; Object.keys(answers || {}).forEach(k => { const v = String(answers[k] == null ? '' : answers[k]).trim(); if (v) next[k] = v; });
+  if (JSON.stringify(next) === was) return true;
+  c.fills = Object.assign({}, c.fills || {});
+  if (Object.keys(next).length) c.fills[id] = next; else delete c.fills[id];
+  if (!Object.keys(c.fills).length) delete c.fills;
+  negoCommitBody(c, negoResolvedBody(c));
+  if (window.logAudit) logAudit(c, 'Edited', `Filled in on the paper: ${Object.keys(next).length} answer(s) in ${negoIsFrontId(id) ? 'the front part' : 'clause ' + id}`);
+  c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
+  if (!opts.hold && window.persist) persist(c);
+  return true;
+}
 /* A new clause, placed where it was proposed. `afterClauseId` is the clause it
    follows — null puts it at the top. The id is minted at FILING time and
    written into the document when the change is accepted, so a change and the
@@ -2714,6 +2860,8 @@ const negoResolvedText = c => (window.richToText ? richToText(negoResolvedBody(c
    guarded against. A plain-text contract is written as text, exactly as
    before. */
 function negoCommitBody(c, body){
+  /* the answers Fill in kept travel and are sealed with the wording (negoFillsBody) */
+  body = negoFillsBody(c, body);
   const wasRich = !!(window.isRich && isRich(c.format) && c.redlineText != null);
   const text = window.richToText ? richToText(body) : '';
   if (wasRich){
@@ -5789,6 +5937,8 @@ function cardName(name, org){
 
 /* Read at press time, never cached: a getter, because the value changes on every
    refusal and a copied snapshot would report the wrong one. */
+if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window,'negoFillLastRefusal'))
+  Object.defineProperty(window, 'negoFillLastRefusal', { get: () => negoFillLastRefusal, configurable: true });
 if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window,'negoLastRefusal'))
   Object.defineProperty(window, 'negoLastRefusal', { get: () => negoLastRefusal, configurable: true });
 if (typeof window !== 'undefined') Object.assign(window, {
@@ -5805,7 +5955,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification,
   NEGO_HASH_V, NEGO_HASH_VERIFIES,
-  negoSummariseOps, negoFileChange, negoEditClause, negoFileFilledClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
+  negoSummariseOps, negoFileChange, negoEditClause, negoFileFilledClause, negoFillSeq, negoFillsInto, negoWordingShared, negoFillsOn, negoFillsOf, negoIsFillChange, NEGO_FILL_NOTES, negoFillOpenCount, negoFillsPaint, negoFillsBody, negoFillsSet, negoFillsSave, negoInsertClause, negoReviseInsert, negoDeleteClause,
   /* PUBLISHED, or the doors that ask read undefined through window and file in
      silence — this codebase's most repeated defect. */
   negoClauseNameKey, negoClauseNamed, negoDupClauseStop, negoAddNamedClause,

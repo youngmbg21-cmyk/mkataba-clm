@@ -5575,6 +5575,8 @@ const EXECUTED_IMMUTABLE = [
      half. Frozen at execution, along with the rounds they were archived into
      and the versions that carry each round's body. */
   'changes', 'rounds', 'negotiation', 'versions',
+  /* the answers Fill in kept (owner, 26 Nov 2026): part of what was signed */
+  'fills',
   /* ---- THE MARKS ON THE PAPER (J-1, 29 Aug 2026) ----
      D-4 asked for the mark to be "baked in at the moment of signing, so the
      sealed copy looks like a signed contract". THIS IS WHERE THAT IS
