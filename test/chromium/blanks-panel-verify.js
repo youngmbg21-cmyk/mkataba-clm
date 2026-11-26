@@ -473,7 +473,7 @@ const CONTRACT = (id, over) => Object.assign({
          opening the "Show N filled" fold where the box sits in it. */
       const pin = await page.$('#ig-canvas [data-field="payDays"]');
       if (!pin){
-        check('9e a press on a blank on the paper opens nothing (only Fill in the contract fills)',
+        check('9e a press on a blank on the paper opens Fill in there (no panel box, no middle page)',
           false, 'no blank on this paper');
       } else {
         /* RE-POINTED 21 Oct 2026 (THE MIDDLE): "‹ Paper" first, so the paper is in front to be pressed */
@@ -490,8 +490,10 @@ const CONTRACT = (id, over) => Object.assign({
            fill in the contract"): a press on the paper's blank opens nothing and takes the caret nowhere */
         const opened = await page.evaluate(() => ({ mid: typeof pdMidUp === 'function' && pdMidUp(),
           filling: typeof pd2FillOn === 'function' && !!(window.intel && intel.paper) && pd2FillOn(intel.paper.id) }));
-        check('9e a press on a blank on the paper opens nothing (only Fill in the contract fills)',
-          back.caretInPanel === false && !back.box && !opened.mid && !opened.filling, JSON.stringify(Object.assign(back, opened)));
+        /* RE-POINTED 26 Nov 2026 (owner: "fill in by just placing my cursor on the paper"; f1244): the press opens Fill in on
+           the paper, never the panel's box nor a middle page */
+        check('9e a press on a blank on the paper opens Fill in there (no panel box, no middle page)',
+          back.caretInPanel === false && !opened.mid && opened.filling, JSON.stringify(Object.assign(back, opened)));
       }
     }
 

@@ -15,11 +15,14 @@ test('every unfilled field is amber on every tab, never on the signing copy, wit
   assert.match(IX, /#ig-canvas :is\(\.hati-field\[data-field-key\], span\.up-blank\)\{cursor:auto\}/);
 });
 
-test('a press on a blank is swallowed: it starts nothing and opens nothing', () => {
+/* RE-POINTED 26 Nov 2026 (owner: "i want to be able to fill in by just placing my cursor on the paper as well"; REVERSES
+   13 Nov's "only Fill in the contract fills", f1244): a press on a blank opens Fill in there, through its one door, and
+   opens nothing else (no form in the middle) */
+test('a press on a blank opens Fill in there, and nothing else', () => {
   const i = PD.indexOf("const sp = t.closest('#ig-canvas [data-pd2-nb]"); assert.ok(i > 0);
-  const h = PD.slice(i, i + 400);
-  assert.match(h, /if \(sp\)\{ e\.preventDefault\(\); e\.stopPropagation\(\); return; \}/);
-  assert.doesNotMatch(h, /pd2FillStart\(/, 'a press never starts the filling');
+  const h = PD.slice(i, i + 900);
+  assert.match(h, /if \(sp\)\{ e\.preventDefault\(\); e\.stopPropagation\(\); if \(!_pd2Fill\) pd2FillFromPress\(sp/);
+  assert.doesNotMatch(h, /pdFillOpen\(|pdMidOpen\(/, 'no other door answers the press');
   assert.ok(!CT.includes('document._homeAnswerWired = true;'), 'the press-opens-the-form door is gone');
 });
 
