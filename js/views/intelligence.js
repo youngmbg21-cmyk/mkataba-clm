@@ -11354,6 +11354,8 @@ function igAskPlaceholder(){
   if(window.newLookOn&&newLookOn()&&window.pdAmendShows&&pdAmendShows()) return i18t('pd2_am_ph');
   const c=igPaperInFront()?getContract(intel.paper.id):null;
   /* A NEW PERSON'S FIRST DAYS (owner, 23 Nov 2026; js/teach.js): the box's own example words say how to ask for help */
+  /* the Board's remote up: the box takes a new chart in words (owner, 27 Nov 2026, as drawn) */
+  if(!c && window.hbRemoteOn&&hbRemoteOn()) return i18t('hb_rm_ph');
   if(!c && window.teachHintOn&&teachHintOn()) return i18t('teach_hint_ph');
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');

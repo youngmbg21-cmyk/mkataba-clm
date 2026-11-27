@@ -176,6 +176,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NUMBER LEADS THE ROW (23 Oct 2026): f925 3c2 (new; the Board's Agreement cell is number · name, the name in `.nd-deal-t` gives way, the number never cut); f803 2a–2c/5a and f925 2b re-pointed (Home's line leads with the number); counter-as-drawn 11b re-pointed.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- THE BOARD'S REMOTE (27 Nov 2026): `node --test test/f1249-the-board-remote.test.js` (here); `test/chromium/board-remote-verify.js` (GitHub only: the button first, the panel, bring/put away, the card's × followed, eight at most said, "/pipe", nothing spills, three screens).
 - f1175 "which approvals are late" is not read as late duties (22 Nov 2026; red at the parent).
 - NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026): f1042 1a (re-pointed: no brain card, his line first); board-as-drawn-verify 5b (re-pointed).
 - THE SAME SPACE ABOVE THE FIRST CARD (owner, 14 Nov 2026): f745 7a re-pointed (red at the parent: the greeting's white band still painted over the gap). Photos at the three screens: 12px of the Board's ground under the greeting, as between Your book and Needs you. white-sheet-verify: Board · side list's grey ground ALLOWED in WHITE_KNOWN with the owner's words (red on GitHub before it, as foretold).
