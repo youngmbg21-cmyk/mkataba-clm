@@ -1172,11 +1172,12 @@ function ndBoardHtml(opts){
   const W = ndWaitCounts(D);
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
-  /* P-39, AS DRAWN: the Board's Needs you has no Hide (nor a find box) — so it is never left folded with no way to open
-     it again: a fold kept from before is not honoured where the button is not drawn */
-  const noFold = typeof window.newLookOn === 'function' && newLookOn();
-  const folded = !noFold && ndFolded();
-  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${noFold ? '' : ndFoldBtnHtml(folded)}</header>`
+  /* THE FOLD COMES BACK, AS AN ARROW (owner, 27 Nov 2026: "Add a feature to minimize needs chart in the board page";
+     reverses P-39's "no Hide" of 20 Nov): the new look draws the minimise arrow at the head's right end (ndFoldArrowHtml,
+     the panels' own chevron), the old look keeps its Hide; the head keeps the title and the count either way */
+  const arrow = typeof window.newLookOn === 'function' && newLookOn();
+  const folded = ndFolded();
+  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${arrow ? ndFoldArrowHtml(folded) : ndFoldBtnHtml(folded)}</header>`
     + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', W.all)}${tab('late', W.late)}${tab('you', W.you)}${tab('jambo', W.jambo)}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
@@ -1195,6 +1196,12 @@ function ndFolded(){ try { return typeof window.hbS === 'function' && !!hbS().nd
 function ndFoldSet(on){ try { if (typeof window.hbS !== 'function') return; const st = hbS(); if (!!st.ndFold === !!on) return; st.ndFold = !!on; if (typeof window.hbSave === 'function') hbSave(); } catch (_){} }
 function ndFoldBtnHtml(folded){
   return `<button type="button" class="hb-btn is-sm nd-fold" data-nd-fold aria-expanded="${!folded}" aria-controls="nd-main" aria-label="${_cnE(_cnT(folded ? 'nd_fold_open' : 'nd_fold_shut'))}">${_cnE(_cnT(folded ? 'hb_ins_show' : 'hb_ins_hide'))}</button>`;
+}
+/* the new look's minimise arrow: down while open (it folds the card away), up while folded; the same press, the same store */
+function ndFoldArrowHtml(folded){
+  const w = _cnE(_cnT(folded ? 'nd_fold_open' : 'nd_fold_shut'));
+  const ic = typeof window.icon === 'function' ? icon(folded ? 'chevD' : 'chevU', 'w-4 h-4') : (folded ? '\u25BE' : '\u25B4');
+  return `<button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon nd-fold-arrow" data-nd-fold aria-expanded="${!folded}" aria-controls="nd-main" aria-label="${w}" title="${w}">${ic}</button>`;
 }
 /* fold or open, then the Board draws the card again (its head's words follow the fold) */
 function ndFoldApply(on){ ndFoldSet(!!on); ndBoardRepaint(); return true; }
@@ -1431,5 +1438,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { dkLeavePageThen, deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
-  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndWaitCounts, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteOf, cn2QuoteHtml, ndWaitedDays, ndPanelHtml, ndBellNlHtml, ndTintOf, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndWaitCounts, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteOf, cn2QuoteHtml, ndWaitedDays, ndPanelHtml, ndBellNlHtml, ndTintOf, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldArrowHtml, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });
