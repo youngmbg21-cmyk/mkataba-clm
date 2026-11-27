@@ -17871,14 +17871,24 @@
   .jb-door-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
   .jb-door .jb-bin{flex:none;cursor:pointer}
   .jb-talk-label{cursor:default}
-  /* JAMBO IS THINKING (owner, 28 Oct 2026): a moving spinner and the words, in his answer's bubble */
-  .jl-bub.jb-thinking{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px}
-  .jb-thinking .jb-dot{width:9px;height:9px;border-radius:50%;background:var(--color-text);animation:jb-busy 1.2s infinite ease-in-out}
+  /* THE STATUS LINE (owner, 27 Nov 2026; reverses 28 Oct's dots alone): the step in plain words, three small dots pulsing
+     in turn in the words' own colour, then Stop; one line that wraps neatly, never "…" */
+  .jl-bub.jb-thinking{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:2px;min-height:36px;max-width:100%;padding:6px 14px;color:var(--color-quiet);font-size:var(--t-body);line-height:1.35}
+  .jb-thinking .jb-step{min-width:0}
+  .jb-thinking .jb-dots{display:inline-flex;align-items:center;gap:3px}
+  .jb-thinking .jb-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.35;animation:jb-busy 1.2s infinite ease-in-out}
   .jb-thinking .jb-dot:nth-child(2){animation-delay:.2s} .jb-thinking .jb-dot:nth-child(3){animation-delay:.4s}
-  @keyframes jb-busy{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
+  .jb-thinking .jb-stop{margin-left:6px;padding:0 8px;height:22px;border:0;border-radius:999px;background:transparent;color:var(--accent-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer}
+  .jb-thinking .jb-stop:hover{background:var(--surface-2)}
+  .jb-thinking .jb-stop[hidden]{display:none}
+  .jb-door-fwd .jb-fwd-dots{display:none;align-items:center;gap:2px;margin-left:2px}
+  .jb-door-fwd.is-busy .jb-fwd-dots{display:inline-flex}
+  .jb-door-fwd .jb-fwd-dots > i{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.35;animation:jb-busy 1.2s infinite ease-in-out}
+  .jb-door-fwd .jb-fwd-dots > i:nth-child(2){animation-delay:.2s} .jb-door-fwd .jb-fwd-dots > i:nth-child(3){animation-delay:.4s}
+  @keyframes jb-busy{0%,100%{opacity:.25}50%{opacity:1}}
   /* Jambo's row mark ripples (html.lg-new .ls-mk.is-jambo::after; keyframes live outside the new-look blocks) */
   @keyframes lsMkRipple{0%{transform:scale(.85);opacity:.55}70%,100%{transform:scale(1.35);opacity:0}}
-  @media (prefers-reduced-motion:reduce){.jb-thinking .jb-dot{animation-duration:2.4s}}
+  @media (prefers-reduced-motion:reduce){.jb-thinking .jb-dot, .jb-door-fwd .jb-fwd-dots > i{animation:none;opacity:.6}}
   /* a head's tab put away while the other face shows is gone, whatever display its class gives it */
   :is(.jl-head, .igd-head, .st-side-head, .cal-plan-head) :is(.pd-tab, .st-side-tab)[hidden]{display:none}
   /* …and the tab after it stands where it stood: no gap is kept for a tab that is not drawn */
@@ -19917,9 +19927,6 @@
   html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-checks .sh-lt-card{display:block}
   html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-checks .sh-noemail{margin:0;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:13px}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-verdict > h4{font-size:14px;margin-bottom:10px}
-  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:13px}
-  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv > span{font-weight:var(--w-label)}
-  html.lg-new :is(#ig-dock,.sh-lt-side) .sh-kv > p{margin:0}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl{margin:0;font-size:13px}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li{display:inline;padding:0}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li::before{display:none}
@@ -19944,11 +19951,46 @@
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-v-dot::before{content:"\2713";font-family:var(--font-body);font-size:16px;font-weight:var(--w-strong);color:var(--st-green-fg)}
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot{background:var(--st-amber-bg)}
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot::before{content:"!";color:var(--st-amber-fg)}
-  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-kv{grid-template-columns:96px minmax(0,1fr);padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks{display:flex;flex-direction:column;gap:12px}
   /* the amber edge is taken out of the card's own inside, so its words stand with every other card's (#762: 3px in) */
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot);padding-left:9px}
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-noemail{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
+  /* P-54, BEFORE YOU SEND THE STRIPE WAY (owner's pick, 27 Nov 2026; only the panel's cards change): a count ring, each check
+     a calm row — title and soft badge on one line, its line under — split by hairlines, then How it goes as a short timeline */
+  html.lg-new #ig-dock #pd-sendface .sh-sp-ring{order:-2;display:flex;align-items:center;gap:12px;padding:0 0 12px}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-side > :is(.sh-sp-row, #sh-lt-checks, .sh-sp-how){margin-top:-12px}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-ring:empty{display:none}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-svg{flex:none}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-track{stroke:var(--color-divider)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-fill{stroke:var(--st-amber-dot)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-fill.is-all{stroke:var(--st-green-dot)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-rw{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-rw b{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-rw span{font-size:var(--t-meta);color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card.sh-sp-row{padding:12px 0;border-radius:0;background:none;border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check.sh-sp-row{border-left:0;padding-left:0}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks{gap:0}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-top{display:flex;align-items:center;gap:8px;min-width:0}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-top > h4{flex:1 1 auto;min-width:0;margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-bd{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-bd:empty{display:none}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-bd.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-bd.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-bd.is-grey{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-row .sh-sp-d{margin:2px 0 0;font-size:var(--t-meta);line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-row .sh-lt-checkl{margin:4px 0 0;padding-left:0;list-style:none;font-size:var(--t-meta);line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-row .sh-lt-check-ack{margin-top:8px;color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-how{padding-top:12px;border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-how[hidden]{display:none}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-h6{margin:0 0 8px;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl{margin:0;padding:0;list-style:none}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl > li{position:relative;display:flex;gap:10px;padding:0 0 12px;font-size:var(--t-meta);color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl > li:last-child{padding-bottom:0}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl > li:not(:last-child)::after{content:"";position:absolute;left:4px;top:12px;bottom:0;width:1px;background:var(--color-divider)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl > li > i{flex:none;width:9px;height:9px;margin-top:3px;border-radius:50%;border:1.5px solid var(--color-neutral-400);background:var(--color-surface);box-sizing:border-box}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl > li.is-done > i{border-color:var(--st-green-dot);background:var(--st-green-dot)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl > li.is-now > i{border-color:var(--accent-ink)}
+  html.lg-new #ig-dock #pd-sendface .sh-sp-tl em{font-style:normal;color:var(--color-quiet)}
   /* REDLINES WITH NOTHING ON THE TABLE, THE FIVE PARTS (round 3b): the headline, what Draft from our standards does in a
      soft card with its long black button (grey when Send to mark up is the one filled button), then "Or yourself" — Edit
      a clause and Add a clause as rows. Every button stays inside .rl-empty-acts; nothing new is pressed. */

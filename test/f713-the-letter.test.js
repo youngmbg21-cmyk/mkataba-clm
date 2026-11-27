@@ -161,7 +161,8 @@ describe('f713 (2) the screen draws the letter', () => {
     /* RE-POINTED, the SAP Way (28 Oct 2026): Jambo's "word for word" line is
        gone; his panel says what goes, the note once typed */
     /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
-    assert.equal(m.txt('#sh-lt-goes-h'), 'Goes');
+    /* RE-POINTED 27 Nov 2026 (P-54, the Stripe way): the row is named "What goes" */
+    assert.equal(m.txt('#sh-lt-goes-h'), 'What goes');
     assert.match(m.txt('#sh-lt-goes-l'), /Your note/);
     m.$('[data-share-purpose="view"]').click();
     assert.equal(m.$('#sh-lt-subject').value, 'The Master services agreement, from ' + m.win.FIRST_PARTY);

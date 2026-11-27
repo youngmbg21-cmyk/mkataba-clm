@@ -4988,7 +4988,7 @@ function contractReadiness(c){
     add('warn','effective',i18t('sgx_rd_effective'));
   const ph=contractPlaceholders(c);
   if(ph.length) add('block','placeholders',
-    i18tn('sgx_rd_ph',ph.length,{n:ph.length,list:ph.slice(0,5).join(', ')+(ph.length>5?', …':'')}));
+    i18tn('sgx_rd_ph',ph.length,{n:ph.length,list:ph.slice(0,5).join(', ')+(ph.length>5?', …':'')}), { n:ph.length });
   if(boxes.length){
     /* Three named, then "and N more" — the negotiate page's own three
        (NG_BLANKS_NAMED). Kept inside the function: several tests lift this
@@ -5001,7 +5001,7 @@ function contractReadiness(c){
       i18tn('rd_boxes_empty',boxes.length,{n:boxes.length})+' '+(more>0
         ? i18tn('ng_blanks_these_more',more,{names:names.join(', '),more})
         : i18t('ng_blanks_these',{names:names.join(', ')})),
-      { fields: boxes.map(b=>b.key) });
+      { fields: boxes.map(b=>b.key), n:boxes.length });
   }
   /* ---- AND A COMPANY STANDARD'S OWN FORM (9 Oct 2026) ----
      Its blanks are a declared field list, not boxes in the paper, so the
@@ -6262,6 +6262,7 @@ function shareLetterPaint(c, st){
      its verdict and on what goes. */
   shareVerdictPaint(c, st);
   shareGoesPaint(c, st, who);
+  shareStripePaint(c, st, who);
   /* what they never see, named for who will read it (round 11's gaps: "What
      Anna never sees") */
   set('sh-lt-never-h', (typeof newLookOn==='function' && newLookOn()) ? i18t('sh_kv_names') : i18t('sh_lt_never_h', { who }));
@@ -6462,9 +6463,9 @@ function shareVerdictPaint(c, st){
   } else if(!blocked && p!=='colleague' && !(p==='sign' && typeof shareNeedsSigners==='function' && shareNeedsSigners(c))){
     let held=0; if(p!=='history' && p!=='status'){ try{ held=shareStaysRows(c).length; }catch(_){ held=0; } }
     const said=(p==='history'||p==='status') ? i18t('sh_v_ready_rec') : held ? i18tn('sh_v_ready_held', held, { n:held }) : i18t('sh_v_ready');
-    html=(typeof newLookOn==='function' && newLookOn())
-      /* the new look's Before you send: the verdict, then labelled rows (as drawn) */
-      ? `<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}.</h4><div class="sh-kv"><span>${esc(i18t('sh_kv_held'))}</span><p>${esc(said)}</p></div>`
+    /* P-54, THE STRIPE WAY (owner, 27 Nov 2026): in the new look the count ring says it (shareStripePaint) and What goes
+       says what is held back, so "Ready to send." is not said twice */
+    html=(typeof newLookOn==='function' && newLookOn()) ? ''
       : `<h4><i class="sh-v-dot" aria-hidden="true"></i>${esc(i18t('sh_v_ready_h'))}</h4><p>${esc(said)}</p>`;
   }
   if(v.innerHTML!==html) v.innerHTML=html;
@@ -6500,8 +6501,50 @@ function shareGoesPaint(c, st, who){
   }
   if(String(fval('sh-summary')||'').trim()) items.push(i18t('sh_goes_note'));
   const h=document.getElementById('sh-lt-goes-h'), ul=document.getElementById('sh-lt-goes-l');
-  const hv=(typeof newLookOn==='function' && newLookOn()) ? i18t('sh_kv_goes') : i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
+  const hv=(typeof newLookOn==='function' && newLookOn()) ? (document.getElementById('sh-sp-goes-d') ? i18t('sh_sp_goes') : i18t('sh_kv_goes')) : i18t('sh_goes_h', { who }); if(h && h.textContent!==hv) h.textContent=hv;
   const lv=items.map(t=>`<li>${esc(t)}</li>`).join(''); if(ul && ul.innerHTML!==lv) ul.innerHTML=lv;
+}
+/* P-54, THE STRIPE WAY: the ring, the What goes row's line and badge, the Mail badge and How it goes — read off the same
+   readings the rows already use (shareAnswersOf, shareStaysRows, the paper's checks row, emailOff); nothing new decided */
+function shareStripePaint(c, st, who){
+  const ring=document.getElementById('sh-sp-ring'); if(!ring || !c) return;
+  const p=(st && st.purpose) || 'negotiate';
+  const put=(el, v, html)=>{ if(!el) return; if(html){ if(el.innerHTML!==v) el.innerHTML=v; } else if(el.textContent!==v) el.textContent=v; };
+  /* what goes: the changes on the copy that travels, and what the review keeps here */
+  let A=null; try{ A=shareAnswersOf((st && st.payload && st.payload.contract) || c, c); }catch(_){ A=null; }
+  const n=((A && A.lines) || []).length + ((A && A.own) || []).length;
+  let held=0; if(p!=='history' && p!=='status'){ try{ held=shareStaysRows(c).length; }catch(_){ held=0; } }
+  const ul=document.getElementById('sh-lt-goes-l');
+  const first=ul && ul.querySelector('li') ? ul.querySelector('li').textContent : '';
+  const goesSay=(p==='history'||p==='status'||!n) ? first : i18tn('sh_sp_goes_n', n, { n })+' · '+(held ? i18tn('sh_sp_held_n', held, { n:held }) : i18t('sh_sp_held_none'));
+  put(document.getElementById('sh-sp-goes-d'), goesSay);
+  const gb=document.getElementById('sh-sp-goes-b');
+  put(gb, held ? i18tn('sh_sp_held_n', held, { n:held }) : i18t('sh_sp_ready'));
+  if(gb){ gb.classList.toggle('is-amber', !!held); gb.classList.toggle('is-green', !held); }
+  /* mail: off for this send is said on its badge (the email-off line stands under the paper's checks, as today) */
+  const off=!!document.getElementById('sh-noemail');
+  const mb=document.getElementById('sh-sp-mail-b'); put(mb, off ? i18t('sh_sp_off') : i18t('sh_sp_ready'));
+  if(mb){ mb.classList.toggle('is-amber', off); mb.classList.toggle('is-green', !off); }
+  /* the ring counts the rows: what goes, the paper, mail and names (names are always kept private) */
+  const rd=document.getElementById('share-readiness');
+  const paperOk=!(rd && rd.classList.contains('is-block'));
+  const m=4, ok=(held?0:1)+(paperOk?1:0)+(off?0:1)+1;
+  const r=(c.negotiation && Number(c.negotiation.round)) || 1;
+  const short=String(c.counterparty||'').trim().split(/\s+/)[0] || String(who||'');
+  const C=94.25, dash=(C*ok/m).toFixed(2);
+  put(ring, `<svg class="sh-sp-svg" width="44" height="44" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke-width="5" class="sh-sp-track"/><circle cx="18" cy="18" r="15" fill="none" stroke-width="5" class="sh-sp-fill${ok===m?' is-all':''}" stroke-dasharray="${dash} ${C}" transform="rotate(-90 18 18)"/></svg><div class="sh-sp-rw"><b>${esc(i18t('sh_sp_ring', { n:ok, m }))}</b><span>${esc(i18t('sh_sp_sub', { r, who:short }))}</span></div>`, true);
+  /* how it goes: drafted, reviewed, this send, their reply — only for a send that carries wording */
+  const how=document.getElementById('sh-sp-how');
+  if(how){
+    const words=p!=='history' && p!=='status' && p!=='colleague';
+    const li=(cls, a, b)=>`<li class="${cls}"><i aria-hidden="true"></i><span>${esc(a)}${b?` <em>· ${esc(b)}</em>`:''}</span></li>`;
+    const v=!words ? '' : `<p class="sh-sp-h6">${esc(i18t('sh_sp_how'))}</p><ul class="sh-sp-tl">${
+      li('is-done', i18t('sh_sp_t_drafted'), n ? i18tn('sh_sp_goes_n', n, { n }) : '')}${
+      li('is-done', i18t('sh_sp_t_reviewed'), held ? i18tn('sh_sp_held_n', held, { n:held }) : i18t('sh_sp_held_none'))}${
+      li('is-now', i18t('sh_sp_t_send', { who:short }), i18t('sh_sp_t_now'))}${
+      li('', i18t('sh_sp_t_reply'), i18t('sh_sp_t_board'))}</ul>`;
+    put(how, v, true); how.hidden=!v;
+  }
 }
 function shareSideHtml(c, part){
   const them=esc(c.counterparty||i18t('co_them'));
@@ -6511,6 +6554,21 @@ function shareSideHtml(c, part){
   if(part==='top') return `<div class="sh-lt-jb">${(typeof aiFaceHtml==='function')?aiFaceHtml():''}<b>${esc(i18t('sh_lt_before'))}</b></div>
     <div class="sh-lt-card sh-lt-verdict hidden" id="sh-lt-verdict"></div>`;
   const histOk=(()=>{ try{ const s=negoChangeSummary(c); return !!(s && s.lines && s.lines.length); }catch(_){ return false; } })();
+  /* P-54, THE STRIPE WAY (owner's pick, 27 Nov 2026; only the panel's cards change): a count ring, each check a row with
+     its soft badge (What goes · the paper's checks · Mail · Names), then How it goes; painted by shareStripePaint */
+  if(typeof newLookOn==='function' && newLookOn()) return `<div class="sh-sp-ring" id="sh-sp-ring"></div>
+    ${shareStaysHtml(c)}
+    <div class="sh-lt-card sh-sp-row" id="sh-lt-goes"><div class="sh-sp-top"><h4 id="sh-lt-goes-h"></h4><span class="sh-sp-bd is-green" id="sh-sp-goes-b"></span></div><p class="sh-sp-d" id="sh-sp-goes-d"></p><ul class="sh-lt-goesl" id="sh-lt-goes-l" hidden></ul></div>
+    <div class="sh-lt-checks" id="sh-lt-checks"></div>
+    <div class="sh-lt-card sh-sp-row sh-nl-mail" id="sh-sp-mail"><div class="sh-sp-top"><h4>${esc(i18t('sh_nl_mail_k'))}</h4><span class="sh-sp-bd is-green" id="sh-sp-mail-b">${esc(i18t('sh_sp_ready'))}</span></div><p class="sh-sp-d">${esc(i18t('sh_nl_mail'))}</p></div>
+    <div class="sh-lt-card sh-sp-row" id="sh-sp-names"><div class="sh-sp-top"><h4 id="sh-lt-never-h">${esc(i18t('sh_kv_names'))}</h4><span class="sh-sp-bd is-grey">${esc(i18t('sh_sp_private'))}</span></div><p class="sh-sp-d">${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
+    <div class="sh-sp-how" id="sh-sp-how"></div>
+    <div class="sh-lt-card hidden" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
+      <div class="sh-lt-acts">
+        <button type="button" class="ui-btn ui-btn-sm" id="share-other" data-sh-lt-else="history"${histOk?'':` disabled title="${esc(i18t('sh_lt_else_hist_none'))}"`}>${esc(i18t('sh_lt_else_hist'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm hidden" data-sh-lt-else="contract">${esc(i18t('sh_lt_else_contract'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm" data-sh-lt-else="status">${esc(i18t('sh_lt_else_status'))}</button>
+      </div></div>`;
   return `${shareStaysHtml(c)}
     ${''/* WHAT IS WORTH CHECKING STANDS HERE, NOT UNDER THE LETTER (round 11's
            gaps, second pass: "Nothing under the letter. Everything about
@@ -6826,7 +6884,10 @@ function shareSignerPickHtml(c, sel){
    its own quiet line. */
 function readinessPanelHtml(c, o={}){
   const probs=contractReadiness(c);
-  if(!probs.length) return '';
+  /* P-54, THE STRIPE WAY (owner, 27 Nov 2026): beside the letter the paper's checks are ONE ROW — title, soft badge, the
+     lines under it, the Send-it-anyway tick kept in this row; nothing to fix is a Ready row of its own */
+  const sp=!!(o.card && typeof newLookOn==='function' && newLookOn());
+  if(!probs.length) return sp ? `<div id="sh-sp-paper-ok" class="sh-lt-card sh-sp-row" data-sp-ok="1"><div class="sh-sp-top"><h4>${esc(i18t('sh_sp_paper_ok_h'))}</h4><span class="sh-sp-bd is-green">${esc(i18t('sh_sp_ready'))}</span></div><p class="sh-sp-d">${esc(i18t('sh_sp_paper_ok'))}</p></div>` : '';
   /* ---- ON THE LETTER, A CARD LIKE ITS NEIGHBOURS (round 11's gaps, third
      pass: "the panel holds cards only") ----
      Beside the letter the checks stand in Jambo's panel among its cards, so
@@ -6837,6 +6898,23 @@ function readinessPanelHtml(c, o={}){
      ids. */
   if(o.card){
     const blocks=probs.filter(x=>x.severity==='block'), notes=probs.filter(x=>x.severity!=='block');
+    if(sp){
+      const BLANK=new Set(['placeholders','blanks','form-blanks']);
+      const allBlank=blocks.length && blocks.every(x=>BLANK.has(x.key));
+      const nFill=blocks.reduce((a,x)=>a+(BLANK.has(x.key)?(Number(x.n)||1):0),0);
+      const head=allBlank ? i18t('sh_sp_blanks') : blocks.length ? i18t('sh_sp_fix_h') : i18t('sh_sp_look_h');
+      const bd=allBlank ? i18tn('sh_sp_fill', nFill, { n:nFill }) : blocks.length ? i18tn('sh_sp_fix', blocks.length, { n:blocks.length }) : i18tn('sh_sp_look', notes.length, { n:notes.length });
+      const door=x=>(x.severity==='block' && (x.key==='review'||x.key==='desk') && typeof isAdmin==='function' && isAdmin())
+        ? ` <button type="button" class="ui-link" data-rd-rule="${x.key}">${esc(i18t(x.key==='review'?'sc_rule_review':'sc_rule_desk'))}</button>` : '';
+      const ul=L=>`<ul class="sh-lt-checkl">${L.map(x=>`<li>${esc(x.label)}${door(x)}</li>`).join('')}</ul>`;
+      return `<div id="share-readiness" class="sh-lt-card sh-lt-check sh-sp-row${blocks.length?' is-block':''}" data-sp-ok="0">
+        <div class="sh-sp-top"><h4>${esc(head)}</h4><span class="sh-sp-bd ${blocks.length?'is-amber':'is-grey'}">${esc(bd)}</span></div>
+        ${blocks.length?ul(blocks):''}
+        ${blocks.length && notes.length?`<p class="sh-lt-check-also">${esc(i18t('co_also_worth_knowing'))}</p>`:''}
+        ${notes.length?ul(notes):''}
+        ${blocks.length?`<label class="sh-lt-check-ack"><input id="sh-ack" type="checkbox"/><span>${i18t('co_send_anyway')}</span></label>`:''}
+      </div>`;
+    }
     const door=x=>(x.severity==='block' && (x.key==='review'||x.key==='desk') && typeof isAdmin==='function' && isAdmin())
       ? ` <button type="button" class="ui-link" data-rd-rule="${x.key}">${esc(i18t(x.key==='review'?'sc_rule_review':'sc_rule_desk'))}</button>` : '';
     const ul=L=>`<ul class="sh-lt-checkl">${L.map(x=>`<li>${esc(x.label)}${door(x)}</li>`).join('')}</ul>`;

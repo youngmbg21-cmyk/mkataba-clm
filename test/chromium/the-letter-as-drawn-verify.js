@@ -131,7 +131,7 @@ async function mkUser(h, admin, name, email){
       const acts = [...document.querySelectorAll('#modal-root .sh-hd-acts > button')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
       const panel = document.querySelector('#modal-root .modal-in[data-sh-page]').getBoundingClientRect(), dock = document.getElementById('ig-dock').getBoundingClientRect();
       return { tabs, barName, title: t('#share-lead-title'), acts, faceWord: t('#ig-dock > .pd-trail .pd-trail-w b'), back: !!document.querySelector('#ig-dock > .pd-trail [data-pd-back="send"]'),  /* ONE TRAIL (20 Oct 2026) */
-        jsay: t('#pd-sendface #sh-lt-jsay'), verdict: t('#pd-sendface #sh-lt-verdict h4'), goes: t('#pd-sendface #sh-lt-goes-h'), ask: !!document.querySelector('#ig-dock #igd-input'), beside: panel.right <= dock.left + 1 };
+        jsay: t('#pd-sendface #sh-lt-jsay'), verdict: t('#pd-sendface #sh-lt-verdict h4'), ring: t('#pd-sendface #sh-sp-ring b'), goes: t('#pd-sendface #sh-lt-goes-h'), ask: !!document.querySelector('#ig-dock #igd-input'), beside: panel.right <= dock.left + 1 };
     });
     check('1b the bar names "Send · MK-0382" in front; the paper waits as its own Recent row',
       F1.barName === 'Send · MK-0382' && F1.tabs.some(x => x.w === 'Send · MK-0382' && x.on) && F1.tabs.some(x => /MK-0382$/.test(x.w) && !/^Send/.test(x.w) && !x.on), JSON.stringify({ bar: F1.barName, tabs: F1.tabs }));
@@ -145,7 +145,7 @@ async function mkUser(h, admin, name, email){
       /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): Jambo's "word for word" line is gone;
          the face opens on its verdict and on what goes to Anna */
       /* RE-POINTED 16 Nov 2026 (#762): the verdict ends with its full stop and the list is headed "Goes" (the new look's words) */
-      F1.faceWord === 'Before you send' && F1.back && F1.jsay === null && /^Ready to send\.?$/.test(F1.verdict || '') && /^(What goes to Anna|Goes)$/.test(F1.goes || '')
+      F1.faceWord === 'Before you send' && F1.back && F1.jsay === null && /* RE-POINTED 27 Nov 2026 (P-54, the Stripe way): the ring says how many checks are ready; "Ready to send." is not said twice */ !F1.verdict && /checks ready$/.test(F1.ring || '') && /^(What goes to Anna|What goes)$/.test(F1.goes || '')
       && F1.ask && F1.beside, JSON.stringify(F1));
     await shot(page, '11-letter-first-1440x780');
 
@@ -247,9 +247,9 @@ async function mkUser(h, admin, name, email){
     await shot(page, '11-letter-sign-1440x780');
     await press('#sh-lt-verdict [data-sh-v-go="negotiate"]');
     await waitFor(page, w => document.querySelector('[data-sh-as-w="purpose"]').textContent === w, 3000, negW);
-    const V2 = await page.evaluate(() => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, h: (document.querySelector('#sh-lt-verdict h4') || {}).textContent }));
+    const V2 = await page.evaluate(() => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, h: (document.querySelector('#sh-lt-verdict h4') || {}).textContent, ring: (document.querySelector('#sh-sp-ring b') || {}).textContent }));
     check('3g Sign with changes open: "Not ready to sign" first in the panel, and its way forward turns the send to Negotiate',
-      V1.h === 'Not ready to sign' && V1.shown && V1.warn && V1.go && V1.top && (V2.w === 'Negotiate' || V2.w === negW) && /Ready to send/.test(V2.h || ''), JSON.stringify({ V1, V2 }));
+      V1.h === 'Not ready to sign' && V1.shown && V1.warn && V1.go && V1.top && (V2.w === 'Negotiate' || V2.w === negW) && (/Ready to send/.test(V2.h || '') || (!V2.h && /checks ready$/.test(V2.ring || ''))), JSON.stringify({ V1, V2 }));
     await press('#sh-lt-change');
     const c5 = await page.evaluate(() => ({ boxes: !document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), line: !document.getElementById('sh-lt-tosay').classList.contains('hidden') }));
     check('3c Change opens the two boxes', c5.boxes && !c5.line, JSON.stringify(c5));

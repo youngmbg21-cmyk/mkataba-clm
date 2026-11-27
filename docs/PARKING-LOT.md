@@ -248,7 +248,15 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner's photo of Explorer's walk-through (step 2 of 12), 26 Nov 2026; Claude checked every chapter, the owner said "park this".
 - **Notes:** the check found, out of 307 steps in 57 chapters: 87 cut off in the list, about 140 that describe instead of saying what to press, 170 with nothing outlined, 87 crammed with several things. Known wrong in Explorer: pressing a dot only chooses it (it does not open the Dossier); the jump window is in the middle, not at the left; Jambo's box is at the foot of the side panel, not under the map; Your day says "three counts" while its picture says "five figures"; the "then and now" picture marker points at step 10, but it is step 12. Suggested order: the cut-off fix everywhere first (one small change), then chapters in batches of about five, worst first (Explorer first, then Ask Jambo, The company look, A contract's Dossier, Our paper, Notes and comments, People and grants, Finding a contract, Duties, Send it), both books, photographed at the three screens, one pull request per batch.
 
+
 ## Done
+
+### P-54 · The Send screen's side panel, the Stripe way — Done
+- **Added:** 26 Nov 2026 · **Status:** Done
+- **What:** the "Before you send" panel beside the Send screen gets the owner's pick, the Stripe way: a count ring ("3 of 4 checks ready"), each check a row with a soft badge (What goes · Ready, Blanks on the paper · 14 to fill, Mail · Ready, Names · Private), and a short "How it goes" timeline (Drafted → Reviewed → Send → Their reply). Only the panel's cards change; the tabs, the path, the links line and Jambo's box stay.
+- **Where it came from:** the owner's picture of the Send screen (Send to Ventura), 26 Nov 2026; drawn four ways over that picture (artifact 8h8J4P7YuZh9uE4wVeh2XV); the owner picked "stripe way", "do not build yet".
+- **Notes:** the "Send it anyway" tick for empty blanks must stay in the blanks row (today it is in the amber card). Build to start from a fresh photo of the real screen at the three screens.
+- **Done** 27 Nov 2026 in [youngmbg21-cmyk/mkataba-clm#1045](https://github.com/youngmbg21-cmyk/mkataba-clm/pull/1045).
 
 _Finished items were removed on 22 Nov 2026 at the owner's word ("Delete finished ones"); the full list as it stood is in GitHub's history (the version just before this change)._
 
