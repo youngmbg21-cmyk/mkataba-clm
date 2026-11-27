@@ -156,8 +156,14 @@ const READ = () => {
            links row offers no "fill in" on their paper, and the door itself (pdFillGo) is pressed instead */
         /* found by its key (Jambo's chip, or the links row's way carried beside "Jambo ›"), never by its words: a long row
            takes the short form (jamboWaysFit) */
-        const linked5 = await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ca-chip="fill"]:not([hidden]), #ig-dock .jb-ways [data-jb-key="fill"]:not([hidden])')
-            || [...document.querySelectorAll('#ig-dock .jb-ways button')].find(x => /^fill in$/i.test(x.textContent.trim()));
+        /* GREY THEM OUT (owner, 27 Nov 2026): with nothing of our record owed, a "fill in" the row draws stands grey with
+           the reason (disabled, its title the theirs sentence); with a detail owed it is live */
+        const grey5 = await page.evaluate(w => { const b = document.querySelector('#ig-dock .jb-ways [data-jb-way="fill"], #ig-dock .jb-ways [data-jb-key="fill"]');
+          return b ? { shown: true, off: !!b.disabled, why: b.title === w } : { shown: false }; }, want5);
+        check('5a their paper: a "fill in" in the links row is grey with the reason exactly while nothing of ours is owed',
+          !grey5.shown || (grey5.off === !owed5 && (!grey5.off || grey5.why)), { owed5, grey5 });
+        const linked5 = await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ca-chip="fill"]:not([hidden]):not(:disabled), #ig-dock .jb-ways [data-jb-key="fill"]:not([hidden]):not(:disabled), #ig-dock .jb-ways [data-jb-way="fill"]:not(:disabled)')
+            || [...document.querySelectorAll('#ig-dock .jb-ways button:not(:disabled)')].find(x => /^fill in$/i.test(x.textContent.trim()));
           if (!b) return false; b.click(); return true; });
         /* the link stands where Jambo's chips offer "fill" (caChipShut: owed details on a contract this reader owns, Needs you's
            own reading); where it is not offered, the door itself is pressed */

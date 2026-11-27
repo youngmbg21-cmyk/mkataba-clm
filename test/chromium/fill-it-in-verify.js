@@ -57,7 +57,7 @@ const BREAKDOWN = { head: 'Two things', sub: 'A small cap and an empty address.'
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-F1', 'doc'); });
     const cards = async () => page.evaluate(() => [...document.querySelectorAll('#pd-thread .stk-card')].map(c => ({ title: c.querySelector('.stk-ct').textContent.trim(),
       acts: [...c.querySelectorAll('.stk-cacts button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-      links: [...c.querySelectorAll('.stk-cacts button')].map(b => { const s = getComputedStyle(b); return { t: b.textContent.trim(), line: s.textDecorationLine.includes('underline'), color: s.color }; }) })));
+      links: [...c.querySelectorAll('.stk-cacts button')].map(b => { const s = getComputedStyle(b); return { t: b.textContent.trim(), line: s.textDecorationLine.includes('underline'), color: s.color, off: !!b.disabled, why: b.title || '' }; }) })));
     /* the cards stand in the rows; open every row so both cards are drawn (the read pressed if it waits for a press) */
     await until(page, () => !!document.querySelector('#pd-thread .doc-th-row'), null, 15000);
     await page.evaluate(() => { const r = document.querySelector('#pd-thread [data-stk-run]'); if (r) r.click(); });
@@ -69,8 +69,12 @@ const BREAKDOWN = { head: 'Two things', sub: 'A small cap and an empty address.'
     check('2 the real risk keeps Start redlining, Deep dive and Mark reviewed', !!risk && risk.acts.join('|') === 'Start redlining|Deep dive|Mark reviewed', risk || C);
     const ink = await page.evaluate(() => { const a = document.createElement('a'); a.style.color = 'var(--accent-ink)'; document.body.appendChild(a); const c = getComputedStyle(a).color; a.remove(); return c; });
     const L = [].concat(blank ? blank.links : [], risk ? risk.links : []);
-    const links = L.filter(x => /Fill it in|Deep dive|Start redlining/.test(x.t)), mark = L.filter(x => /Mark reviewed/.test(x.t));
-    check('3 Deep dive, Fill it in and Start redlining are green and underlined; Mark reviewed is not', links.length === 3 && links.every(x => x.line && x.color === ink) && mark.every(x => !x.line), { links, mark, ink });
+    /* RE-POINTED 27 Nov 2026 (owner: "grey them out"): on THEIR paper (this upload) Fill it in stands grey with the
+       reason — not green, not underlined, disabled, its title the theirs sentence; Deep dive and Start redlining stay live */
+    const theirs = await page.evaluate(() => i18t('pd2_fill_theirs'));
+    const links = L.filter(x => /Deep dive|Start redlining/.test(x.t)), fills = L.filter(x => /Fill it in/.test(x.t)), mark = L.filter(x => /Mark reviewed/.test(x.t));
+    check('3 Deep dive and Start redlining are green and underlined; Fill it in on their paper is grey with the reason; Mark reviewed is not underlined',
+      links.length === 2 && links.every(x => x.line && x.color === ink && !x.off) && fills.length === 1 && fills.every(x => x.off && !x.line && x.color !== ink && x.why === theirs) && mark.every(x => !x.line), { links, fills, mark, ink });
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){ await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(300); await page.screenshot({ path: path.join(OUT, `points-${w}x${ht}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 
@@ -92,11 +96,12 @@ const BREAKDOWN = { head: 'Two things', sub: 'A small cap and an empty address.'
        to fill and a change is a redline (pd2FillHeldSay) — still free, no Jambo call */
     const calls0 = await page.evaluate(() => window.__calls);
     const blanks = await page.evaluate(() => contractBlanks(getContract('MK-F1')).map(b => ({ key: b.key, label: b.label, section: b.section, value: b.value })));
-    await page.evaluate(() => document.querySelector('#pd-thread [data-stk-fill]').click());
-    const said = await until(page, () => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return t.includes(i18t('pd2_fill_theirs')) ? t : null; }, null, 8000);
+    /* RE-POINTED 27 Nov 2026 (owner: "grey them out"): the press does nothing — the reason stands on the grey link */
+    const said = await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-stk-fill]'); if (!b || !b.disabled) return null;
+      b.click(); return b.title === i18t('pd2_fill_theirs') ? b.title : null; });
     const box = await page.evaluate(() => ({ lines: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length, on: pd2FillOn('MK-F1'), form: !!document.querySelector('#pd-og.is-form'),
       why: pd2FillHeldWhy(getContract('MK-F1')) }));
-    check('4 Fill it in on their paper opens no box: it says the paper is theirs to fill, free', !!said && blanks.length === 0 && box.lines === 0 && !box.on && !box.form && box.why === 'theirs'
+    check('4 Fill it in on their paper is grey and opens no box: its reason says the paper is theirs to fill, free', !!said && blanks.length === 0 && box.lines === 0 && !box.on && !box.form && box.why === 'theirs'
       && (await page.evaluate(() => window.__calls)) === calls0, { said, box, blanks });
     await page.screenshot({ path: path.join(OUT, 'fill-1440x780.png') });
 

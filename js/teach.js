@@ -133,12 +133,14 @@ function teachSay(q){
   const turn = teachTurn(q);
   if (turn){ try { teachSet(turn.ask); } catch (_){} return turn; }
   /* HaTi's own words ("what is a dossier?"), free for everyone; "what can I do here?" while teaching is on */
+  const g = teachGuideOf(q), gw = g ? teachStepTurn(g, 1) : null;
+  if (gw){ try { teachDid('ask'); } catch (_){} try { teachMarkKeep(); } catch (_){} return gw; }
   const w = teachWordTurn(q) || (teachOn() && teachHereAsked(q) ? teachHereTurn() : null) || teachHowTurn(teachHowOf(q));
   if (w){ try { teachDid('ask'); } catch (_){} }
   return w;
 }
 /* does the sentence belong to the instructor? (the boxes ask this before any other reader) */
-function teachTakes(q){ return !(typeof walkAsked === 'function' && walkAsked(q)) && !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachHowOf(q)); }
+function teachTakes(q){ return !(typeof walkAsked === 'function' && walkAsked(q)) && !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachGuideOf(q) || teachHowOf(q)); }
 
 /* THE HINT: a person's first days, while they have said neither */
 function teachHintOn(u){
@@ -341,6 +343,26 @@ function teachStepHtml(c, i, steps, where){
    steps drawn the Legora + Stripe way, with Walk me through it and the chapter one press away. The Contracts page's
    box used to send it to the AI, which wrote its own steps. A move ("how do I get to the calendar") stays a move. */
 const TEACH_HOW_MOVE = / (get to|go to|get back to|komma till|gå till|ta mig till) /;
+/* "WALK ME THROUGH …", "SHOW ME HOW TO …", "GUIDE ME THROUGH …" A THING TO DO IN HaTi (owner, 27 Nov 2026: "Yes, build
+   both") open the guided steps at once — the same walk as Walk me through it, its first part outlined — read by the
+   same Handbook reader as a how-to; a lesson about one's own data ("walk me through my renewals") stays the lesson's
+   (walkAsked, asked first in teachSay) */
+const TEACH_GUIDE_LEAD = /^\s*(?:please\s+|can you\s+|could you\s+)?(?:walk (?:me|us) through|show (?:me|us) how (?:to|do i|do we|i can|we can)|guide (?:me|us) through|visa (?:mig|oss) hur (?:man|jag|vi)|guida (?:mig|oss) (?:genom|igenom)|led (?:mig|oss) (?:genom|igenom))\s+/i;
+function teachGuideOf(q){
+  const raw = String(q == null ? '' : q);
+  if (!TEACH_GUIDE_LEAD.test(raw)) return null;
+  if (typeof walkAsked === 'function' && walkAsked(raw)) return null;
+  const sv = /^\s*(?:visa|guida|led)\b/i.test(raw.replace(/^\s*(?:please|can you|could you)\s+/i, ''));
+  const rest = raw.replace(TEACH_GUIDE_LEAD, '').trim(); if (!rest) return null;
+  /* the task's first word as the Handbook says it: "sending" → send, "creating" → create, "putting" → put; Swedish
+     "skickar" → skicka, "lägger" → lägga */
+  const m = /^(\S+)(.*)$/.exec(rest), w = m[1], tail = m[2], forms = [w];
+  if (!sv && /ing$/i.test(w) && w.length > 5){ const b = w.slice(0, -3); forms.push(b, b + 'e'); if (/(.)\1$/.test(b)) forms.push(b.slice(0, -1)); }
+  if (sv && /ar$/i.test(w)) forms.push(w.slice(0, -1));
+  if (sv && /er$/i.test(w)) forms.push(w.slice(0, -2) + 'a');
+  for (const f of forms){ const k = teachHowOf((sv ? 'hur gör jag för att ' : 'how do i ') + f + tail); if (k) return k; }
+  return null;
+}
 function teachHowOf(q){
   try {
     if (typeof navReadHandbook !== 'function' || typeof navNorm !== 'function') return null;
@@ -492,7 +514,7 @@ function teachTasksGroup(){
 
 const TEACH_API = { TEACH_HINT_DAYS, TEACH_STATES, TEACH_STEPS, teachNorm, teachRead, teachState, teachOn, teachSeat, teachChoices, teachTurn, teachSet, teachSay, teachTakes, teachHintOn, teachPh, teachHintSweep,
   TEACH_WORDS, teachWordOf, teachWordTurn, TEACH_HERE_RE, teachHereAsked, teachHereChapters, teachHereTurn,
-  TEACH_FN_DOORS, TEACH_HOW_MOVE, teachHowOf, teachHowTurn, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
+  TEACH_FN_DOORS, TEACH_HOW_MOVE, TEACH_GUIDE_LEAD, teachGuideOf, teachHowOf, teachHowTurn, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
   TEACH_TASKS, TEACH_DONE_KEYS, teachDoneSet, teachTasks, teachDid, teachTasksGroup };
 if (typeof window !== 'undefined') Object.assign(window, TEACH_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = TEACH_API;

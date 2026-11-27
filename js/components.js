@@ -662,6 +662,20 @@ function jamboWaysHere(){
   const teach = typeof window.teachOn === 'function' && window.teachOn();
   return { k, doors: (teach ? ['teachhere'] : []).concat(row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
 }
+/* A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES IS GREY, WITH ITS REASON (owner, 27 Nov 2026: "grey them out"): on THEIR paper
+   (every upload) "fill in" has nothing of ours to fill unless a detail of our record is owed (pdFillGo opens that form) */
+function jamboWayShutWhy(d){
+  if (d !== 'fill') return '';
+  try {
+    const id = jamboWayCid(), c = id && typeof window.getContract === 'function' ? window.getContract(id) : null;
+    if (c && typeof window.pd2FillHeldWhy === 'function' && window.pd2FillHeldWhy(c) === 'theirs'
+      && !(typeof window.pd2TheirsDetailsOwed === 'function' && window.pd2TheirsDetailsOwed(c))) return _jbT('pd2_fill_theirs');
+  } catch (_){ /* the link stands */ }
+  return '';
+}
+/* which of a row's links stand grey, so a row kept between two papers is redrawn when that changes */
+function jamboWaysShutSig(here){ return ((here && here.doors) || []).filter(d => jamboWayShutWhy(d)).join(','); }
+function jamboWayShutAttr(d){ const w = jamboWayShutWhy(d); return w ? ` disabled title="${esc(w)}"` : ''; }
 function jamboWayWord(k){
   /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
      in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
@@ -671,7 +685,7 @@ function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
   if (!here.doors.length) return '';
-  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}">${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" data-jb-shut="${esc(jamboWaysShutSig(here))}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}"${jamboWayShutAttr(d)}>${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
 }
 function jamboWaysSync(){
   if (typeof document === 'undefined') return;
@@ -698,13 +712,13 @@ function jamboWaysSync(){
         /* THE ROW ABOVE THE BOX IS LEFT WHERE THE PANEL DREW IT (11 Nov 2026): removing it after every repaint flashed it
            on and off; while a line is shown above the box the sheet hides it (index.html, "THE LINKS RIDE THE LINE") */
         const cur = door.querySelector('.jb-ways');
-        if (cur && !cur.classList.contains('is-carried') && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length) return;
+        if (cur && !cur.classList.contains('is-carried') && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length && (cur.getAttribute('data-jb-shut') || '') === jamboWaysShutSig(here)) return;
         if (cur) cur.remove();
         const inHtml = jamboWaysHtml(here, 'is-in-door'), sp = door.querySelector('.jb-door-sp');
         if (inHtml && sp) sp.insertAdjacentHTML('afterend', inHtml);
         return;
       }
-      if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
+      if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length && (old.getAttribute('data-jb-shut') || '') === jamboWaysShutSig(here)) return;
       if (old) old.remove();
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
       foot.insertAdjacentHTML('beforebegin', html);
@@ -716,13 +730,13 @@ function jamboWaysSync(){
 function jamboWaysCarry(door, row){
   const btns = [...row.querySelectorAll('button')].filter(b => !b.hidden);
   const words = btns.map(b => String(b.getAttribute('data-jb-full') || b.textContent || '').trim());
-  const sig = words.join('\u0001');
+  const sig = btns.map((b, i) => words[i] + (b.disabled ? '\u0002' : '')).join('\u0001');
   const cur = door.querySelector('.jb-ways');
   if (cur && cur.classList.contains('is-carried') && cur.getAttribute('data-jb-carry-sig') === sig) return;
   if (cur) cur.remove();
   if (!btns.length) return;
   const key = b => b.getAttribute('data-jb-way') || b.getAttribute('data-ca-chip') || '';
-  const html = `<nav class="jb-ways is-in-door is-carried" data-jb-ways="carried" data-jb-carry-sig="${esc(sig)}" aria-label="${esc(_jbT('jb_doors_label'))}">${btns.map((b, i) => `<button type="button" class="jb-way${b.classList.contains('ca-chip-owed') ? ' ca-chip-owed' : ''}" data-jb-carry="${i}" data-jb-key="${esc(key(b))}">${esc(words[i])}</button>`).join('')}</nav>`;
+  const html = `<nav class="jb-ways is-in-door is-carried" data-jb-ways="carried" data-jb-carry-sig="${esc(sig)}" aria-label="${esc(_jbT('jb_doors_label'))}">${btns.map((b, i) => `<button type="button" class="jb-way${b.classList.contains('ca-chip-owed') ? ' ca-chip-owed' : ''}" data-jb-carry="${i}" data-jb-key="${esc(key(b))}"${b.disabled ? ` disabled title="${esc(b.title || '')}"` : ''}>${esc(words[i])}</button>`).join('')}</nav>`;
   const sp = door.querySelector('.jb-door-sp');
   if (sp) sp.insertAdjacentHTML('afterend', html);
 }
@@ -838,7 +852,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   }
 }
-Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
+Object.assign(window,{ jamboWayShutWhy,JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
 Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays,jamboWaysCarry,jamboCarryRow,jamboWaysFit,jamboWaysFitOne,jamboShortOf,JB_FIT_ROWS});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
