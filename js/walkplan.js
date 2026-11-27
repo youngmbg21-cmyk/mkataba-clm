@@ -98,10 +98,51 @@ const AI_WALK_RULE = 'A LESSON, ONLY WHEN ASKED FOR ONE: when the person asks to
 const WALK_LEAD_RE = /\b(walk me through|walk us through|take me through|take us through|talk me through|run me through|teach me|give me a tour|a tour of|step by step|gå igenom|visa steg för steg|steg för steg|lär mig)\b/i;
 const WALK_DO_RE = /\b(how (?:to|do i|can i|should i)|sending|send|signing a|sign a|adding|add a|uploading|upload|creating|create|drafting a|set(?:ting)? up|invite|inviting|använd|hur (?:gör|skickar|lägger)|skicka|ladda upp|skapa)\b/i;
 const WALK_DATA_RE = /\b(my|our|this|the|mina|vår|våra|det här|detta)\b[\s\S]*\b(contracts?|agreements?|deals?|book|portfolio|renewals?|duties|duty|obligations?|risks?|negotiations?|changes|redlines|approvals?|streams?|counterpart(?:y|ies)|parties|customers|suppliers|value|money|figures|board|playbook|findings|signing|pipeline|avtal|förnyelser|åtaganden|risker|förhandling(?:en)?|godkännanden|värde|pengar)\b|\bwhat needs me\b|\bwhere (?:my|our) money\b|\b(?:pengarna|avtalen|förnyelserna|åtagandena|riskerna|förhandlingen|godkännandena)\b/i;
+/* about HaTi itself, never one's data: the Handbook's and the instructor's */
+const WALK_APP_RE = /\b(hati|the app|this app|jambo|handbook|this page|that page|the page|screen|button|menu|settings|inställningar|appen|handboken)\b/i;
+/* "walk me through Value by counterparty" (a Board card's own title, carried by its Walk me through this) is a lesson
+   too: words after the lead that name data, or a chart's own title, are enough — never a bare "teach me" */
+const WALK_CHART_RE = /\b(?:by|per|vs\.?|versus|over time|this chart|the chart|figures?|kpis?|value|money|stages?|status|ending|risk)\b/i;
 function walkAsked(q){
   const t = String(q == null ? '' : q).trim(); if (!t || t.length > 300) return false;
-  return WALK_LEAD_RE.test(t) && WALK_DATA_RE.test(t) && !WALK_DO_RE.test(t);
+  if (!WALK_LEAD_RE.test(t) || WALK_DO_RE.test(t) || WALK_APP_RE.test(t)) return false;
+  const rest = t.replace(WALK_LEAD_RE, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  if (!rest) return false;
+  return WALK_DATA_RE.test(t) || WALK_CHART_RE.test(rest);
 }
+
+/* ---------------- ONE DECIDER FOR EVERY BOX (owner, 27 Nov 2026) ----------------
+   "Board is for KPIs and charts as it is today"; "walk me through" is the step-by-step lesson in Jambo's panel.
+   askRouteOf(q) → 'lesson' (walk me through / teach me / step by step) · 'board' (a chart or a KPI: show me … by …,
+   compare, top N, over time, how many, value, what ends) · null (everything else keeps its own reader: a page or a
+   contract opens, a list of contracts opens on its page, a question is answered in words). A LIST IS NOT A CHART:
+   "show me signed contracts", "show me all imports", "show me MK-103", "show me the guide" stay the places'. */
+const SHOW_LEAD_RE = /^\s*(?:please\s+|can you\s+|could you\s+|now\s+)?(?:show me|show us|show|display|draw|plot|chart|graph|visa mig|visa oss|visa|rita)\b/i;
+const CHART_ASK_RE = /\b(?:charts?|graphs?|plot|bars?|pie|donut|ring|timeline|trend|over time|month by month|by (?:value|count|stage|status|stream|value stream|folder|counterparty|customer|supplier|party|type|kind|owner|month|quarter|year|risk|side|whose|due|who pays)|per (?:month|quarter|year|stream|stage|counterparty|customer|supplier|party)|split|break ?down|distribution|share of|compare|comparison|versus|vs\.?|top \d+|top (?:five|ten|three)|biggest|largest|smallest|total value|kpis?|key figures|diagram|stapel\w*|cirkel\w*|per (?:månad|kvartal|år|värdeström|motpart|skede|risk\w*|vems?|förfall\w*)|fördelning|jämför|största|minsta|nyckeltal)\b/i;
+const SHOW_MEASURE_RE = /\b(?:value|values|money|worth|exposure|renewals?|ending|ends?|expir\w*|due|duties|obligations?|risks?|risky|stages?|status(?:es)?|pipeline|kpis?|figures|numbers|payment days|days to sign|värde|pengar|förnyelser|löper ut|åtaganden|risker|skeden)\b/i;
+/* how-to and where-is are the Handbook's and the places': never a chart */
+const CHART_NOT_RE = /\b(?:how (?:do|can|to|should)|where (?:is|are|can|do)|hur (?:gör|kan|ska)|var (?:är|finns|kan)|lens|linsen|lins)\b|\b[A-Z]{2,5}-[A-Za-z0-9-]*\d/i;
+/* the person's own words: a page's description put in front of the question ("[The reader is on the Home board …]")
+   is the page's, never theirs — the decider reads only what they typed */
+const askOwnWords = q => String(q == null ? '' : q).replace(/^\s*(?:\[[\s\S]*?\]\s*\n\n)+/, '').trim();
+/* A "SHOW ME" THAT NAMES NO CHART (owner, 27 Nov 2026: "When I say show me on the board and the request is not clear,
+   do I get button options to press?"): only the opening and filler words — "show me", "show me a chart", "show me how
+   we are doing" — gets four charts to press, drawn by HaTi without the AI (boardShowChoices) */
+const SHOW_FILLER_RE = /^(?:a|an|the|my|our|me|us|some|something|anything|stuff|things?|it|this|that|charts?|graphs?|diagrams?|pictures?|overview|summary|insights?|everything|all|please|now|how|we|are|were|is|it's|doing|going|what|we've|have|got|on|of|numbers|figures|data|något|några|allt|översikt|sammanfattning|diagram|siffror(?:na)?|hur|vi|det|går|ligger|till|oss|mig|ett|en|lite)$/i;
+function chartVague(q){
+  const t = askOwnWords(q); if (!t || t.length > 120) return false;
+  const m = t.match(SHOW_LEAD_RE); if (!m) return false;
+  if (walkAsked(t) || WALK_APP_RE.test(t) || CHART_NOT_RE.test(t)) return false;
+  const rest = t.slice(m[0].length).replace(/[?.!,;:'"]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  return rest.every(w => SHOW_FILLER_RE.test(w));
+}
+function chartAsked(q){
+  const t = askOwnWords(q); if (!t || t.length > 300) return false;
+  if (chartVague(t)) return true;
+  if (walkAsked(t) || CHART_NOT_RE.test(t) || WALK_APP_RE.test(t)) return false;
+  return CHART_ASK_RE.test(t) || (SHOW_LEAD_RE.test(t) && SHOW_MEASURE_RE.test(t));
+}
+function askRouteOf(q){ return walkAsked(q) ? 'lesson' : chartVague(q) ? 'choose' : chartAsked(q) ? 'board' : null; }
 
 const _wTxt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 const _wNorm = s => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
@@ -248,6 +289,6 @@ function walkSummary(plan, said){
 const WALK_SHOWN_NOTE = 'The lesson is on screen. Do not repeat it. End with nothing or one short sentence.';
 
 const WALK_API = { WALK_STEPS_MIN, WALK_STEPS_MAX, WALK_SAY_MAX, WALK_TITLE_MAX, WALK_SHOWS, WALK_OPS, WALK_SHOW_KEYS, WALK_FIXED_NAMES,
-  WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, WALK_PERIOD_MAX, WALK_STAGE_KEYS, walkWhereClean, walkPeriodClean, walkShowOf, walkAsked, walkPlanClean, walkNamesBad, walkSummary, walkSomeContracts };
+  chartAsked, chartVague, askRouteOf, askOwnWords, WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, WALK_PERIOD_MAX, WALK_STAGE_KEYS, walkWhereClean, walkPeriodClean, walkShowOf, walkAsked, walkPlanClean, walkNamesBad, walkSummary, walkSomeContracts };
 if (typeof window !== 'undefined') Object.assign(window, WALK_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = WALK_API;
