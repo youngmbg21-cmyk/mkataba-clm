@@ -459,7 +459,7 @@ describe('f1248 (16) a vague "show me" gets four buttons, and only the pressed o
   for (const q of notVague) test('not asked which: ' + q, () => assert.notEqual(W.askRouteOf(q), 'choose'));
   const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
   test('the buttons are asked in the panel; nothing is drawn before a press; a press draws that one card with HaTi\'s own recipe', () => {
-    assert.match(IG, /chartVague\(q\)\) return boardShowChoices\(q\);[\s\S]{0,40}return igBoardTalkAsk\(q\);/, 'vague → the buttons, never the drawing model');
+    assert.match(IG, /chartVague\(q\)\) return boardShowChoices\(q\);[\s\S]{0,400}return await igBoardTalkAsk\(q\);/, 'vague → the buttons, never the drawing model');
     const choices = IG.slice(IG.indexOf('function boardShowChoices('), IG.indexOf('function boardShowCard('));
     assert.doesNotMatch(choices, /hbAddCard|igBoardTalkAsk|intelGraphAsk|api\(/, 'asking draws nothing and calls nothing');
     assert.match(IG, /if\(c\.card\)\{ m\.choices=null;[^\n]*boardShowCard\(c\.card\)/, 'the press draws');

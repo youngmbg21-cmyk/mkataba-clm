@@ -10180,8 +10180,8 @@ function hbAnalyticAsk(q){
   const t = String(q || '').trim(); if (!t) return false;
   if (HB_ADVICE_RE.test(t)) return false;
   if (hbChartWords(t) || HB_ANALYTIC_RE.test(t)) return true;
-  /* the one decider's "show me" a chart or a figure (chartAsked, js/walkplan.js): every box sends it here, so the Board takes it */
-  if (typeof chartAsked === 'function' && chartAsked(t)) return true;
+  /* a "show me" chart sent here from another page (boardShowGo): the Board takes that one question as a chart */
+  if (typeof boardShowAsking === 'function' && boardShowAsking(t)) return true;
   /* a short change to the chart that is open */
   let open = null; try { const C = hbCardRef('open'); open = C && C.key; } catch (_){ open = null; }
   return !!open && t.split(/\s+/).length <= 12 && HB_CARD_EDIT_RE.test(t);

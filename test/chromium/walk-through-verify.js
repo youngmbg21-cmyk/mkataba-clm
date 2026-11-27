@@ -101,14 +101,15 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
         await new Promise(r => setTimeout(r, 50));
         const el = document.querySelector('.lsn');
         if (el !== window._lsnFirst) same = false;
-        const bar = document.querySelector('.lsn .lsn-step[data-lsn-step="2"] .lsn-br .lsn-f i');
-        widths.push(bar ? bar.getBoundingClientRect().width : -1);
+        /* the widest bar (the fixture's first stage can hold nothing, and a bar of nothing never grows) */
+        const bars = [...document.querySelectorAll('.lsn .lsn-step[data-lsn-step="2"] .lsn-br .lsn-f i')];
+        widths.push(bars.length ? Math.max(...bars.map(b => b.getBoundingClientRect().width)) : -1);
       }
       const grows = widths.every((w, i) => i === 0 || w >= widths[i - 1] - 0.5);
       return { same, grows, from: widths[0], to: widths[widths.length - 1] };
     });
     check('3a redrawn every 50ms for 2s, the lesson stays the same node', stutter.same, JSON.stringify(stutter));
-    check('3b …and its first bar only grows', stutter.grows && stutter.to > 0, JSON.stringify(stutter));
+    check('3b …and its bars only grow', stutter.grows && stutter.to > 0, JSON.stringify(stutter));
 
     /* ---- 2 · Next, the end, Save ---- */
     const prog = await A.page.evaluate(() => (document.querySelector('.lsn .lsn-of') || {}).textContent || '');
@@ -168,7 +169,7 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
 
     /* ---- 11 · a Board card's Walk me through this asks a lesson in the panel ---- */
     const before11 = await A.page.evaluate(() => document.querySelectorAll('.lsn').length);
-    const key11 = await A.page.evaluate(() => { const p = (hbS().panels || [])[0]; return p ? p.key : null; });
+    const key11 = await A.page.evaluate(() => { if (!(hbS().panels || []).length){ hbAddCard({ all: true }, { pic: 'bars', split: { by: 'folder' }, measure: 'count' }, 'Contracts by value stream'); hbPaintBoard(); } const p = (hbS().panels || [])[0]; return p ? p.key : null; });
     if (key11) await A.page.evaluate(k => hbWalkThis(k), key11);
     const eleven = await A.until(n => document.querySelectorAll('#ig-dock .lsn .lsn-step').length && document.querySelectorAll('.lsn').length > n ? true : null, before11, 15000);
     check('11 a Board card\'s "Walk me through this" brings a lesson into Jambo\'s panel', !!key11 && !!eleven, 'card ' + key11);

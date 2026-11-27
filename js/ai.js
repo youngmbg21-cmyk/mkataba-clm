@@ -5267,7 +5267,8 @@ async function aiSubmit(asked){
   if(!given && !cardOwns && aiWinTypedFirst() && typeof window.jamboPageGo==='function' && jamboPageGo(q)) return;
   /* SHOW ME ENDS ON THE BOARD (js/walkplan.js chartAsked; owner, 27 Nov 2026): a chart or KPI question typed here is
      drawn on Home's Board, in the one conversation; the phone has no Board and keeps its answer in words */
-  if(!given && !cardOwns && typeof window.chartAsked==='function' && chartAsked(q) && typeof window.boardShowGo==='function' && !(typeof window.mPhone==='function'&&mPhone())){ boardShowGo(q); return; }
+  if(!given && !cardOwns && typeof window.chartAsked==='function' && chartAsked(q) && typeof window.boardShowGo==='function' && !(typeof window.mPhone==='function'&&mPhone())
+    && !(state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&!(typeof window.chartVague==='function'&&chartVague(q)))){ boardShowGo(q); return; }
   if(!given && !cardOwns && aiWinTypedFirst()) return aiAskWords(q, { controls:true });
   /* "What am I looking at?" typed is the chip's free reading; a watch sentence
      is proposed as a card (js/jambopress.js) — both before any other reader */
