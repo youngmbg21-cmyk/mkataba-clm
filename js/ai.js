@@ -3195,11 +3195,13 @@ const LOCAL_AI_TOOLS=[
     required:['answer']} },
 ];
 /* the answer tool with goto while the switch is on (the server's COPILOT_TOOLS_GOTO) */
-function localAiTools(){
-  if(!aiNavigateLocalOn()) return LOCAL_AI_TOOLS;
+function localAiTools(q){
+  /* a chart question is never a lesson (the server's copilotToolsFor; chartAsked, js/walkplan.js) */
+  const tools=(q&&typeof chartAsked==='function'&&chartAsked(q))?LOCAL_AI_TOOLS.filter(t=>t.name!=='walk_through'):LOCAL_AI_TOOLS;
+  if(!aiNavigateLocalOn()) return tools;
   const goto={type:'object',description:'OPTIONAL — only when the person asks WHERE something is in HaTi, how to get to a page or setting, or to be taken somewhere. The ONE place to open for them; HaTi opens it and says so. Leave it out for a question about what contracts say.',
     properties:{ task:{type:'string',enum:(typeof JM_TASKS!=='undefined'?JM_TASKS.map(t=>t.k):[])}, book:{type:'string',description:'For task standards only, when a contract type or value stream is named: the playbook book key.'} }, required:['task']};
-  return LOCAL_AI_TOOLS.map(t=>t.name!=='deliver_answer'?t:{ ...t, input_schema:{ ...t.input_schema, properties:{ ...t.input_schema.properties, goto } } });
+  return tools.map(t=>t.name!=='deliver_answer'?t:{ ...t, input_schema:{ ...t.input_schema, properties:{ ...t.input_schema.properties, goto } } });
 }
 /* THE PAGE, SAID IN ONE SENTENCE — and written twice on purpose, here and in
    server/server.js, because the browser cannot reach the server's prompt and
@@ -3362,6 +3364,7 @@ function aiWalkFacts(){
 async function aiLocalClaude(messages, context){
   const key=_localAiKey();
   if(!key) throw new Error('needsKey');
+  const lastQ=(()=>{ const m=(messages||[]).filter(x=>x&&x.role==='user').pop(); const c=m&&m.content; return typeof c==='string'?c:Array.isArray(c)?c.map(x=>(x&&x.text)||'').join(' '):''; })();
   const call=async(msgs,last,room)=>{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -3370,7 +3373,7 @@ async function aiLocalClaude(messages, context){
          a legitimate answer, and the old ceiling was one page — the quiet
          reason "give me a report" could not be answered. */
       /* the last step must deliver (never a dead end; the server's copilotLastStep) */
-      body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:room||AI_LOCAL_ROOM,system:_localSystem(context),tools:localAiTools(),messages:msgs,...(last?{tool_choice:{type:'tool',name:'deliver_answer'}}:{})}),
+      body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:room||AI_LOCAL_ROOM,system:_localSystem(context),tools:localAiTools(lastQ),messages:msgs,...(last?{tool_choice:{type:'tool',name:'deliver_answer'}}:{})}),
     });
     if(r.status===401) throw new Error('The saved Jambo key was rejected (401) — re-check it in Team & Settings.');
     if(r.status===429) throw new Error('Rate limited by Jambo provider — wait a moment and try again.');
@@ -5262,6 +5265,10 @@ async function aiSubmit(asked){
      controls go with them (aiAskWords {controls}); a chip, a paste's offer and no key keep the free readers below */
   /* a page's one name moves you there, free, as in every Jambo box (owner, 28 Oct 2026, "Door above the box") */
   if(!given && !cardOwns && aiWinTypedFirst() && typeof window.jamboPageGo==='function' && jamboPageGo(q)) return;
+  /* SHOW ME ENDS ON THE BOARD (js/walkplan.js chartAsked; owner, 27 Nov 2026): a chart or KPI question typed here is
+     drawn on Home's Board, in the one conversation; the phone has no Board and keeps its answer in words */
+  if(!given && !cardOwns && typeof window.chartAsked==='function' && chartAsked(q) && typeof window.boardShowGo==='function' && !(typeof window.mPhone==='function'&&mPhone())
+    && !(state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&!(typeof window.chartVague==='function'&&chartVague(q)))){ boardShowGo(q); return; }
   if(!given && !cardOwns && aiWinTypedFirst()) return aiAskWords(q, { controls:true });
   /* "What am I looking at?" typed is the chip's free reading; a watch sentence
      is proposed as a card (js/jambopress.js) — both before any other reader */

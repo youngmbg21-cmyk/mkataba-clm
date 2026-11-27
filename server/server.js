@@ -80,7 +80,7 @@ const { isWorkingId, contractRef, signRouteOf, handoverOf, handoverActive,
 /* WHO DOES WHAT (owner, 22 Nov 2026): the one reading both sides tick — the same file the browser loads */
 const { dutyPayload, dutyTickRefusal, dutyTickSet, dutyReading } = require('../js/dealduties.js');
 const NB = require('../js/notebook.js');   // the notebook's cutter and status, both hosts
-const { WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, walkPlanClean, walkSummary } = require('../js/walkplan.js');   // WALK ME THROUGH IT: the lesson's plan, checked the same on both hosts (owner, 26 Nov 2026)
+const { WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, walkPlanClean, walkSummary, chartAsked } = require('../js/walkplan.js');   // WALK ME THROUGH IT: the lesson's plan, checked the same on both hosts (owner, 26 Nov 2026)
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -14588,8 +14588,10 @@ const copilotToolsNow = () => (aiNavigateOn() ? COPILOT_TOOLS_GOTO : COPILOT_TOO
    graphBoardActionsClean) — and the browser's one applier draws them, checked (hbBoardTakesChecked). The Board counts
    every number; the model names the picture and says what to look at. One call: no second model for the drawing. */
 const copilotDrawsBoard = context => !!(context && typeof context === 'object' && context.drawBoard === true);
-function copilotToolsFor(context) {
-  const base = copilotToolsNow();
+function copilotToolsFor(context, question) {
+  /* ONE DECIDER (owner, 27 Nov 2026: "show me" is the Board's): a chart question is never answered with a lesson —
+     the Board draws it, and an answer about it is words (chartAsked, js/walkplan.js; the browser's twin localAiTools) */
+  const base = chartAsked(question) ? copilotToolsNow().filter(t => t.name !== 'walk_through') : copilotToolsNow();
   const draw = copilotDrawsBoard(context), ctrl = !!pageControlsClean(context && context.controls);
   if (!draw && !ctrl) return base;
   return base.map(t => t.name !== 'deliver_answer' ? t
@@ -15558,7 +15560,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await copilotStepCall(async room => await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) }), compared || judge);
+      const resp = await copilotStepCall(async room => await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: room, system, tools: copilotToolsFor(context, typeof question === 'string' ? question : ''), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) }), compared || judge);
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -15929,7 +15931,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
       const resp = await copilotStepCall(async room => await anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
-        { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) },
+        { max_tokens: room, system, tools: copilotToolsFor(context, typeof question === 'string' ? question : ''), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal }), compared || judge);
       if (!resp.ok) {

@@ -158,7 +158,9 @@ function hbS(){
     if (Array.isArray(v.panels)) s.panels = v.panels.filter(p => p && (HB_KINDS[p.kind] || (p.kind === 'view' && typeof p.key === 'string' && /^(q|cd):/.test(p.key))))
       .slice(-HB_PANELS_MAX).map(p => p.kind === 'view'
         ? Object.assign({ id: String(p.id || ''), kind: 'view', key: p.key.slice(0, 300), title: String(p.title || '').slice(0, 120), shape: String(p.shape || '').slice(0, 20),
-            recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }, /^cd:/.test(p.key) ? { which: hbCardClean({ which: p.which }).which || { all: true } } : {})
+            recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }, /^cd:/.test(p.key) ? { which: hbCardClean({ which: p.which }).which || { all: true } } : {},
+            /* which ready chart or kept question a card is: the remote reads it (hbRemoteRows) */
+            typeof p.gal === 'string' && /^[a-z]{1,12}$/.test(p.gal) ? { gal: p.gal } : {}, typeof p.myq === 'string' ? { myq: p.myq.slice(0, 120) } : {})
         : { id: String(p.id || ''), kind: p.kind, split: !!p.split, big: !!p.big });
     /* THE DAY'S SHELF COMES BACK WHOLE (Young, 4 Oct 2026: "fix the shelf
        refresh fault"): an id is a shape or a shape's ".mine" (hbInsOf reads
@@ -1668,6 +1670,8 @@ const _ndPlain = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replac
 function hbBoardHelloHtml(){
   /* not over a contract brought up as a page: the desk shows that contract, not the book */
   if (!hbBoardHelloOn()) return '';
+  /* THE BOARD'S REMOTE (owner, 27 Nov 2026): while 🎛️ is pressed the whole panel is the remote */
+  if (hbRemoteOn()) return hbRemoteHtml();
   /* BRAIN WELCOME (owner picked it, 13 Nov 2026: "the jambo panel here should be more front page jambo … it is part
      of the page that welcomes you to hati"; replaces the 26 Oct Overview's head and facts on the Board only): the
      Explorer's own brain, small and moving (igMiniBrainHtml), then Jambo's one line, the three numbers of the day
@@ -5483,6 +5487,14 @@ async function hbWhyAsk(key){
 }
 /* the follow-up goes to the panel on the page: an enlarged dig-in steps aside
    (an enlarged panel never covers the panel, so it stays as it is) */
+/* A BOARD CARD AS A LESSON (owner, 27 Nov 2026: "yes" to the bridges): its own title and narrowing asked as a walk
+   through, answered in Jambo's panel (intelWalkAsk) — one press, one call, the card stays on the Board */
+function hbWalkThis(key){
+  const s = hbS(); const src = hbReadSrc(key);
+  const what = src ? src.title : hbCrumbOf(key, s.lens);
+  _hbToolsMenu = null; if (typeof hbPaintBoard === 'function') hbPaintBoard();
+  if (typeof intelWalkAsk === 'function') intelWalkAsk(i18t('hb_walk_q', { what }));
+}
 function hbWhyFollow(key){
   const s = hbS(); const src = hbReadSrc(key);
   if (s.digBig && !/^hp:/.test(key)){ s.digBig = false; hbSave(); hbPaintBoard(); }
@@ -6133,6 +6145,8 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + (M.cols ? _hbMi(`data-hb-odd="${k}" aria-pressed="${_hbOddOn.has(D.key)}"`, _HB_MI.odd, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
     + _hbMi(`data-hb-howon="${k}" aria-pressed="${_hbHowOn.has(D.key)}"`, _HB_MI.how, i18t(_hbHowOn.has(D.key) ? 'hb_how_off' : 'hb_how_on'))
     + _hbMi(`data-hb-why-follow="${k}"`, _HB_MI.ask, i18t('hb_tip_ask'))
+    /* WALK ME THROUGH THIS (owner, 27 Nov 2026): the card as a lesson in Jambo's panel, step by step (hbWalkThis) */
+    + _hbMi(`data-hb-walk="${k}"`, _HB_MI.ask, i18t('hb_walk_this'))
     + (/^(q|cd|ls):/.test(D.key) ? _hbMi(`data-hb-cwatch="${_hbE(akey)}"`, _HB_MI.watch, i18t('hb_watch_menu')) : '')
     + '<hr>'
     + (board && p && p.kind === 'view' && !/^gift:/.test(p.id) && !(gift && gift.from) ? _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…') : '')
@@ -6157,6 +6171,7 @@ function hbKindToolsHtml(p, gift){
   const items = _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p.big ? 'hb_p_small' : 'hb_p_big'))
     + '<hr>' + _hbMi(`data-hb-dd-on="${_hbE(key)}"${hbDdLive() ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}`, _HB_MI.why, i18t('hb_dd_btn'))
     + _hbMi(`data-hb-why-follow="${_hbE(key)}"`, _HB_MI.ask, i18t('hb_tip_ask'))
+    + _hbMi(`data-hb-walk="${_hbE(key)}"`, _HB_MI.ask, i18t('hb_walk_this'))
     + (gift && gift.from ? '' : '<hr>' + _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…'));
   return `<span class="hb-edge">${drawn}<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>' + hbCardXHtml(gift) + '</span>';
@@ -7800,6 +7815,7 @@ function hbPaintBoard(opts){
   hbRcMenuPlace(host);
   hbFitMeasure();
   hbFitWatch(host);
+  hbRemoteFollow();
 }
 /* THE BOARD'S OWN WIDTH (owner, 11 Oct 2026: a chart's words grew huge): the
    board narrows and widens without the window moving — the Copilot panel
@@ -10169,6 +10185,8 @@ function hbAnalyticAsk(q){
   const t = String(q || '').trim(); if (!t) return false;
   if (HB_ADVICE_RE.test(t)) return false;
   if (hbChartWords(t) || HB_ANALYTIC_RE.test(t)) return true;
+  /* a "show me" chart sent here from another page (boardShowGo): the Board takes that one question as a chart */
+  if (typeof boardShowAsking === 'function' && boardShowAsking(t)) return true;
   /* a short change to the chart that is open */
   let open = null; try { const C = hbCardRef('open'); open = C && C.key; } catch (_){ open = null; }
   return !!open && t.split(/\s+/).length <= 12 && HB_CARD_EDIT_RE.test(t);
@@ -11104,6 +11122,10 @@ function hbOnClick(e){
   if (!window.state || state.view !== 'dashboard') return;
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   if (hbFigMenuClick(e)) return;
+  /* THE BOARD'S REMOTE: 🎛️ in the links line, a chart's row, Put them all away */
+  { const rb = t.closest('[data-hb-remote]'); if (rb){ e.preventDefault(); hbRemoteToggle(); return; } }
+  { const rr = t.closest('[data-hb-rm]'); if (rr){ e.preventDefault(); hbRemotePress(rr.getAttribute('data-hb-rm')); return; } }
+  { const rc = t.closest('[data-hb-rm-clear]'); if (rc){ e.preventDefault(); hbRemoteClear(); return; } }
   /* the welcome's doors in Jambo's panel (Brain welcome, 13 Nov 2026) */
   { const wb = t.closest('[data-hbw]'); if (wb){ e.preventDefault(); hbWelcomeGo(wb.getAttribute('data-hbw')); return; } }
   /* a row of Needs you in the panel opens where its work is (ndRowGo), never the Board's list first */
@@ -11253,6 +11275,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-dd-add]'))){ hbDdAddCards(el.getAttribute('data-hb-dd-add')); return; }
   if ((el = on('[data-hb-read-more]'))){ hbReadMoreToggle(el.getAttribute('data-hb-read-more')); return; }
   if ((el = on('[data-hb-why-follow]'))){ hbWhyFollow(el.getAttribute('data-hb-why-follow')); return; }
+  if ((el = on('[data-hb-walk]'))){ hbWalkThis(el.getAttribute('data-hb-walk')); return; }
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
   if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
@@ -11667,7 +11690,9 @@ function hbAskPopRows(v){
   if (m){ const w = m[1].toLowerCase();
     const places = (typeof window.caSlashRows === 'function') ? caSlashRows(w, { max: onBoard ? HB_SLASH_PLACES : HB_ASKPOP_MAX }) : [];
     const moves = onBoard ? HB_SLASH.filter(k => k.startsWith(w)).map(k => ({ kind: 'slash', k, word: '/' + k, sub: i18t('hb_sl_' + k) })) : [];
-    return { mode: 'slash', rows: places.concat(moves) }; }
+    /* the Board's charts, the remote's own rows (hbRemoteSlashRows) */
+    const charts = onBoard ? hbRemoteSlashRows(w) : [];
+    return { mode: 'slash', rows: places.concat(moves).concat(charts) }; }
   if (!onBoard) return null;
   m = /\b(?:by|per|efter)\s+([a-zåäö-]*)$/i.exec(t);
   if (m){ const w = m[1].toLowerCase(), start = t.length - m[1].length;
@@ -11683,10 +11708,10 @@ function hbAskPopHtml(P){
   const head = i18t('hb_pop_' + P.mode);
   let lastKind = null;
   const grouped = P.mode === 'gallery' || P.mode === 'slash';
-  const secHead = r => P.mode === 'gallery' ? i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head') : i18t(r.kind === 'place' ? 'hb_pop_places' : 'hb_pop_slash');
+  const secHead = r => P.mode === 'gallery' ? i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head') : i18t(r.kind === 'place' ? 'hb_pop_places' : r.kind === 'chart' ? 'hb_rm_slash_head' : 'hb_pop_slash');
   const rows = P.rows.slice(0, grouped ? HB_ASKPOP_LONG : HB_ASKPOP_MAX).map((r, i) => {
     const sec = grouped && r.kind !== lastKind ? `<h5>${_hbE(secHead(r))}</h5>` : ''; lastKind = r.kind;
-    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}" data-hb-pop-kind="${_hbE(r.kind || '')}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${''/* THE ROW SAYS WHAT IT DOES (owner picked "The Legora way", 25 Oct 2026): a chart row ends in "Draw ›", as the Dossier's door rows end in "Open ›" */}${r.kind === 'gal' || r.kind === 'myq' ? `<span class="hb-pop-go" aria-hidden="true">${_hbE(i18t('hb_pop_draw'))} ›</span>` : ''}${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}${r.kind === 'place' && typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`; }).join('');
+    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}" data-hb-pop-kind="${_hbE(r.kind || '')}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${''/* THE ROW SAYS WHAT IT DOES (owner picked "The Legora way", 25 Oct 2026): a chart row ends in "Draw ›", as the Dossier's door rows end in "Open ›" */}${r.kind === 'gal' || r.kind === 'myq' || r.kind === 'chart' ? `<span class="hb-pop-go" aria-hidden="true">${_hbE(r.kind === 'chart' && r.on ? i18t('hb_rm_on') : i18t('hb_pop_draw') + ' ›')}</span>` : ''}${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}${r.kind === 'place' && typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`; }).join('');
   return `${grouped ? '' : `<h5>${_hbE(head)}</h5>`}<div role="listbox">${rows}</div><p class="ca-hint">${_hbE(i18t(P.mode === 'by' || P.mode === 'in' ? 'hb_pop_keys_tab' : 'hb_pop_keys'))}</p>`;
 }
 function hbAskPopClose(){ _hbPop = null; const el = document.getElementById('hb-askpop'); if (el) el.remove(); }
@@ -11729,6 +11754,7 @@ function hbAskPopChoose(inp, i){
     _hbAskSet(inp, i18t('hb_sl_' + r.k + '_q')); return;
   }
   if (r.kind === 'gal'){ _hbAskSet(inp, ''); hbGalleryRun(r.k); return; }
+  if (r.kind === 'chart'){ _hbAskSet(inp, ''); hbRemotePress(r.k, { bring: true }); return; }
   if (r.kind === 'myq'){ _hbAskSet(inp, ''); hbMyqRun(r.i); }
 }
 function hbGalleryRun(k){
@@ -11738,10 +11764,12 @@ function hbGalleryRun(k){
   /* a pick is only offered with the Board itself in front (hbAskPopRows); one
      reached another way is refused rather than drawn behind a contract */
   if (!hbBoardInFront()) return;
-  const { p } = hbAddCard(g.which || { all: true }, recipe, i18t('hb_gal_' + k + '_t'));
+  const { p, left } = hbAddCard(g.which || { all: true }, recipe, i18t('hb_gal_' + k + '_t'));
+  /* the remote reads which ready chart a card is (hbRemoteRows); the one that left to make room is said (a cap is a fact) */
+  p.gal = k;
   const s = hbS(); s.path = []; hbSave(); hbPaintBoard({ jump: 'top' });
   hbLandOnCard(p);
-  if (typeof toast === 'function') toast(i18t('hb_gal_added', { what: i18t('hb_gal_' + k + '_t') }), 'ok');
+  if (typeof toast === 'function') toast(i18t('hb_gal_added', { what: i18t('hb_gal_' + k + '_t') }) + (left ? ' ' + i18t('hb_panel_left', { what: hbPanelWord(left) }) : ''), 'ok');
 }
 /* THE NEW CHART IN VIEW (the work order, 23 Oct 2026): "Added to the board"
    matches what the reader sees. Landed through the one lander, no light (the
@@ -11784,10 +11812,144 @@ function hbMyqRun(i){
   const s = hbS(); const q = (s.myq || [])[i]; if (!q) return;
   if (!hbBoardInFront()) return;
   if (q.key){ s.path = [q.key]; _hbFocusNew = true; hbSave(); hbPaintBoard({ jump: 'focus' }); return; }
-  const { p } = hbAddCard(q.which || { all: true }, q.recipe || {}, q.name); s.path = []; hbSave(); hbPaintBoard({ jump: 'top' });
+  const { p, left } = hbAddCard(q.which || { all: true }, q.recipe || {}, q.name); p.myq = q.name; s.path = []; hbSave(); hbPaintBoard({ jump: 'top' });
   hbLandOnCard(p);
+  if (left && typeof toast === 'function') toast(i18t('hb_panel_left', { what: hbPanelWord(left) }), 'ok');
 }
 function hbMyqDel(i){ const s = hbS(); s.myq = (s.myq || []).filter((_, k) => k !== i); hbSave(); }
+/* ---- THE BOARD'S REMOTE (owner, 27 Nov 2026: "a side panel that will bring the charts that would usually appear under
+   the need you card … currently hidden and would be summoned by prompting or the slash prompt"; drawn as "every hidden
+   chart, one press away" and built on the owner's word: 🎛️, eight at most, "/" lists them too) ----
+   🎛️ FIRST in the Board's links line (jamboWaysHere's 'hbremote') turns Jambo's panel into the remote; pressed again,
+   the panel comes back. The remote lists every chart the Board can bring under Needs you: the six book readings
+   (HB_KINDS), the ready charts ("/"'s gallery, HB_GALLERY), the questions kept (s.myq) and the saved boards (s.saved).
+   A press brings one through the existing adders (hbAddPanel; hbGalleryRun; hbMyqRun) and lands on it (hbLandOnCard);
+   a press on one shown puts it away. ONE FACT: "on" is read off s.panels (p.kind, p.gal, p.myq) — the card's own ×
+   and Jambo's adds show here too. Each book reading says its own line (hbPanelSay) and whether it has something to
+   show (hbRemoteHas). No money in the panel; nothing asks Jambo, nothing is spent; eight at most (HB_PANELS_MAX),
+   the chart that leaves is said (hb_panel_left). The same rows are "/"'s Charts (hbAskPopRows). */
+let _hbRm = false;
+function hbRemoteOn(){ return !!_hbRm && hbBoardHelloOn(); }
+function hbRemoteHas(kind, lens){
+  let d = null; try { d = hbPanelData(kind, lens); } catch (_){ return false; }
+  if (kind === 'obl' || kind === 'ren') return d.n > 0;
+  if (kind === 'fric') return d.live > 0;
+  if (kind === 'pay') return (d.sides || []).some(S => S.n > 0);
+  if (kind === 'exp') return !!d.lead;
+  if (kind === 'val') return (d.stages || []).some(S => S.n > 0);
+  return false;
+}
+/* a reading's line, never money: the value one says what it draws, not what it adds up to */
+function hbRemoteSay(kind, lens){ try { return hbPlainText(hbPanelSay(kind, lens), 160); } catch (_){ return ''; } }
+function hbRemoteRows(){
+  const s = hbS(), lens = s.lens || 'all', P = s.panels || [];
+  const kinds = HB_KIND_KEYS.map(k => ({ key: 'k:' + k, kind: 'kind', k, word: i18t(HB_KINDS[k].word), say: hbRemoteSay(k, lens),
+    on: P.some(p => p.kind === k), has: hbRemoteHas(k, lens) }));
+  const ready = HB_GALLERY.map(g => ({ key: 'g:' + g.k, kind: 'gal', k: g.k, word: i18t('hb_gal_' + g.k + '_t'), alt: i18t('hb_gal_' + g.k), say: i18t('hb_gal_' + g.k + '_s'),
+    on: P.some(p => p.gal === g.k), has: true }));
+  const asked = (s.myq || []).map((q, i) => ({ key: 'q:' + i, kind: 'myq', i, word: q.name, say: i18t('hb_myq_sub'),
+    on: q.key ? (s.path || [])[0] === q.key : P.some(p => p.myq === q.name), has: true }));
+  const saved = (s.saved || []).filter(v => Array.isArray(v.kinds) && v.kinds.length).map((v, i) => ({ key: 's:' + i, kind: 'saved', i, word: v.name,
+    say: v.kinds.filter(k => HB_KINDS[k]).map(k => i18t(HB_KINDS[k].word)).join(' · '), on: v.kinds.every(k => P.some(p => p.kind === k)), has: true }));
+  return { see: kinds.filter(r => r.has), ready, asked, quiet: kinds.filter(r => !r.has), saved };
+}
+function hbRemoteThumb(r){
+  /* a small picture of the chart's kind, in the stage colours where it has something to show; grey where it has nothing */
+  const pat = r.kind === 'gal' ? ({ conc: [90, 60, 35], speed: [50, 80, 40], leak: [30, 60, 45], prom: [70, 40, 25], pay: [60, 75, 50], pipe: [95, 65, 35], move: [40, 70, 55], fc: [45, 65, 85] })[r.k] || [70, 50, 30]
+    : r.kind === 'myq' ? [80, 55, 35] : r.kind === 'saved' ? [60, 60, 60] : [75, 50, 30];
+  return `<span class="hb-rm-th${r.has ? ' is-has' : ''}${r.kind === 'saved' ? ' is-grid' : ''}" aria-hidden="true">${pat.map(w => `<i style="width:${w}%"></i>`).join('')}</span>`;
+}
+function hbRemoteRowHtml(r){
+  return `<button type="button" class="hb-rm-row${r.on ? ' is-on' : ''}${r.has ? '' : ' is-quiet'}" data-hb-rm="${_hbE(r.key)}" aria-pressed="${r.on}">${hbRemoteThumb(r)}`
+    + `<span class="hb-rm-nm"><b>${_hbE(r.word)}</b>${r.say ? `<span>${_hbE(r.say)}</span>` : ''}</span>`
+    + `<span class="hb-rm-pill">${_hbE(i18t(r.on ? 'hb_rm_on' : 'hb_rm_bring'))}</span></button>`;
+}
+function hbRemoteHtml(){
+  const R = hbRemoteRows(), n = (hbS().panels || []).length;
+  const grp = (k, rows, sub) => rows.length ? `<div class="hb-rm-gh">${_hbE(i18t('hb_rm_g_' + k))}${sub ? `<em>${_hbE(i18t(sub))}</em>` : ''}</div>${rows.map(hbRemoteRowHtml).join('')}` : '';
+  return `<div class="jl-words is-ov hb-rm" data-hb-rm-panel>`
+    + `<div class="hb-rm-hd"><h3 class="hb-rm-t">${_hbE(i18t('hb_rm_title'))}</h3><span class="hb-rm-ct">${_hbE(i18t('hb_rm_count', { n: _hbN(n), max: _hbN(HB_PANELS_MAX) }))}</span></div>`
+    + `<p class="hb-rm-lead">${_hbE(i18t('hb_rm_lead'))}</p>`
+    + `<div class="hb-rm-rows">${grp('see', R.see)}${grp('ready', R.ready)}${grp('asked', R.asked)}${grp('quiet', R.quiet)}${grp('saved', R.saved, 'hb_rm_g_saved_s')}</div>`
+    + `<div class="hb-rm-ft"><span>${_hbE(i18t('hb_rm_foot'))}</span>${n ? `<button type="button" class="jov-lnk" data-hb-rm-clear>${_hbE(i18t('hb_rm_clear'))}</button>` : ''}</div></div>`;
+}
+/* the remote's own presses draw the panel and the 🎛️ again; the box says what it takes while the remote is up */
+function hbRemoteSync(){
+  if (typeof document === 'undefined') return;
+  const on = hbRemoteOn();
+  document.querySelectorAll('[data-hb-remote]').forEach(b => { b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); });
+  const inp = document.getElementById('igd-input');
+  if (inp && typeof window.igAskPlaceholder === 'function'){ const ph = igAskPlaceholder(); if (ph && inp.getAttribute('placeholder') !== ph) inp.setAttribute('placeholder', ph); }
+}
+function hbRemoteToggle(on){
+  _hbRm = on == null ? !_hbRm : !!on;
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  hbRemoteSync();
+}
+/* the panel follows the Board: whatever brought or put away a chart (the card's ×, Jambo, "/"), the remote says it */
+let _hbRmSig = '';
+function hbRemoteFollow(){
+  if (!hbRemoteOn()) return;
+  const s = hbS(), sig = (s.panels || []).map(p => p.kind + ':' + (p.gal || p.myq || p.id)).join('|') + '#' + ((s.path || [])[0] || '');
+  if (sig === _hbRmSig) return; _hbRmSig = sig;
+  const host = document.querySelector('#ig-dock [data-hb-rm-panel]');
+  if (host && typeof renderIntelDock === 'function') renderIntelDock();
+}
+function hbRemoteSaid(what, left){
+  if (typeof toast === 'function') toast(i18t('hb_gal_added', { what }) + (left ? ' ' + i18t('hb_panel_left', { what: hbPanelWord(left) }) : ''), 'ok');
+}
+/* one press: bring it under Needs you and land on it, or put it away. bring:true (a "/" choice) never puts away —
+   a chart already shown is landed on */
+function hbRemotePress(key, opts){
+  if (!hbBoardInFront()) return false;
+  const s = hbS(), m = /^([kgqs]):(.+)$/.exec(String(key || '')); if (!m) return false;
+  const bring = !!(opts && opts.bring), t = m[1], v = m[2];
+  const land = p => { if (p) hbLandOnCard(p); };
+  const drop = test => { s.panels = s.panels.filter(p => !test(p)); hbSave(); hbPaintBoard(); };
+  if (t === 'k'){
+    if (!HB_KINDS[v]) return false;
+    const had = s.panels.find(p => p.kind === v);
+    if (had){ if (bring){ land(had); return true; } drop(p => p.kind === v); return true; }
+    const { p, left } = hbAddPanel(v); s.path = []; hbSave(); hbPaintBoard({ jump: 'top' }); land(p);
+    hbRemoteSaid(i18t(HB_KINDS[v].word), left); return true;
+  }
+  if (t === 'g'){
+    const had = s.panels.find(p => p.gal === v);
+    if (had){ if (bring){ land(had); return true; } drop(p => p.gal === v); return true; }
+    hbGalleryRun(v); return true;
+  }
+  if (t === 'q'){
+    const i = Number(v), q = (s.myq || [])[i]; if (!q) return false;
+    if (q.key){ if ((s.path || [])[0] === q.key && !bring){ hbCrumb(-1); hbPaintBoard(); return true; } hbMyqRun(i); return true; }
+    const had = s.panels.find(p => p.myq === q.name);
+    if (had){ if (bring){ land(had); return true; } drop(p => p.myq === q.name); return true; }
+    hbMyqRun(i); return true;
+  }
+  if (t === 's'){
+    const sv = (s.saved || [])[Number(v)]; if (!sv) return false;
+    const ks = (sv.kinds || []).filter(k => HB_KINDS[k]);
+    if (!bring && ks.length && ks.every(k => s.panels.some(p => p.kind === k))){ drop(p => ks.includes(p.kind)); return true; }
+    let first = null, left = null;
+    ks.forEach(k => { if (s.panels.some(p => p.kind === k)) return; const r = hbAddPanel(k); first = first || r.p; left = left || r.left; });
+    s.path = []; hbSave(); hbPaintBoard({ jump: 'top' }); land(first || s.panels.find(p => ks.includes(p.kind)));
+    hbRemoteSaid(sv.name, left); return true;
+  }
+  return false;
+}
+function hbRemoteClear(){
+  const s = hbS(); s.panels = []; s.path = []; hbSave(); hbPaintBoard();
+  if (typeof toast === 'function') toast(i18t('hb_rm_cleared'), 'ok');
+}
+/* "/" on the Board lists the same charts (owner, 27 Nov 2026: "yes"): every row the remote holds whose name starts
+   with the typed word, after the places and the moves */
+function hbRemoteSlashRows(w){
+  if (!hbBoardInFront()) return [];
+  const R = hbRemoteRows(), q = String(w || '').toLowerCase();
+  return R.see.concat(R.ready, R.asked, R.quiet, R.saved)
+    /* a ready chart answers to its short name too ("/pipeline") */
+    .filter(r => !q || [r.word, r.alt || ''].some(t => { t = t.toLowerCase(); return t.startsWith(q) || t.split(/[\s\-·:,]+/).some(x => x.startsWith(q)); }))
+    .map(r => ({ kind: 'chart', k: r.key, word: r.word, sub: r.say, on: r.on }));
+}
 if (typeof document !== 'undefined' && !document._hbAskWired){
   document._hbAskWired = true;
   document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'igd-input'){ _hbHistAt = -1; hbAskPopRead(t); } });
@@ -11850,7 +12012,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
 }
 
 Object.assign(window, { hbDraftBtnHtml, hbRdnPanelFive, hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml, hbRdnTermQuote });
-Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBriefStartHtml, hbArrivePage, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
+Object.assign(window, { hbThenDay, hbWalkThis, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbRemoteOn, hbRemoteHas, hbRemoteSay, hbRemoteRows, hbRemoteThumb, hbRemoteRowHtml, hbRemoteHtml, hbRemoteSync, hbRemoteToggle, hbRemoteFollow, hbRemotePress, hbRemoteClear, hbRemoteSlashRows, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBriefStartHtml, hbArrivePage, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbValueOf, hbWaitingOnUs, hbOverdue, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

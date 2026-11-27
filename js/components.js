@@ -660,7 +660,10 @@ function jamboWaysHere(){
   const face = JB_WAY_FACES.has(k);
   /* JAMBO THE INSTRUCTOR (js/teach.js): while teaching, "What can I do here?" leads the row */
   const teach = typeof window.teachOn === 'function' && window.teachOn();
-  return { k, doors: (teach ? ['teachhere'] : []).concat(row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
+  /* THE BOARD'S REMOTE (owner, 27 Nov 2026): 🎛️ stands FIRST on the Board's line, so the fitting that leaves words out
+     from the end never takes it — the same press always puts the remote away again (hbRemoteToggle) */
+  const remote = k === 'board' && typeof window.hbBoardHelloOn === 'function' && window.hbBoardHelloOn();
+  return { k, doors: (remote ? ['hbremote'] : []).concat(teach ? ['teachhere'] : [], row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
 }
 /* A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES IS GREY, WITH ITS REASON (owner, 27 Nov 2026: "grey them out"): on THEIR paper
    (every upload) "fill in" has nothing of ours to fill unless a detail of our record is owed (pdFillGo opens that form) */
@@ -685,7 +688,13 @@ function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
   if (!here.doors.length) return '';
-  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" data-jb-shut="${esc(jamboWaysShutSig(here))}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}"${jamboWayShutAttr(d)}>${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" data-jb-shut="${esc(jamboWaysShutSig(here))}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'hbremote' ? jamboRemoteBtnHtml() : d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}"${jamboWayShutAttr(d)}>${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+}
+/* the Board's remote's button: the control knobs, pressed while the remote is up (the Board's one listener, hbOnClick) */
+function jamboRemoteBtnHtml(){
+  const on = typeof window.hbRemoteOn === 'function' && window.hbRemoteOn();
+  const w = _jbT('hb_rm_btn');
+  return `<button type="button" class="jb-way jb-rm${on ? ' is-on' : ''}" data-hb-remote aria-pressed="${on}" title="${esc(w)}" aria-label="${esc(w)}">\u{1F39B}\uFE0F</button>`;
 }
 function jamboWaysSync(){
   if (typeof document === 'undefined') return;
@@ -853,7 +862,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   }
 }
 Object.assign(window,{ jamboWayShutWhy,JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
-Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays,jamboWaysCarry,jamboCarryRow,jamboWaysFit,jamboWaysFitOne,jamboShortOf,JB_FIT_ROWS});
+Object.assign(window,{JB_WAY_FEET,jamboRemoteBtnHtml,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays,jamboWaysCarry,jamboCarryRow,jamboWaysFit,jamboWaysFitOne,jamboShortOf,JB_FIT_ROWS});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.
