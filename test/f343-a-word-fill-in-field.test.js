@@ -253,9 +253,14 @@ describe('f343 (3) the record admits the fact and nothing open-ended', () => {
   });
 });
 
+/* RE-POINTED 26 Nov 2026 (f1246; owner, #1035: "For counter party contracts or 3rd party contracts, they should be
+   filled in using their tools"): every upload is THEIR paper now, so the uploaded-blanks form stands down in the
+   product. The machinery stays (a ruling can be lifted); this keeps proving it reads right under the gate it was built
+   behind — only a file signed outside is theirs — as f342 does. f1246 proves the new gate. */
+const OLD_THEIRS = c => !!(c && c.source === 'upload' && c.signRoute === 'outside');
 describe('f343 (4) the panel reads it', () => {
   const stage = (body, over) => {
-    const w = world();
+    const w = world(); w.uploadBlanksTheirs = OLD_THEIRS;
     const c = Object.assign({ id: 'MK-950', name: 'Form', status: 'Under Review', source: 'upload',
       format: 'rich', redlineText: body, fields: {}, audit: [], metadata: {},
       upload: { fileName: 'form.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
@@ -285,7 +290,7 @@ describe('f343 (4) the panel reads it', () => {
     assert.equal(w.contractBlanks(c).find(b => b.key === 'up_buyer_name').ph, 'Enter buyer name');
   });
   test('4d WORD\'S OWN PROMPT IS NOT A NAME', () => {
-    const w = world();
+    const w = world(); w.uploadBlanksTheirs = OLD_THEIRS;
     assert.equal(w.upStockPrompt('Click or tap here to enter text.'), true);
     assert.equal(w.upStockPrompt('CLICK HERE TO ENTER TEXT'), true);
     assert.equal(w.upStockPrompt('Enter the buyer\'s registered address'), false,

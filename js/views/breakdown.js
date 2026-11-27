@@ -270,6 +270,9 @@ function stkBlankFilled(c, p){ const bl = stkBlanksOf(c, p); return bl.length > 
    press takes the Dossier's own door, pdFillGo, so the blanks turn into lines on the paper; the form only where
    that door itself falls back to it */
 function stkFillGo(c, p){
+  /* a space on THEIR paper (every upload, owner, 26 Nov 2026) is theirs to fill: said where the reader looks, whatever
+     else the record still owes (the Dossier's card opens that) */
+  try { if (window.pd2FillHeldWhy && window.pd2FillHeldSay && window.pd2FillHeldWhy(c) === 'theirs') return window.pd2FillHeldSay(c, 'theirs'); } catch (_){}
   const open = stkBlanksOf(c, p).find(x => !String(x.value || '').trim());
   if (typeof pdFillGo === 'function') return pdFillGo(c.id, open ? open.key : '');
   if (typeof pdFillOpen === 'function') pdFillOpen(c.id, { key: open ? open.key : '' });

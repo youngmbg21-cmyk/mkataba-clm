@@ -3,7 +3,7 @@
    A draft from our own template (two blanks in its opening, nobody named to sign), in the new look:
      0 · the Dossier's card offers "Fill in the contract"
      1 · pressing it fills ON THE PAPER, not in a form: the template's own blanks become lines where they stand, each
-         signature line takes a name, the head says "Filling in on the paper · 1 of 4", the panel says "On the paper"
+         signature line takes a name, the head says "Filling in on the paper · 1 of 7" (every space, filled ones too), the panel says "On the paper"
          with every space in the paper's order and where it stands (§ and the words around it)
      2 · Enter takes you to the next space still to fill, and the panel lights it
      3 · a signature line offers your team as you type; Enter takes the lit one and moves to their line
@@ -65,9 +65,14 @@ const focusOf = () => { const a = document.activeElement; return a ? (a.getAttri
         quote: ((document.querySelector('#ig-dock [data-pd2-fp-go="b:effDate"] .pd2-fp-q') || {}).textContent || ''),
         first: (() => { const a = document.activeElement, r = a && a.getBoundingClientRect(); return { f: a && a.getAttribute('data-pd2-bl'), inView: !!r && r.top >= 0 && r.bottom <= innerHeight }; })(),
         sideways: document.documentElement.scrollWidth - innerWidth }));
-      check(`${nm} 1 the black button fills on the paper: the template's blanks and both signature lines, "1 of 4", the panel "On the paper" with where each stands`,
-        on && !S.form && /1 of 4/.test(S.head) && S.blanks.includes('effDate') && S.blanks.includes('material') && S.names === 2
-        && /On the paper/.test(S.title) && S.rows.join() === 'b:effDate,b:material,s:0,s:1' && /^§ .+“.*____.*”$/.test(S.quote.trim()), S);
+      /* RE-POINTED 26 Nov 2026 (owner, #1032: "the sequence of the fill on the side panel should be from top to bottom";
+         built as "the walk is every space in paper order, filled ones with their answer"): the template's spaces already
+         filled (volume, pay days, inspection days) are on the walk and the panel too, in the paper's order, so the head
+         counts every space ("1 of 7"); Enter still goes to the next one left (2) */
+      const WALK = 'b:effDate,b:material,b:volume,b:payDays,b:inspectDays,s:0,s:1';
+      check(`${nm} 1 the black button fills on the paper: every space of the template, filled ones too, and both signature lines, "1 of 7", the panel "On the paper" with where each stands`,
+        on && !S.form && new RegExp('\\b1 of ' + WALK.split(',').length + '\\b').test(S.head) && S.blanks.join() === 'effDate,material,volume,payDays,inspectDays' && S.names === 2
+        && /On the paper/.test(S.title) && S.rows.join() === WALK && /^§ .+“.*____.*”$/.test(S.quote.trim()), S);
       check(`${nm} 8 the first space in view, nothing sideways`, S.first.f === 'effDate' && S.first.inView && S.sideways <= 0, S.first);
       await page.screenshot({ path: path.join(OUT, `start-${nm}.png`) });
       if (nm !== 'laptop-a'){ await page.close(); continue; }
@@ -129,7 +134,10 @@ const focusOf = () => { const a = document.activeElement; return a ? (a.getAttri
              with something typed asks once in the middle; Discard ends it and nothing is saved */
           const noBtns = await page.evaluate(() => !document.querySelector('#pd2-fill-head [data-pd2-fill-save], #pd2-fill-head [data-pd2-fill-discard]'));
           await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-          const asked = await until(page, () => (document.querySelector('#modal-root [data-pd2-fl-stop]') || {}).textContent || null, null, 5000);
+          /* RE-POINTED 26 Nov 2026 (the same ruling; this file's own wait answers true or false, never the words): the
+             question's Discard is waited for, then its words are read */
+          await until(page, () => !!document.querySelector('#modal-root [data-pd2-fl-stop]'), null, 5000);
+          const asked = await page.evaluate(() => (document.querySelector('#modal-root [data-pd2-fl-stop]') || {}).textContent || null);
           await page.click('#modal-root [data-pd2-fl-stop]');
           const gone = await until(page, () => !document.getElementById('pd2-fill-head') && !pd2FillOn('MK-FP4'), null, 5000);
           const kept = await page.evaluate(() => (getContract('MK-FP4').fields || {}).material || '');

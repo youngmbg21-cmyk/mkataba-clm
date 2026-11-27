@@ -323,7 +323,9 @@ const pastFirstWords = async page => {
        Still owed were the old Dossier's); 6b the card's counts are the readings their faces use — the details its next
        step names (detailsOf) and the risks its line names (riskOpenOf); Still owed's share and signer rows went with
        its grid */
-    check('6a Jambo\'s tab opens on the dossier: the stage on the spine', gl && /^Arrived? \| Read \| Fill(?: in)? \| Negotiate \| Sign \| Live$/.test(g.title) && g.pill, g.title);
+    /* RE-POINTED 26 Nov 2026 (NEGOTIATE, THEN FILL IN, owner: "You should negotiate or redline a contract and once you are
+       done, you then fill in the contract right before signing"): the stages stand Arrive · Read · Negotiate · Fill · Sign · Live */
+    check('6a Jambo\'s tab opens on the dossier: the stage on the spine', gl && /^Arrived? \| Read \| Negotiate \| Fill(?: in)? \| Sign \| Live$/.test(g.title) && g.pill, g.title);
     check('6b each count is the reading its own face uses', (g.left > 0 ? g.cardFill && g.fillN === g.left : !g.cardFill) && g.riskN === g.risks, g);
     void num;
     check('6c reading it starts no negotiation', !g.nego);

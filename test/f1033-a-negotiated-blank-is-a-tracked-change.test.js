@@ -77,6 +77,8 @@ test('f1033 (6) both books, and the Handbook says it', () => {
     assert.equal((L.match(new RegExp('\\n\\s+' + k + ': ', 'g')) || []).length, 2, k);
   const H = read('js/handbook.js');
   /* RE-POINTED 13 Nov 2026 (f1036): the parties' details at the top are typed there too */
-  assert.match(H, /On a contract being negotiated, its blanks are typed on the paper too, the parties\\' names and addresses at the top included, except where a change is still open\./);
-  assert.match(H, /På ett avtal som förhandlas skrivs luckorna också på pappret/);
+  /* RE-POINTED 26 Nov 2026 (owner, #1035: "Fill-ins are answers, not redlines, and come after the negotiation"): the
+     chapter says the blanks are typed once the redlines are settled, an answer and never a change */
+  assert.match(H, /On a contract that was negotiated, its blanks are typed on the paper too once the redlines are settled, the parties\\' names and addresses at the top included\. What you type is an answer, never a change/);
+  assert.match(H, /På ett avtal som har förhandlats skrivs luckorna också på pappret när ändringarna är klara/);
 });

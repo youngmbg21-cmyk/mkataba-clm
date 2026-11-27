@@ -78,7 +78,10 @@ WALL.forEach(w => collect(w.value)); WALL_ON_CHANGE.forEach(w => collect(w.value
 const PASS_PAYLOAD = ['v', 'kind', 'purpose', 'purposeChosen', 'org', 'sharedBy', 'at', 'contract', 'party', 'lead', 'leadNotice', 'stands', 'negotiation', 'changes', 'rounds', 'ourProposals', 'signerPlan', 'signingOrder', 'signingOpen', 'docHash'];
 const PASS_CONTRACT = ['id', 'name', 'counterparty', 'template', 'value', 'valueType', 'currency', 'fields', 'format', 'text', 'redlineText', 'clauses', 'docHtml', 'rounds', 'hash', 'contractNo', 'party', 'parties', 'partiesMulti', 'expiry', 'start', 'status', 'signedCopy', 'metadata',
   /* recorded 13 Oct 2026 from the builder as it stands */
-  'source', 'signatures', 'changes', 'negotiation', 'upload', 'executed', 'templateForm', 'branding', 'docText', 'viewBody', 'adviseOn', 'adviseBody', 'openPoints', 'versions'];
+  'source', 'signatures', 'changes', 'negotiation', 'upload', 'executed', 'templateForm', 'branding', 'docText', 'viewBody', 'adviseOn', 'adviseBody', 'openPoints', 'versions',
+  /* widened on purpose 26 Nov 2026 (owner, #1035: "fill-ins are answers, not redlines"): Fill in's answers on OUR paper
+     travel so their copy draws them in their spaces (negoFillsPaint); the same words the signing copy already carries */
+  'fills'];
 const PASS_CHANGE = ['id', 'clauseId', 'clauseIdx', 'num', 'title', 'side', 'author', 'at', 'summary', 'before', 'after', 'beforeHtml', 'afterHtml', 'bodyHtml', 'hash', 'status', 'decision', 'decidedAt', 'kind', 'formattingOnly', 'superseded', 'supersededBy', 'counterOf', 'countered', 'bundle', 'onTop', 'round', 'sent', 'sentAt', 'via', 'unmarked', 'insert', 'deleted', 'ops', 'partyId', 'wordingHash', 'fingerprint', 'text', 'html'];
 
 const BODY = '<h1>Cane Supply Agreement</h1><p>Between Wanjiru Catering Ltd and Nordfrakt Logistik AB</p>'

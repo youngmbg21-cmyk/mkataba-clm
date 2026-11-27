@@ -101,15 +101,17 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
         await new Promise(r => setTimeout(r, 50));
         const el = document.querySelector('.lsn');
         if (el !== window._lsnFirst) same = false;
-        /* the widest bar (the fixture's first stage can hold nothing, and a bar of nothing never grows) */
-        const bars = [...document.querySelectorAll('.lsn .lsn-step[data-lsn-step="2"] .lsn-br .lsn-f i')];
-        widths.push(bars.length ? Math.max(...bars.map(b => b.getBoundingClientRect().width)) : -1);
+        /* RE-AIMED 26 Nov 2026 (the check, not the product, was wrong): the fixture's first stage (Draft) holds nothing, so
+           its bar is drawn 0% wide and "only grows" from 0 to 0 — the first bar WITH A VALUE is the one that grows */
+        const bar = [...document.querySelectorAll('.lsn .lsn-step[data-lsn-step="2"] .lsn-br .lsn-f')].find(f => parseFloat(f.style.width) > 0);
+        const barI = bar ? bar.querySelector('i') : null;
+        widths.push(barI ? barI.getBoundingClientRect().width : -1);
       }
       const grows = widths.every((w, i) => i === 0 || w >= widths[i - 1] - 0.5);
       return { same, grows, from: widths[0], to: widths[widths.length - 1] };
     });
     check('3a redrawn every 50ms for 2s, the lesson stays the same node', stutter.same, JSON.stringify(stutter));
-    check('3b …and its bars only grow', stutter.grows && stutter.to > 0, JSON.stringify(stutter));
+    check('3b …and its first bar with a value only grows', stutter.grows && stutter.from >= 0 && stutter.to > 0, JSON.stringify(stutter));
 
     /* ---- 2 · Next, the end, Save ---- */
     const prog = await A.page.evaluate(() => (document.querySelector('.lsn .lsn-of') || {}).textContent || '');
@@ -185,6 +187,15 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
     }
 
     /* ---- 7 · the owner's three screens ---- */
+    /* RE-AIMED 26 Nov 2026 (the check, not the product, was wrong): 4 allows the conversation not to be kept across a
+       reload, and then nothing was left on the panel to measure (null at all three screens) — so the lesson is asked
+       for again here, every step shown, before the screens are measured */
+    if (!(await A.page.evaluate(() => !!document.querySelector('#ig-dock .lsn .lsn-step')))){
+      await ask(A, 'Walk me through my contracts');
+      await A.until(() => !!document.querySelector('#ig-dock .lsn .lsn-step'), null, 15000);
+    }
+    await A.page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .lsn [data-lsn-act="all"]')].pop(); if (b) b.click(); });
+    await A.until(() => { const K = [...document.querySelectorAll('#ig-dock .lsn')].pop(); return K && K.querySelectorAll('.lsn-step').length === 4 ? true : null; }, null, 10000);
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]){
       await A.page.setViewportSize(vp); await A.page.waitForTimeout(300);
       const fit = await A.page.evaluate(() => { const P = document.getElementById('ig-dock'), K = document.querySelector('.lsn'); if (!P || !K) return null;

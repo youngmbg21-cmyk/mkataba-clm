@@ -16401,7 +16401,7 @@ const STRINGS = {
     nsn_linked_one: '1 linked',
     nsn_linked_other: '{n} linked',
     nsn_link: '+ Link a document',
-    nsn_link_one: 'Link',
+    nsn_link_row: 'Link',
     nsn_is_linked: 'Linked',
     nsn_done: 'Done',
     nsn_loading: 'Reading the Notebook…',
@@ -16674,7 +16674,7 @@ const STRINGS = {
     tri_fill_nego: 'This contract is in negotiation — the wording is the negotiation\u2019s now.',
     tri_fill_sealed: 'This contract is signed — its wording is final.',
     tri_fill_nothing: 'Every field on this contract is already answered.',
-    tri_fill_theirs: 'They run the signing, so the blanks are filled in their own copy.',
+    tri_fill_theirs: 'This is their paper, so they fill in its blanks with their own tools.',
     /* The two arrows on the arrival strip. A title, not a line on the tile:
        the arrow is the sign and the words would be the second line this strip
        reserves for what was FOUND. */
@@ -44687,7 +44687,7 @@ const STRINGS = {
     nsn_linked_one: '1 länkat',
     nsn_linked_other: '{n} länkade',
     nsn_link: '+ Länka ett dokument',
-    nsn_link_one: 'Länka',
+    nsn_link_row: 'Länka',
     nsn_is_linked: 'Länkat',
     nsn_done: 'Klar',
     nsn_loading: 'Läser anteckningsboken…',
@@ -44934,7 +44934,7 @@ const STRINGS = {
     tri_fill_nego: 'Det här avtalet förhandlas \u2014 ordalydelsen tillhör förhandlingen nu.',
     tri_fill_sealed: 'Det här avtalet är undertecknat \u2014 ordalydelsen är slutgiltig.',
     tri_fill_nothing: 'Varje fält i det här avtalet är redan besvarat.',
-    tri_fill_theirs: 'De sköter underskriften, så de tomma fälten fylls i på deras egen kopia.',
+    tri_fill_theirs: 'Detta är deras papper, så de fyller i dess tomma fält med sina egna verktyg.',
     tri_go_brief: 'Läs avtalssammanfattningen',
     tri_go_oblig: 'Öppna åtagandena',
     tri_go_retry: 'Kör den här läsningen igen',
