@@ -133,12 +133,13 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
              which carries no letter at all (shareLetterOf: ch 'link' → none), so then there is no button to find */
           btn: !document.querySelector('#sh-lt-after [data-sh-lt-link]') && (!!document.querySelector('#sh-lt-after .sh-lt-btn[data-sh-lt-btn]')
             || !document.querySelector('#sh-lt-after .sh-lt-p')),
-          keys: [...document.querySelectorAll('#ig-dock .sh-lt-card > h4, #ig-dock .sh-kv > span')].map(x => x.textContent.trim()) };
+          /* RE-POINTED 27 Nov 2026 (P-54, the Stripe way): the rows' heads sit in their top line, the ring says how many are ready */
+          keys: [...document.querySelectorAll('#ig-dock .sh-lt-card h4')].map(x => x.textContent.trim()), ring: !!document.querySelector('#ig-dock #sh-sp-ring svg') };
       });
       await page.click('[data-sh-st-go="can"]').catch(() => {});
       const opened = await until(page, () => !!document.querySelector('[data-sh-st="can"].is-open'), null, 3000);
       check(`${nm} 4 Send, four steps: the choices numbered on the left, the letter beside them, From under Subject, the note hugging its words, the link a button, a step's Change opens it in place, Before you send in rows`,
-        s4.grid === 'grid' && s4.beside && s4.steps && s4.from && s4.card && s4.hugs && s4.btn && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
+        s4.grid === 'grid' && s4.beside && s4.steps && s4.from && s4.card && s4.hugs && s4.btn && opened && s4.ring && s4.keys.includes('What goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
       await page.screenshot({ path: path.join(OUT, `send-${nm}.png`) });
       await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('[data-sh-as].is-open'), null, 3000);
       await page.evaluate(() => { const x = document.querySelector('#modal-root [data-dlg-cancel]'); if (x) x.click(); });

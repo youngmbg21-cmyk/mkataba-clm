@@ -3440,7 +3440,8 @@ async function aiLocalClaude(messages, context){
       aiLocalChapterButton(final);
       break;
     }
-    working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:JSON.stringify(_localToolRun(t.name,t.input))}))});
+    /* THE STATUS LINE: each tool named in the reader's words before it runs (jamboStepSay) */
+    working.push({role:'user',content:toolUses.map(t=>{ if(typeof window.jamboStepSay==='function') try{ jamboStepSay(t.name,t.input); }catch(_){} return {type:'tool_result',tool_use_id:t.id,content:JSON.stringify(_localToolRun(t.name,t.input))}; })});
   }
   if(!final) final={answer:"I ran out of steps before I could finish that. Ask again, or name the contract, party or page you mean.",citations:[],compare:null,unfinished:true,retry:true};
   if(cut) final.truncated=true;
@@ -3576,39 +3577,12 @@ async function copilotAskSend(messages, context, onEvent, opts){
   const e=new Error('needsKey'); e.needsKey=true; throw e;
 }
 
-/* Live renderer for a streaming turn: progress events replace the typing
-   indicator's dots with the step's label ("Reading MK-103…"), and the whole
-   answer then lands in one piece via `final`, which goes through
-   aiRenderServerAnswer + a full repaint exactly as before — so formatting,
-   citation cards and the compare table change zero. The token branch below
-   is kept although the server currently sends no token events (word-by-word
-   streaming is switched off server-side, 02 Aug 2026): it is the tolerance
-   that lets an older/newer server pairing degrade gracefully, and the
-   one-line re-enable path if the answer is ever streamed again. */
+/* THE STATUS LINE (owner, 27 Nov 2026): a streamed turn's progress events name the step in the waiting line's own
+   words (jamboStepSay, off the tool and the contract it reads — the server's English label is never shown); the whole
+   answer lands in one piece via `final`. No word-by-word text (switched off server-side, 02 Aug 2026). */
 function aiStreamRenderer(){
-  let text='';
-  const target=()=>{
-    const feed=aiFeedEl(); if(!feed) return null;
-    const last=feed.querySelector('.ai-msg:last-child'); if(!last) return null;
-    const t=last.querySelector('.typing');
-    if(t){ t.classList.remove('typing'); t.setAttribute('data-ai-stream',''); t.textContent=''; }
-    return last.querySelector('[data-ai-stream]');
-  };
   return ev=>{
-    const el=target(); if(!el) return;
-    if(ev.type==='progress'){
-      /* A new model turn is starting — any streamed text so far was that
-         turn's preamble, superseded by the tool run it announced. */
-      text='';
-      el.innerHTML=`<span class="text-[12px] text-ink/50">${_aiEsc(ev.label||'Working…')}</span>`;
-    }else if(ev.type==='token'&&ev.text){
-      text+=ev.text;
-      el.textContent=text;
-      const feed=aiFeedEl();
-      /* words still arriving: follow them down only to the answer's first line */
-      if(feed){ const sc=feed.id==='jl-feed'?(feed.closest('.jl-talk-sc')||feed):feed;
-        if(typeof jamboFeedLand==='function') jamboFeedLand(sc, el.closest('.ai-msg')||jamboFeedLast(feed), { follow:true }); else sc.scrollTop=sc.scrollHeight; }
-    }
+    if(ev&&ev.type==='progress'&&typeof window.jamboStepSay==='function') try{ jamboStepSay(ev.tool, { id:ev.ref }); }catch(_){}
   };
 }
 
@@ -5445,7 +5419,10 @@ async function aiAskWords(qRaw, opts){
   /* WHAT IT READ, taken when it was asked (the page may change before the
      answer lands): said under the answer (aiReadFrom, renderAIFeed) */
   const read=aiReadFrom();
+  /* STOP (the status line): the wait ends now, said in one line with Ask again; a late answer is dropped */
+  const gen=(typeof window.jamboStopOn==='function')?jamboStopOn(()=>{ ai.busy=false; aiPush('assistant',{ text:`<div>${_aiEsc(i18t('jb_stopped'))}</div>`, choices:[{ label:i18t('ai_ask_again'), retry:String(q) }] }); renderAIFeed(); }):null;
   const finish=(ans)=>{
+    if(gen!=null&&typeof window.jamboStopGone==='function'&&jamboStopGone(gen)) return;
     ai.busy=false;
     /* SHOW ME › AND THE ONE PREPARED PRESS, from the contracts the answer cites (js/jambopress.js): no second call */
     if(ans&&typeof ans==='object'&&!ans.press&&typeof window.jpPressOf==='function'){

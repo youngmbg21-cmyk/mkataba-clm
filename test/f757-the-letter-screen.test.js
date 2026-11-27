@@ -289,7 +289,9 @@ describe('f757 (10) the third pass: Jambo\'s panel beside the letter holds cards
     const r = m.$('#share-readiness');
     assert.ok(r && r.classList.contains('sh-lt-card') && r.classList.contains('sh-lt-check'), 'a card');
     assert.ok(!r.querySelector('details'), 'not folded behind a strip');
-    assert.match(r.querySelector('h4').textContent, /1 thing worth checking before you send/);
+    /* RE-POINTED 27 Nov 2026 (P-54, the Stripe way): a row named for what it holds, its count on a soft badge */
+    assert.match(r.querySelector('h4').textContent, /Worth a look/);
+    assert.match(r.querySelector('.sh-sp-bd').textContent, /1 to look at/);
     assert.equal(r.querySelector('li').textContent, 'No effective date is recorded.');
     assert.ok(m.$('#sh-lt-checks').contains(r), 'in Before you send');
     m.win.contractReadiness = () => [{ severity: 'block', label: 'Nobody is named to sign.' }, { severity: 'warn', label: 'No expiry is recorded.' }];

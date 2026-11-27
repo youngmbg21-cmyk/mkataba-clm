@@ -4501,7 +4501,11 @@ async function intelChatAsk(q, opts){
     /* f1042: a note asked for on the send screen — the server asks once more if none comes back */
     if(opts&&opts.note&&ctx&&ctx.page&&ctx.page.sending) ctx.noteAsk=true;
     if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
-    const res=await igLessonSettle(await copilotAsk(msgs, ctx, null, IG_QUIET), msgs, ctx);
+    /* THE STATUS LINE: each step named as it runs (jamboStepSay); Stop ends the wait and drops a late answer */
+    const gen=(typeof window.jamboStopOn==='function')?jamboStopOn(()=>{ intel.busy=false; intel.history.push({ role:'assistant', text:igEsc(i18t('jb_stopped')), choices:[{ label:i18t('ai_ask_again'), retry:String(q) }] }); renderIntelDock(); }):null;
+    const stepEv=ev=>{ if(ev&&ev.type==='progress'&&typeof window.jamboStepSay==='function') try{ jamboStepSay(ev.tool, { id:ev.ref }); }catch(_){} };
+    const res=await igLessonSettle(await copilotAsk(msgs, ctx, stepEv, IG_QUIET), msgs, ctx);
+    if(gen!=null&&jamboStopGone(gen)) return;
     if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;
     /* WALK ME THROUGH IT (js/lesson.js): the lesson is the answer, drawn by the one conversation's builder */
     if(igLessonTake(res)) return;
@@ -4512,6 +4516,7 @@ async function intelChatAsk(q, opts){
       if(lines.length&&m&&m.role==='assistant') m.text=String(m.text||'')+'<div class="ig-go-said">'+lines.map(igEsc).join('<br>')+'</div>';
     }
   }catch(e){
+    if(window.JB_STATUS&&!JB_STATUS.stop&&!intel.busy) return;   /* stopped: the wait already said so */
     // Copilot failed mid-flight → still deliver a local comparison if we can.
     if(ids.length>=2 && typeof localCompareData==='function'){
       const cmp=localCompareData(ids);

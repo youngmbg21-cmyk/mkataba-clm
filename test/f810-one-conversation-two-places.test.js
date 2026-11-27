@@ -97,7 +97,8 @@ describe('f810 (3) one turn, whichever box asked', () => {
   });
   test('3b the streaming words, the proposal cards\' buttons and the scroll follow the feed it chose', () => {
     const st = code(fnOf(AI, 'aiStreamRenderer'));
-    assert.equal((st.match(/aiFeedEl\(\)/g) || []).length, 2);
+    /* RE-POINTED 27 Nov 2026 (the status line): a progress event names the step in the waiting line; the feed is not touched */
+    assert.match(st, /jamboStepSay\(ev\.tool, \{ id:ev\.ref \}\)/);
     assert.doesNotMatch(st, /getElementById\('ai-feed'\)/);
     assert.match(code(fnOf(AI, 'aiWireProposals')), /const feed = aiFeedEl\(\);/);
     /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the conversation's own scroller */

@@ -1529,7 +1529,7 @@ function jamboFwdHtml(o){
      it is the same spot as the way back, so it carries them the same way, at its right end */
   let ways = '';
   try { if (o.ways !== false && typeof window.jamboWaysHtml === 'function' && typeof window.jamboWaysHere === 'function') ways = window.jamboWaysHtml(window.jamboWaysHere(), 'is-in-door'); } catch (_){ ways = ''; }
-  return `<div class="jb-door jb-door-fwd-line" data-jb-fwd-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back jb-door-fwd" data-jb-fwd="${e(o.host || '')}" title="${e(tip)}" aria-label="${e(tip)}"><span>${e(jb)}</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-right"/></svg></button><span class="jb-door-sp"></span>${ways}</div>`;
+  return `<div class="jb-door jb-door-fwd-line" data-jb-fwd-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back jb-door-fwd${jamboThinkingNow() ? ' is-busy' : ''}" data-jb-fwd="${e(o.host || '')}" title="${e(tip)}" aria-label="${e(tip)}"><span>${e(jb)}</span><span class="jb-fwd-dots" aria-hidden="true"><i></i><i></i><i></i></span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-right"/></svg></button><span class="jb-door-sp"></span>${ways}</div>`;
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jbFwdWired)){
   if (typeof window !== 'undefined') window._jbFwdWired = true;
@@ -1539,16 +1539,87 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault(); go();
   });
 }
-/* ---- JAMBO IS THINKING (owner, 28 Oct 2026: "while jambo is thinking there needs to be a sign that something is
-   running or thinking so that you do not think the panel has frozen"; then "it should not say jambo is thinking, it
-   should just be a different symbol" — owner picked "The SAP way") ----
-   ONE builder for every conversation's waiting turn (Home's panel, the lists and Import, Settings, the ✦ window):
-   SAP's busy indicator — three dark dots pulsing one after another in his answer's own bubble, NO WORDS on screen;
-   a screen reader hears "Jambo is thinking…" (aria-label). It replaces three faint 5px dots that read as a frozen
-   panel (WHEN SOMETHING LOADS, SOMETHING MOVES; the Calendar's planner says its own "reading your calendar"). */
+/* ---- THE STATUS LINE (owner, 27 Nov 2026, the work order "what the assistant is doing"; REVERSES 28 Oct 2026's "it
+   should not say jambo is thinking, it should just be a different symbol") ----
+   ONE builder for every conversation's waiting turn (Home's panel, the lists and Import, Settings, the ✦ window): the
+   step in plain words, then three dots pulsing in turn, then Stop. The words follow the work (jamboStatusSet): "Reading
+   your question" first, each tool's own line as it runs (jamboStepSay, the tool loop and the stream's progress), "Still
+   working on it" once a step has stood JB_STILL_MS. Words only ever PATCHED in place (jamboStatusPatch), never a redraw;
+   the episode ends by itself when nothing is thinking (jamboStatusTick). Stop (only where the ask registered a stopper,
+   jamboStopOn) ends the wait and a late answer is dropped (jamboStopGone). No tool name, code or "…" is ever shown. */
+var JB_STATUS = (typeof JB_STATUS !== 'undefined' && JB_STATUS) || { key: '', vars: null, at: 0, gen: 0, live: false, stop: null, tick: 0 };
+const JB_STILL_MS = 20000;
+const JB_NEAR_BOTTOM = 80;
+const JB_STEP_KEYS = { search_contracts: 'jb_st_search', search_hati: 'jb_st_search_hati', get_contract: 'jb_st_read',
+  get_contract_history: 'jb_st_history', get_scan_findings: 'jb_st_findings', list_portfolio: 'jb_st_book',
+  compare_contracts: 'jb_st_compare', check_against_playbook: 'jb_st_playbook', get_insights_panel: 'jb_st_insights',
+  get_dependents: 'jb_st_family', get_counterparty: 'jb_st_party', get_obligations: 'jb_st_duties',
+  walk_through: 'jb_st_walk', deliver_answer: 'jb_st_write' };
+function jamboThinkingNow(){ try { return typeof window.aiThinkingNow === 'function' ? !!window.aiThinkingNow() : !!(window.ai && window.ai.busy); } catch (_){ return false; } }
+/* the words now: never ending in "…" (the dots say it) */
+function jamboStatusWords(){
+  const S = JB_STATUS, tr = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
+  const k = (S.at && Date.now() - S.at >= JB_STILL_MS) ? 'jb_st_still' : (S.key || 'jb_st_thinking');
+  return String(tr(k, S.vars || undefined)).replace(/(…|\.\.\.)\s*$/, '').trim();
+}
+function jamboStatusBegin(){ const S = JB_STATUS; if (S.live) return; S.live = true; S.key = 'jb_st_start'; S.vars = null; S.at = Date.now(); jamboStatusTick(); }
+function jamboStatusSet(key, vars){
+  const S = JB_STATUS; if (!S.live) jamboStatusBegin();
+  S.key = String(key || ''); S.vars = vars || null; S.at = Date.now(); jamboStatusPatch();
+}
+/* a tool about to run, named in the reader's words: a contract by the number it wears */
+function jamboStepSay(tool, input){
+  let k = JB_STEP_KEYS[String(tool || '')] || 'jb_st_lookup', vars = null;
+  if (k === 'jb_st_read'){
+    const id = String((input && (input.id || input.ref)) || '').trim();
+    let c = null; try { c = id && typeof window.getContract === 'function' ? window.getContract(id) : null; } catch (_){ c = null; }
+    const ref = c ? String(c.contractNo || c.id) : id.slice(0, 24);
+    if (ref) vars = { ref }; else k = 'jb_st_read_one';
+  }
+  jamboStatusSet(k, vars);
+}
+/* the ask that can be stopped says how (fn), and gets its number back: a later Stop makes it stale */
+function jamboStopOn(fn){ JB_STATUS.stop = typeof fn === 'function' ? fn : null; jamboStatusPatch(); return JB_STATUS.gen; }
+function jamboStopGone(g){ return g !== JB_STATUS.gen; }
+function jamboStop(){
+  const S = JB_STATUS, fn = S.stop; if (!fn) return;
+  S.gen++; S.stop = null; S.live = false; S.key = ''; S.at = 0;
+  try { fn(); } catch (_){}
+}
+function jamboStatusPatch(){
+  if (typeof document === 'undefined') return;
+  const w = jamboStatusWords(), stop = !!JB_STATUS.stop;
+  document.querySelectorAll('[data-jb-thinking]').forEach(el => {
+    const sc = el.closest('.jl-talk-sc, #ai-feed, #jl-feed, .igd-scroll, [data-jb-turns]');
+    const near = !!sc && (sc.scrollHeight - sc.scrollTop - sc.clientHeight) <= JB_NEAR_BOTTOM;
+    const say = el.querySelector('.jb-step'); if (say && say.textContent !== w) say.textContent = w;
+    const b = el.querySelector('[data-jb-stop]'); if (b && b.hidden === stop) b.hidden = !stop;
+    if (near && sc) sc.scrollTop = sc.scrollHeight;
+  });
+  /* "Jambo ›" carries the dots while an answer is on its way on the other face */
+  const busy = jamboThinkingNow();
+  document.querySelectorAll('[data-jb-fwd]').forEach(b => { if (b.classList.contains('is-busy') !== busy) b.classList.toggle('is-busy', busy); });
+}
+/* one quiet clock while waiting: "Still working on it" on time, and the episode closed once nothing thinks */
+function jamboStatusTick(){
+  const S = JB_STATUS; if (S.tick) return;
+  S.tick = setInterval(() => {
+    if (!jamboThinkingNow()){ clearInterval(S.tick); S.tick = 0; S.live = false; S.key = ''; S.at = 0; S.stop = null; jamboStatusPatch(); return; }
+    jamboStatusPatch();
+  }, 1000);
+}
 function jamboThinkingHtml(){
-  const w = (typeof i18t === 'function') ? i18t('jb_thinking') : 'Jambo is thinking…';
-  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true" aria-label="${String(w).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))}"><span class="jb-dot" aria-hidden="true"></span><span class="jb-dot" aria-hidden="true"></span><span class="jb-dot" aria-hidden="true"></span></div>`;
+  jamboStatusBegin();
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const tr = k => (typeof i18t === 'function') ? i18t(k) : k;
+  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true"><span class="jb-step">${e(jamboStatusWords())}</span><span class="jb-dots" aria-hidden="true"><span class="jb-dot"></span><span class="jb-dot"></span><span class="jb-dot"></span></span><button type="button" class="jb-stop" data-jb-stop title="${e(tr('jb_stop_tip'))}"${JB_STATUS.stop ? '' : ' hidden'}>${e(tr('jb_stop'))}</button></div>`;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jbStopWired)){
+  if (typeof window !== 'undefined') window._jbStopWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-jb-stop]') : null; if (!b) return;
+    e.preventDefault(); jamboStop();
+  });
 }
 /* the head while the conversation shows: his name, lit, a label — never a second way back */
 function jamboTalkLabelHtml(cls){
@@ -1922,7 +1993,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,JB_STATUS,JB_STILL_MS,JB_STEP_KEYS,jamboStatusWords,jamboStatusBegin,jamboStatusSet,jamboStepSay,jamboStopOn,jamboStopGone,jamboStop,jamboStatusPatch,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

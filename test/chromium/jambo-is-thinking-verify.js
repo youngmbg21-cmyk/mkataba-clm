@@ -75,9 +75,10 @@ const deliver = a => ({ content: [{ type: 'tool_use', id: 'tu_t', name: 'deliver
           moves: !!cs && cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0,
           status: sign.getAttribute('role') === 'status' || sign.getAttribute('aria-busy') === 'true',
           heard: sign.getAttribute('aria-label') || '' }; }, host, 2500);
-      check(`1 ${key}: while he thinks, a sign that moves${key === 'calendar' ? '' : ' — three dots, no words on screen'}`,
-        !!S && S.moves && (S.cal || (S.dots === 3 && !S.words && S.dotW >= 8)), JSON.stringify(S));
-      check(`2 ${key}: the sign is said to a screen reader`, !!S && S.status && (S.cal || /Jambo/.test(S.heard)), JSON.stringify(S));
+      /* RE-POINTED 27 Nov 2026 (the status line, reverses 28 Oct's dots alone): the step in words, then three small dots */
+      check(`1 ${key}: while he thinks, a sign that moves${key === 'calendar' ? '' : ' — the step in words and three dots'}`,
+        !!S && S.moves && (S.cal || (S.dots === 3 && /\w/.test(S.words) && !/\u2026|\.\.\./.test(S.words) && S.dotW >= 3)), JSON.stringify(S));
+      check(`2 ${key}: the sign is said to a screen reader`, !!S && S.status && (S.cal || /\w/.test(S.words)), JSON.stringify(S));
       const gone = await until(P, h0 => { const r = document.querySelector(h0); if (!r) return null;
         return ![...r.querySelectorAll('[data-jb-thinking], .cal-plan-busy')].some(e => e.getBoundingClientRect().height > 0) && !(window.ai && ai.busy) && !(window.intel && intel.busy) ? true : null; }, host, HOLD_MS * 3 + 4000);
       check(`3 ${key}: the answer lands and the sign is gone`, !!gone);

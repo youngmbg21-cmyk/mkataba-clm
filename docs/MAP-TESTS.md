@@ -1285,3 +1285,9 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1248 (8)–(13): narrowing and its head, periods, the same drawing twice, every number in a sentence on a drawing, the one send-back and plain words, findings only for the paper on screen, waiting = the list's count, money left out said, and the question bank (25 lesson questions, 16 that are not, 12 narrowings counted against a plain filter). Browser: walk-through-verify 9a–9d (one folder asked; a wrong number sent back).
 - (27 Nov 2026) ONE DECIDER: f1248 (14) — about 90 phrasings en/sv: "show me" a chart → 'board', "walk me through" → 'lesson', lists/pages/how-to → null, never both; every box asks it. f1248 (15) the bridges (card menu Walk me through this, Put on the Board offered only for a question the Board takes). Browser: walk-through-verify 10 (show me from Duties lands on the Board, asks render_graph, no lesson), 11 (card → lesson), 12 (Put on the Board). f999 (6) still green: the decider lives inside `hbAnalyticAsk`.
 - (27 Nov 2026) f1248 (16): a vague "show me" → 'choose', four buttons, nothing drawn before a press, value only with money rights. f1249: any way of asking for directions → the chapter's guided steps (17 phrasings en/sv), never a data lesson, a chart, a contract's wording or a move.
+
+## THE SHELL — RAIL, BAR, PANELS
+- f1260 the status line: words + dots + Stop; every tool worded in both books; patched in place; Stop drops a late answer; the stream sends `ref`. Browser: test/chromium/jambo-is-thinking-verify.js (re-pointed: words and three dots).
+
+## THE SEND SCREEN
+- f1261 Before you send the Stripe way: ring, rows, badges, the tick in the paper's row, timeline, both books. f713 2b and f757 10b re-pointed.

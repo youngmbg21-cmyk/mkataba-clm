@@ -15983,7 +15983,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       }
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
-      for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
+      for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input), ref: String(((t.input || {}).id) || '').slice(0, 40) });  /* ref: the browser names the step in the reader's words (jamboStepSay) */
       const results = await Promise.all(toolUses.map(async t =>
         ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(copilotTurnNote(turn, t.name, await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) }))) })));
       working.push({ role: 'user', content: results });
