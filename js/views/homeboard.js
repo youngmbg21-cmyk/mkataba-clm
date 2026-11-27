@@ -11742,7 +11742,7 @@ function hbAskPopChoose(inp, i){
   const P = _hbPop; const r = P && P.rows[i]; if (!r) return;
   hbAskPopClose();
   if (r.kind === 'word'){ const v = String(inp.value || ''); _hbAskSet(inp, v.slice(0, P.start) + r.word + ' '); return; }
-  if (r.kind === 'cmd'){ _hbAskSet(inp, r.q); return; }
+  if (r.kind === 'cmd'){ if (r.act && typeof window.caCmdFill === 'function'){ caCmdFill(inp, r); return; } _hbAskSet(inp, r.q); return; }
   if (r.kind === 'place'){
     if (r.k === 'draft'){ _hbAskSet(inp, r.word.slice(1) + ' '); return; }
     _hbAskSet(inp, '');

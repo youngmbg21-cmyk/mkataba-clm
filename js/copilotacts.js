@@ -2063,7 +2063,18 @@ function caSlashRows(w, opts = {}){
    contract is offered only with a contract in front; Check lists the Notebook documents the reader may see
    (window.nbFilters.docs, behind nbSees), one row each. "Since you were last here" is this browser's own mark
    (CA_SINCE_KEY), a convenience; none kept = the last seven days. Nothing is written, sent or filed. */
-const CA_CMDS = [{ k: 'prepare', one: true }, { k: 'check', one: true, nb: true }, { k: 'handover', one: true }, { k: 'changed' }];
+/* ROUND 2 (owner, 27 Nov 2026: "build them all"): four more. Two ACT at once and answer in the conversation of the box
+   they were chosen in, as rows each carrying its existing door (`act`): Chase everyone (obligationChase — the Send
+   screen as a reminder, one press a duty, nothing sent in bulk) and Approve the ones that meet our standards (the
+   approval's own asker, approvalDecideAsk, one press a contract; only a contract whose stored standards check met every
+   position AND asked every one, deviationSummary's ok + complete, offers Approve). Two LEAD: they write their opening
+   words ("Amend many:", "Email request:") and the person finishes the sentence; Enter is read by caCmdTyped in every box
+   before anything else, and the rows answer: Amend ›  opens that agreement's own Amend question with the change already
+   said (pd2AmAskOpen), Create request › opens the Send screen with nothing of the paper going (purpose 'status') and the
+   request as the note. A Viewer is offered none of the four (`write`). */
+const CA_CMDS = [{ k: 'prepare', one: true }, { k: 'check', one: true, nb: true }, { k: 'handover', one: true }, { k: 'changed' },
+  { k: 'chase', act: true, write: true }, { k: 'request', one: true, lead: true, write: true }, { k: 'amend', lead: true, write: true }, { k: 'approve', act: true, write: true }];
+const CA_CMD_ROWS_MAX = 8;
 const CA_CMD_NB_MAX = 6;
 const CA_SINCE_KEY = 'hati.v1.jamboSince';
 let _caSince;
@@ -2086,8 +2097,10 @@ function caCmdNbDocs(){
 function caCmdRows(w, c){
   const q = String(w || '').toLowerCase(), out = [];
   const ref = c ? caRef(c) : '';
+  const mayWrite = !(typeof canEdit === 'function' && !canEdit());
   for (const m of CA_CMDS){
     if (m.one && !c) continue;
+    if (m.write && !mayWrite) continue;
     const word = caCmdWord(m.k), bare = word.slice(1).toLowerCase();
     if (q && !(bare.startsWith(q) || q.startsWith(bare))) continue;
     if (m.nb){
@@ -2097,6 +2110,8 @@ function caCmdRows(w, c){
         sub: _caT('ca_cmd_s_check_doc', { doc: String(d.name || '') }), q: _caT('ca_cmd_q_check', { ref, doc: String(d.name || '') }) }));
       continue;
     }
+    if (m.act || m.lead){ out.push({ kind: 'cmd', k: m.k, word, sub: _caT('ca_cmd_s_' + m.k, { ref, party: c ? String(c.counterparty || '') : '' }),
+      act: !!m.act, q: m.lead ? _caT('ca_cmd_lead_' + m.k) + ' ' : '' }); continue; }
     const since = m.k === 'changed' ? caCmdSince() : null;
     const qk = m.k === 'changed' ? (c ? (since ? 'ca_cmd_q_changed_one' : 'ca_cmd_q_changed_one_week') : (since ? 'ca_cmd_q_changed' : 'ca_cmd_q_changed_week')) : 'ca_cmd_q_' + m.k;
     out.push({ kind: 'cmd', k: m.k, word, sub: _caT('ca_cmd_s_' + m.k, { ref }), q: _caT(qk, { ref, since: since || '' }) });
@@ -2105,12 +2120,157 @@ function caCmdRows(w, c){
 }
 /* a command chosen: its question written into the box, the caret at its end; Enter asks it */
 function caCmdFill(inp, r){
+  if (r && r.act){ if (inp){ inp.value = ''; try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){} } caCmdAct(r.k, caCmdHostOf(inp)); return true; }
   if (!inp || !r || !r.q) return false;
   inp.value = r.q;
   try { inp.focus({ preventScroll: true }); inp.setSelectionRange(r.q.length, r.q.length); } catch (_){}
   if (typeof chatFieldGrow === 'function') try { chatFieldGrow(inp); } catch (_){}
   try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){}
   return true;
+}
+/* ---- WHERE A COMMAND'S ROWS ARE SAID: the conversation of the box it came from ---- */
+function caCmdHostOf(inp){
+  const id = inp && inp.id;
+  if (id === 'igd-input') return 'ig';
+  if (id === 'jl-q') return 'jl';
+  if (id) return 'ai';
+  if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof state !== 'undefined' && state && state.view === 'dashboard') return 'ig';
+  if (typeof document !== 'undefined' && document.getElementById('jl-q')) return 'jl';
+  return 'ai';
+}
+function caCmdSay(host, q, html){
+  if (host === 'ig' && typeof window !== 'undefined' && window.intel && typeof window.renderIntelDock === 'function'){
+    window.intel.history.push({ role: 'user', text: _caE(q) }, { role: 'assistant', host: 'ai', text: html });
+    window.renderIntelDock(); return true;
+  }
+  if (host === 'jl' && typeof window.jlTalkOpen === 'function') try { window.jlTalkOpen(); } catch (_){}
+  if (typeof window.aiPush === 'function' && typeof window.renderAIFeed === 'function'){
+    window.aiPush('user', { text: _caE(q), raw: q }); window.aiPush('assistant', { text: html, free: true }); window.renderAIFeed(); return true;
+  }
+  return false;
+}
+/* one row: what, its line, a soft badge, its door */
+function caCmdRowHtml(o){
+  const at = Object.entries(o.data || {}).map(([k, v]) => ` data-${k}="${_caE(v)}"`).join('');
+  return `<div class="ca-cmd-row"><span class="ca-cmd-g"><b>${_caE(o.title)}</b>${o.sub ? `<small>${_caE(o.sub)}</small>` : ''}</span>${
+    o.badge ? `<span class="ca-cmd-bd is-${o.tone || 'grey'}">${_caE(o.badge)}</span>` : ''}${
+    o.go ? `<button type="button" class="ca-cmd-go" data-ca-cmd-go="${_caE(o.go)}"${at}>${_caE(o.label)} ›</button>` : ''}</div>`;
+}
+function caCmdTurnHtml(lead, rows, more){
+  return `<div class="ca-cmd-turn"><p>${_caE(lead)}</p>${rows.length ? `<div class="ca-cmd-rows">${rows.map(caCmdRowHtml).join('')}</div>` : ''}${more ? `<p class="ca-cmd-more">${_caE(more)}</p>` : ''}</div>`;
+}
+const _caCmdBook = () => ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).filter(c => c && !c.archived);
+/* CHASE EVERYONE: their duties late or due within CA_CHASE_DAYS, not held behind an earlier step, the open agreement's
+   alone when one is in front; each a Chase › (obligationChase: the Send screen as a reminder) */
+const CA_CHASE_DAYS = 14;
+function caCmdChaseRows(only){
+  const dU = d => (typeof window.daysUntil === 'function') ? window.daysUntil(d) : NaN;
+  const out = [];
+  for (const c of (only ? [only] : _caCmdBook())){
+    for (const o of (Array.isArray(c.obligations) ? c.obligations : [])){
+      if (!o || o.status === 'done' || !o.id) continue;
+      if (typeof window.obligationIsTheirs === 'function' && !window.obligationIsTheirs(o)) continue;
+      if (typeof window.obligationBlocked === 'function' && window.obligationBlocked(o, c)) continue;
+      const due = (typeof window.dateOnly === 'function') ? window.dateOnly(o.due) : (o.due || null);
+      const d = due ? dU(due) : NaN;
+      if (!(d <= CA_CHASE_DAYS)) continue;
+      out.push({ c, o, d });
+    }
+  }
+  return out.sort((a, b) => a.d - b.d);
+}
+/* APPROVE THE ONES THAT MEET OUR STANDARDS: every agreement whose yes is the reader's to give now */
+function caCmdApproveRows(){
+  return _caCmdBook().filter(c => { try { return typeof window.approvalDecidableNow === 'function' && !!window.approvalDecidableNow(c); } catch (_){ return false; } });
+}
+function caCmdStdOf(c){
+  let s = null; try { s = typeof window.deviationSummary === 'function' ? window.deviationSummary(c) : null; } catch (_){ s = null; }
+  if (!s) return { k: 'none' };
+  if (s.ok && s.complete) return { k: 'meets' };
+  return { k: 'departs', n: (s.dev || 0) + (s.miss || 0) };
+}
+/* AMEND MANY: signed agreements the Amend door is open on (amendmentShutWhy), the open one's party first */
+function caCmdAmendRows(c0){
+  const all = _caCmdBook().filter(c => { try { return typeof window.amendmentShutWhy === 'function' && !window.amendmentShutWhy(c); } catch (_){ return false; } });
+  const p = c0 ? String(c0.counterparty || '').trim().toLowerCase() : '';
+  const same = p ? all.filter(c => String(c.counterparty || '').trim().toLowerCase() === p) : [];
+  return same.length ? same : all;
+}
+async function caCmdAct(k, host, said){
+  const c0 = caOpenContract(), ref = c => caRef(c), word = _caT('ca_cmd_t_' + k);
+  if (k === 'chase'){
+    const R = caCmdChaseRows(c0);
+    const rows = R.slice(0, CA_CMD_ROWS_MAX).map(({ c, o, d }) => ({ title: String(c.counterparty || ref(c)), sub: `${String(o.desc || o.title || '')} · ${ref(c)}`,
+      badge: d < 0 ? _caT('ca_cmd_late', { n: -d }) : _caT('ca_cmd_due', { n: d }), tone: d < 0 ? 'amber' : 'grey',
+      go: 'chase', label: _caT('ca_cmd_go_chase'), data: { cid: c.id, oid: o.id } }));
+    return caCmdSay(host, word, caCmdTurnHtml(R.length ? _caT('ca_cmd_chase_lead', { n: R.length }) : _caT('ca_cmd_chase_none', { n: CA_CHASE_DAYS }), rows,
+      R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
+  }
+  if (k === 'approve'){
+    const R = caCmdApproveRows();
+    const shown = R.slice(0, CA_CMD_ROWS_MAX);
+    for (const c of shown){ if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){} }
+    const rows = shown.map(c => { const st = caCmdStdOf(c);
+      return st.k === 'meets' ? { title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`, badge: _caT('ca_cmd_meets'), tone: 'green', go: 'approve', label: _caT('ca_cmd_go_approve'), data: { cid: c.id } }
+        : { title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`, badge: st.k === 'none' ? _caT('ca_cmd_unchecked') : _caT('ca_cmd_departs', { n: st.n }),
+          tone: st.k === 'none' ? 'grey' : 'amber', go: 'open', label: _caT('ca_cmd_go_open'), data: { cid: c.id } }; });
+    const meets = rows.filter(r => r.go === 'approve').length;
+    return caCmdSay(host, word, caCmdTurnHtml(R.length ? _caT('ca_cmd_approve_lead', { n: R.length, m: meets }) : _caT('ca_cmd_approve_none'), rows,
+      R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
+  }
+  if (k === 'amend'){
+    const R = caCmdAmendRows(c0);
+    const rows = R.slice(0, CA_CMD_ROWS_MAX).map(c => ({ title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`,
+      go: 'amend', label: _caT('ca_cmd_go_amend'), data: { cid: c.id, say: said || '' } }));
+    return caCmdSay(host, _caT('ca_cmd_lead_amend') + ' ' + (said || ''), caCmdTurnHtml(R.length ? _caT('ca_cmd_amend_lead', { n: R.length }) : _caT('ca_cmd_amend_none'), rows,
+      R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
+  }
+  if (k === 'request'){
+    const q = _caT('ca_cmd_lead_request') + ' ' + (said || '');
+    if (!c0) return caCmdSay(host, q, caCmdTurnHtml(_caT('ca_cmd_request_none'), []));
+    const who = String(c0.counterparty || '').trim() || _caT('ca_cmd_them');
+    return caCmdSay(host, q, caCmdTurnHtml(_caT('ca_cmd_request_lead', { who, ref: ref(c0) }), [{ title: said || '', sub: _caT('ca_cmd_request_sub'),
+      go: 'request', label: _caT('ca_cmd_go_request'), data: { cid: c0.id, say: said || '' } }]));
+  }
+  return false;
+}
+/* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
+function caCmdTyped(text, host){
+  const t = String(text || '').trim();
+  for (const k of ['amend', 'request']){
+    const leads = [_caT('ca_cmd_lead_' + k), k === 'amend' ? 'Amend many:' : 'Email request:'];
+    for (const L of leads){
+      if (L && t.toLowerCase().startsWith(String(L).toLowerCase())){
+        const said = t.slice(String(L).length).trim(); if (!said) return false;
+        caCmdAct(k, host || caCmdHostOf(null), said); return true;
+      }
+    }
+  }
+  return false;
+}
+/* each row's door, delegated once (the rows are drawn in moved turns) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caCmdWired){
+  document._caCmdWired = true;
+  document.addEventListener('click', async e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-ca-cmd-go]') : null; if (!b) return;
+    e.preventDefault();
+    const go = b.getAttribute('data-ca-cmd-go'), cid = b.getAttribute('data-cid');
+    const c = cid && typeof getContract === 'function' ? getContract(cid) : null;
+    if (go === 'chase' && typeof window.obligationChase === 'function'){ window.obligationChase(cid, b.getAttribute('data-oid')); return; }
+    if (go === 'open' && c && typeof window.roomHomeLand === 'function'){ window.roomHomeLand(c.id, { open: true }); return; }
+    if (go === 'amend' && c && typeof window.pd2AmAskOpen === 'function'){ window.pd2AmAskOpen(c.id, b.getAttribute('data-say') || ''); return; }
+    if (go === 'approve' && c && typeof window.approvalDecideAsk === 'function'){
+      b.disabled = true;
+      let ok = false; try { ok = await window.approvalDecideAsk(c, 'approved'); } catch (_){ ok = false; }
+      if (ok){ b.textContent = _caT('ca_cmd_approved'); b.classList.add('is-done'); } else b.disabled = false;
+      return;
+    }
+    if (go === 'request' && c && typeof window.openShareModal === 'function'){
+      const say = b.getAttribute('data-say') || '';
+      await window.openShareModal(c, { purpose: 'status' });
+      for (let i = 0; i < 40; i++){ const n = document.getElementById('sh-summary'); if (n){ n.value = _caT('ca_cmd_request_note', { what: say }); try { n.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){} break; } await new Promise(r => setTimeout(r, 50)); }
+    }
+  });
 }
 /* the group's head, drawn once before the first row of its kind (every "/" list) */
 function caSlHeadOf(rows, i){
@@ -3151,6 +3311,8 @@ function caBriefOpen(c){
 }
 function caAskAnywhere(text, opts = {}){
   const t = String(text || '').trim(); if (!t) return false;
+  /* "Amend many: …" / "Email request: …" (Jambo's commands, caCmdTyped): their rows, in this box's conversation */
+  if (caCmdTyped(t, opts.win ? 'ai' : null)) return true;
   /* A REQUEST TO BOOK OR FIND TIME, OR A QUESTION ABOUT ONE'S OWN CALENDAR
      (owner, 18 Oct 2026: "fix all four"), is the Calendar's Jambo's from every
      box — the one Jambo who reads a person's events and plans time (igBookAsk
@@ -3502,7 +3664,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdSince, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdSince, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });

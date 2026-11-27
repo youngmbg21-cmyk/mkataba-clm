@@ -1835,6 +1835,7 @@ function jlAsk(text, opts){
   if (opts && opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return 'go';
   /* "ADD GRACE WAMBUI, … AS THE CONTACT" opens the one contact sheet filled in from the words, before the brain is
      asked (cuContactAsk, owner 19 Nov 2026); nothing is saved until the person presses Add */
+  if (typeof caCmdTyped === 'function' && caCmdTyped(t, 'jl')) return 'said';
   if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t); } catch (_){ pc = false; } if (pc) return pc === true ? 'go' : 'said'; }
   if (opts && opts.typed && typeof caAiFirst === 'function' && caAiFirst() && typeof aiAskWords === 'function'){
     if (_jlBusy()) return jlBusySay(t);

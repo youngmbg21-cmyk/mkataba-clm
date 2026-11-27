@@ -24,7 +24,8 @@ function load(){
     _caE: s => String(s) };
   vm.createContext(ctx);
   const grab = name => { const at = CA.indexOf(name); assert.ok(at >= 0, name); return CA.slice(at, CA.indexOf('\n}\n', at) + 3); };
-  const src = ['const CA_CMDS', 'const CA_CMD_NB_MAX', 'const CA_SINCE_KEY'].map(n => CA.slice(CA.indexOf(n), CA.indexOf('\n', CA.indexOf(n)) + 1)).join('')
+  const src = CA.slice(CA.indexOf('const CA_CMDS'), CA.indexOf('];\n', CA.indexOf('const CA_CMDS')) + 3)
+    + ['const CA_CMD_NB_MAX', 'const CA_SINCE_KEY'].map(n => CA.slice(CA.indexOf(n), CA.indexOf('\n', CA.indexOf(n)) + 1)).join('')
     + 'let _caSince;\n' + ['function caUsesWho', 'function caRef'].map(n => CA.slice(CA.indexOf(n), CA.indexOf('\n', CA.indexOf(n)) + 1)).join('')
     + ['function caCmdSince', 'function caCmdWord', 'function caCmdNbDocs', 'function caCmdRows'].map(grab).join('\n');
   vm.runInContext(src + '\nthis.caCmdRows = caCmdRows; this.reset = () => { _caSince = undefined; };', ctx);
@@ -36,14 +37,14 @@ describe('f1262 (1) the rows', () => {
     const { ctx } = load();
     ctx.window.nbFilters = { docs: [{ id: 'n1', name: 'Data protection policy' }, { id: 'n2', name: 'Old', deletedAt: 'x' }] };
     const rows = ctx.caCmdRows('', { id: 'MK-1', contractNo: 'MK-398' });
-    assert.equal(rows.map(r => r.word).join(' '), '/prepare /check /handover /changed');
+    assert.equal(rows.map(r => r.word).join(' '), '/prepare /check /handover /changed /chase /request /amend-many /approve');
     assert.match(rows[0].q, /^Prepare me for a call about MK-398:/);
     assert.match(rows[1].q, /^Check MK-398 against "Data protection policy" in the Notebook/);
     assert.ok(rows.every(r => r.kind === 'cmd'));
   });
   test('no contract in front: only What\'s changed; a typed word narrows', () => {
     const { ctx } = load();
-    assert.equal(ctx.caCmdRows('', null).map(r => r.word).join(' '), '/changed');
+    assert.equal(ctx.caCmdRows('', null).map(r => r.word).join(' '), '/changed /chase /amend-many /approve', 'the one-contract ones only with a contract in front');
     assert.equal(ctx.caCmdRows('hand', { id: 'MK-1' }).map(r => r.word).join(' '), '/handover');
     assert.equal(ctx.caCmdRows('zzz', { id: 'MK-1' }).length, 0);
   });
@@ -62,7 +63,7 @@ describe('f1262 (2) every "/" list carries them; a choice writes, never asks', (
     assert.match(INS, /const cmds = \(typeof caCmdRows === 'function'\) \? caCmdRows\(m\[1\]\.toLowerCase\(\), jlHeldContract\(\) \|\| null\) : \[\];/);
     assert.match(INS, /if \(r\.kind === 'cmd'\)\{ jlPopClose\(\); const box = document\.getElementById\('jl-q'\); if \(box && typeof caCmdFill === 'function'\) caCmdFill\(box, r\); return; \}/);
     assert.match(HB, /rows: cmds\.concat\(places\.concat\(moves\)\.concat\(charts\)\)/);
-    assert.match(HB, /if \(r\.kind === 'cmd'\)\{ _hbAskSet\(inp, r\.q\); return; \}/);
+    assert.match(HB, /_hbAskSet\(inp, r\.q\); return; \}/);
   });
   test('the fill writes the question and nothing else', () => {
     const f = CA.slice(CA.indexOf('function caCmdFill'), CA.indexOf('\n}\n', CA.indexOf('function caCmdFill')));
@@ -73,5 +74,66 @@ describe('f1262 (2) every "/" list carries them; a choice writes, never asks', (
     for (const k of ['ca_cmd_head', 'ca_cmd_go', 'ca_cmd_w_prepare', 'ca_cmd_w_check', 'ca_cmd_w_handover', 'ca_cmd_w_changed', 'ca_cmd_s_prepare', 'ca_cmd_s_check_doc',
       'ca_cmd_s_handover', 'ca_cmd_s_changed', 'ca_cmd_q_prepare', 'ca_cmd_q_check', 'ca_cmd_q_handover', 'ca_cmd_q_changed', 'ca_cmd_q_changed_week', 'ca_cmd_q_changed_one', 'ca_cmd_q_changed_one_week'])
       assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
+  });
+});
+
+/* ROUND 2 (owner, 27 Nov 2026: "build them all"): Chase everyone, Email request, Amend many, Approve the ones that meet
+   our standards. Two act at once and answer in rows, two lead with words the person finishes; every row ends in a door
+   HaTi already has, one press each; a Viewer is offered none. */
+describe('f1262 (3) round 2: the four that act', () => {
+  function load2(){
+    const L = load(); const ctx = L.ctx;
+    const grab = name => { const at = CA.indexOf(name); assert.ok(at >= 0, name); return CA.slice(at, CA.indexOf('\n}\n', at) + 3); };
+    vm.runInContext(['const CA_CHASE_DAYS', 'const _caCmdBook'].map(n => CA.slice(CA.indexOf(n), CA.indexOf('\n', CA.indexOf(n)) + 1)).join('')
+      + ['function caCmdChaseRows', 'function caCmdStdOf', 'function caCmdAmendRows'].map(grab).join('\n')
+      + '\nthis.caCmdChaseRows = caCmdChaseRows; this.caCmdStdOf = caCmdStdOf; this.caCmdAmendRows = caCmdAmendRows;', ctx);
+    return L;
+  }
+  test('a Viewer is offered none of the four; a writer all four with a contract in front', () => {
+    const { ctx } = load();
+    ctx.canEdit = () => true;   /* no Notebook documents here: Check has no row to offer */
+    assert.equal(ctx.caCmdRows('', { id: 'MK-1', counterparty: 'Ventura' }).map(r => r.word).join(' '), '/prepare /handover /changed /chase /request /amend-many /approve');
+    ctx.canEdit = () => false;
+    assert.equal(ctx.caCmdRows('', { id: 'MK-1' }).map(r => r.word).join(' '), '/prepare /handover /changed');
+  });
+  test('the two that lead write their opening words; the two that act carry no question', () => {
+    const { ctx } = load(); ctx.canEdit = () => true;
+    const R = ctx.caCmdRows('', { id: 'MK-1', counterparty: 'Ventura' });
+    assert.equal(R.find(r => r.k === 'amend').q, 'Amend many: ');
+    assert.equal(R.find(r => r.k === 'request').q, 'Email request: ');
+    assert.ok(R.find(r => r.k === 'chase').act && !R.find(r => r.k === 'chase').q);
+  });
+  test('Chase reads only their duties, late or due within the window, never one held behind an earlier step', () => {
+    const { ctx } = load2();
+    ctx.state = { contracts: [{ id: 'A', obligations: [{ id: 1, due: 'late', party: 'theirs' }, { id: 2, due: 'soon', party: 'theirs' }, { id: 3, due: 'far', party: 'theirs' },
+      { id: 4, due: 'late', party: 'ours' }, { id: 5, due: 'late', party: 'theirs', status: 'done' }, { id: 6, due: 'late', party: 'theirs', held: true }] }] };
+    ctx.window.daysUntil = d => ({ late: -3, soon: 5, far: 40 })[d];
+    ctx.window.obligationIsTheirs = o => o.party === 'theirs';
+    ctx.window.obligationBlocked = o => !!o.held;
+    assert.equal(ctx.caCmdChaseRows(null).map(x => x.o.id).join(','), '1,2');
+  });
+  test('Approve is offered only where the stored check met every position AND asked every one', () => {
+    const { ctx } = load2();
+    ctx.window.deviationSummary = c => c.s;
+    assert.equal(ctx.caCmdStdOf({ s: { ok: true, complete: true } }).k, 'meets');
+    assert.equal(ctx.caCmdStdOf({ s: { ok: true, complete: false } }).k, 'departs');
+    assert.equal(ctx.caCmdStdOf({ s: null }).k, 'none');
+  });
+  test('Amend many lists signed agreements the Amend door is open on, the open one\'s party first', () => {
+    const { ctx } = load2();
+    ctx.state = { contracts: [{ id: 'A', counterparty: 'Ventura' }, { id: 'B', counterparty: 'Other' }, { id: 'C', counterparty: 'Ventura', shut: true }] };
+    ctx.window.amendmentShutWhy = c => c.shut ? 'no' : '';
+    assert.equal(ctx.caCmdAmendRows({ counterparty: 'Ventura' }).map(c => c.id).join(','), 'A');
+    assert.equal(ctx.caCmdAmendRows(null).map(c => c.id).join(','), 'A,B');
+  });
+  test('every row ends in an existing door, one press each; the typed words are read first in every box', () => {
+    for (const re of [/go === 'chase' && typeof window\.obligationChase === 'function'\)\{ window\.obligationChase\(cid, b\.getAttribute\('data-oid'\)\)/,
+      /go === 'amend' && c && typeof window\.pd2AmAskOpen === 'function'\)\{ window\.pd2AmAskOpen\(c\.id, b\.getAttribute\('data-say'\) \|\| ''\)/,
+      /ok = await window\.approvalDecideAsk\(c, 'approved'\)/,
+      /await window\.openShareModal\(c, \{ purpose: 'status' \}\)/]) assert.match(CA, re);
+    assert.match(CA, /function caAskAnywhere\(text, opts = \{\}\)\{\s*const t = String\(text \|\| ''\)\.trim\(\); if \(!t\) return false;\s*if \(caCmdTyped\(t, opts\.win \? 'ai' : null\)\) return true;/);
+    assert.match(INS, /if \(typeof caCmdTyped === 'function' && caCmdTyped\(t, 'jl'\)\) return 'said';/);
+    assert.match(strip(R('js/views/intelligence.js')), /if\(typeof window\.caCmdTyped==='function'&&caCmdTyped\(q, 'ig'\)\) return;/);
+    assert.match(HB, /if \(r\.kind === 'cmd'\)\{ if \(r\.act && typeof window\.caCmdFill === 'function'\)\{ caCmdFill\(inp, r\); return; \}/);
   });
 });

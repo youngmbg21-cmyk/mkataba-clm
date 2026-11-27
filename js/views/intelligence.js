@@ -3346,6 +3346,7 @@ async function intelAsk(qRaw, opts){
   /* still answering: the question waits its turn (jamboAskLater), never dropped */
   if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelAsk(w, opts)); return; }
   /* "add … as the contact" opens the one contact sheet filled in from the words (cuContactAsk, owner 19 Nov 2026) */
+  if(typeof window.caCmdTyped==='function'&&caCmdTyped(q, 'ig')) return;
   if(typeof cuContactAsk==='function'){ let pc=false; try{ pc=cuContactAsk(q); }catch(_){ pc=false; } if(pc) return; }
   /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): the person says so, Jambo answers in HaTi's own words, free,
      with the first steps as chips — read before the brain and before any reader that takes "new" for a draft */
