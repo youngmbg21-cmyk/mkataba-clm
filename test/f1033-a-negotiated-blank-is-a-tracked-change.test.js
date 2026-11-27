@@ -33,8 +33,10 @@ test('f1033 (2) a clause with a change open on it offers no blank, read RAW', ()
   const m = region(P, 'pd2NegoMark');
   /* RE-POINTED 13 Nov 2026 (f1036): the front part is a region too; a region with a change open, or drawn changed, is skipped */
   assert.match(m, /changed: sec\.classList\.contains\('is-changed'\)/);
-  /* RE-POINTED 26 Nov 2026 (f1243: our own Fill in change gives its spaces back): any other changed region is still skipped */
-  assert.match(m, /if \(argued\.has\(String\(id\)\) \|\| changed\)\{\s*own = pd2NegoOwnFill\(c, id\); if \(!own\) return;/);
+  /* RE-POINTED 26 Nov 2026 (f1246: fill-ins are answers, filled after the negotiation): a clause with a change OPEN is
+     skipped (our own old Fill in change aside); one whose change was agreed is filled as it now reads, its struck words never walked */
+  assert.match(m, /if \(argued\.has\(String\(id\)\)\)\{\s*own = pd2NegoOwnFill\(c, id\); if \(!own\) return;/);
+  assert.match(region(P, 'pd2NegoSeq'), /'del, s, h4\.rl-clause-h/);
   assert.doesNotMatch(region(P, 'pd2NegoRead'), /negoInit|negoClauseNowById|pd2NegoMark/, 'reading paints and writes nothing');
 });
 test('f1033 (3) the fill walk takes the negotiated paper\'s marks and nothing else of it', () => {
@@ -47,21 +49,19 @@ test('f1033 (3) the fill walk takes the negotiated paper\'s marks and nothing el
     'a negotiated paper leads, before a company standard\'s form-then-wording path');
   assert.match(region(P, 'pd2FillStart'), /if \(first\) pd2NegoMark\(c\);\n\s*if \(first\)\{ const was/);
 });
-test('f1033 (4) Save files through the one door as our change, never quietly', () => {
+test('f1033 (4) Save keeps the answers through the one writer, never a change (RE-POINTED 26 Nov 2026, f1246)', () => {
   const save = region(P, 'pd2FillSave');
   /* RE-POINTED 26 Nov 2026 (f1243): a cleared answer counts too */
   assert.match(save, /const nego = moved\.filter\(x => x\.b\.kind === 'nego' && \(x\.v \|\| String\(_pd2Fill\.was\[x\.b\.key\] \|\| ''\)\.trim\(\)\)\);/);
   assert.ok(save.indexOf('pd2FillSaveNego(c, nego, rest)') < save.indexOf('contractBlankSet('), 'handed on before any blank is written');
   const f = region(P, 'pd2NegoFile');
-  assert.match(f, /await negoFileFilledClause\(c, clauseId, host\.innerHTML, _pdT\('pd2_nb_note'\), fill\)/);
-  /* the door and the save live in the negotiation's own file: the desk never saves (f563) */
-  const N = stripCom(read('js/negotiation.js'));
-  /* RE-POINTED 26 Nov 2026 (f1243): the door stamps Fill in's answers on the change before it saves */
-  assert.match(region(N, 'negoFileFilledClause'), /await negoEditClause\(c, clauseId, bodyHtml, \{ side: 'owner', quiet: true, note \}\);[\s\S]*live\.fill = Object\.assign\(\{\}, fill\);[\s\S]*if \(ch && window\.persist\) persist\(c\);/);
+  assert.match(f, /negoFillsSet\(c, clauseId, fill, \{ hold: clauseId !== last \}\)/, 'the one writer, saving once on the last');
+  assert.doesNotMatch(f, /negoFileFilledClause|negoEditClause|contractBlankSet|redlineText\s*=|persist\(/, 'never a change, nothing written but through the writer');
   assert.match(f, /const cl = negoClauseNowById\(c, clauseId\);/, 'from the clause as it stands');
-  assert.match(f, /if \(!cl \|\| hits\.some\(h => !h\.at\)\) why = _pdT\('pd2_nb_moved'\);/, 'a blank not found again refuses the clause');
-  assert.doesNotMatch(f, /contractBlankSet|redlineText\s*=|\.bodyHtml\s*=|persist\(/, 'nothing written but through the door');
-  assert.match(f, /sp\.className = 'hati-field-done'; sp\.setAttribute\('data-field-key', at\.fk\); sp\.textContent = x\.v;/, 'an answer is text, never markup');
+  assert.match(f, /why = _pdT\('pd2_nb_moved'\)/, 'a blank not found again refuses the clause');
+  const N = stripCom(read('js/negotiation.js'));
+  assert.match(region(N, 'negoFillsSet'), /negoCommitBody\(c, negoResolvedBody\(c\)\);[\s\S]*if \(!opts\.hold && window\.persist\) persist\(c\);/);
+  assert.match(region(N, 'negoFillsBody'), /sp\.className = 'hati-field-done'; sp\.setAttribute\('data-field-key', b\.fk\); sp\.textContent = v;/, 'an answer is text, never markup');
 });
 test('f1033 (4b) when the filling stops, a negotiated paper is drawn whole, its marks and boxes gone', () => {
   assert.match(region(P, 'pd2FillStop'), /if \(host && host\.querySelector\('\[' \+ PD2_NB_ATTR \+ '\]'\)\) delete host\.dataset\.for;\n\s*if \(typeof igPaperRefresh === 'function'\)/);
@@ -77,6 +77,8 @@ test('f1033 (6) both books, and the Handbook says it', () => {
     assert.equal((L.match(new RegExp('\\n\\s+' + k + ': ', 'g')) || []).length, 2, k);
   const H = read('js/handbook.js');
   /* RE-POINTED 13 Nov 2026 (f1036): the parties' details at the top are typed there too */
-  assert.match(H, /On a contract being negotiated, its blanks are typed on the paper too, the parties\\' names and addresses at the top included, except where a change is still open\./);
-  assert.match(H, /På ett avtal som förhandlas skrivs luckorna också på pappret/);
+  /* RE-POINTED 26 Nov 2026 (owner, #1035: "Fill-ins are answers, not redlines, and come after the negotiation"): the
+     chapter says the blanks are typed once the redlines are settled, an answer and never a change */
+  assert.match(H, /On a contract that was negotiated, its blanks are typed on the paper too once the redlines are settled, the parties\\' names and addresses at the top included\. What you type is an answer, never a change/);
+  assert.match(H, /På ett avtal som har förhandlats skrivs luckorna också på pappret när ändringarna är klara/);
 });

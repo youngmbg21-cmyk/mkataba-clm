@@ -270,6 +270,9 @@ function stkBlankFilled(c, p){ const bl = stkBlanksOf(c, p); return bl.length > 
    press takes the Dossier's own door, pdFillGo, so the blanks turn into lines on the paper; the form only where
    that door itself falls back to it */
 function stkFillGo(c, p){
+  /* a space on THEIR paper (every upload, owner, 26 Nov 2026) is theirs to fill: said where the reader looks, whatever
+     else the record still owes (the Dossier's card opens that) */
+  try { if (window.pd2FillHeldWhy && window.pd2FillHeldSay && window.pd2FillHeldWhy(c) === 'theirs') return window.pd2FillHeldSay(c, 'theirs'); } catch (_){}
   const open = stkBlanksOf(c, p).find(x => !String(x.value || '').trim());
   if (typeof pdFillGo === 'function') return pdFillGo(c.id, open ? open.key : '');
   if (typeof pdFillOpen === 'function') pdFillOpen(c.id, { key: open ? open.key : '' });
@@ -496,7 +499,7 @@ function stkCardHtml(c, p, i, redWhy){
     ${stake && stake !== p.title ? `<p class="stk-st">${_bdE(stake)}</p>` : ''}
     ${p.stdPos && p.by !== 'std' ? `<div class="stk-std" title="${_bdE(p.stdPos)}">${_bdE(i18t('stk_our_std', { pos: p.stdPos }))}</div>` : ''}
     <div class="stk-cacts">${p.blank
-      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : (typeof window.pd2Sealed === 'function' && window.pd2Sealed(c)) ? i18t('pd2_n_blank_signed_w') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
+      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : (typeof window.pd2Sealed === 'function' && window.pd2Sealed(c)) ? i18t('pd2_n_blank_signed_w') : (typeof window.pd2FillHeldWhy === 'function' && window.pd2FillHeldWhy(c) === 'theirs') ? i18t('pd2_fill_theirs') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
       : `<button type="button" class="stk-a is-go is-link" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a is-link" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button>`}<span class="stk-mks">${mark}</span></div></div>`;
 }
 /* ---- ONE "WHAT TO WATCH" PER CLAUSE (owner picked "One list", 11 Nov 2026) ----

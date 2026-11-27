@@ -1,4 +1,6 @@
-/* THE FRONT PART IS FILLED ON A NEGOTIATED PAPER TOO (owner, 13 Nov 2026, of MK-469: "the top part brings me to the
+/* RE-POINTED 26 Nov 2026 (owner, #1035: fill-ins come after the negotiation, never a redline): with a change open the
+   claims below are now held as Fill in WAITING — said, with the way to Redlines — and nothing filed. Its history:
+   THE FRONT PART IS FILLED ON A NEGOTIATED PAPER TOO (owner, 13 Nov 2026, of MK-469: "the top part brings me to the
    other middle page to fill in while the below part allows me to fill on paper"; picked option 1). A lease made from a
    company standard, its parties' details above the first heading, in negotiation (a change of theirs on the last
    clause):
@@ -52,24 +54,26 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
       await negoEditClause(k, last.clauseId, '<p>This Agreement is governed by the laws of England and Wales.</p>', { side: 'counterparty', author: 'Ventura Capital' });
       persist(k); roomHomeLand('MK-TF2'); });
     await until(page, () => typeof pdOnPaper === 'function' && pdOnPaper() && !!document.querySelector('.ig-redpaper'), null, 20000);
+    /* RE-POINTED 26 Nov 2026 (owner, #1035: "Fill in should not be a redline and should likely not come before
+       negotiations. You should negotiate or redline a contract and once you are done, you then fill in the contract right
+       before signing"; it REVERSES 13 Nov's "filled as a tracked change", whose front-part reach this file pinned): with
+       their change open on the last clause, Fill in waits — no line on the paper, front part or clauses; it says why and
+       how many are open, and takes the reader to Redlines (pd2FillHeldSay); nothing is filed and no answer is kept. */
+    const C0 = await page.evaluate(() => { const k = getContract('MK-TF2'); return { open: negoFillOpenCount(k), why: pd2FillHeldWhy(k), changes: (k.changes || []).length }; });
     await page.evaluate(() => { try { pd2WalkClose(); } catch (_) {} pdFillGo('MK-TF2'); });
-    const up = await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-bl]'), null, 8000);
+    const want = await page.evaluate(() => i18tn('ng_fill_finish_first', 1, { n: 1 }));
+    const said = await until(page, w => ((document.getElementById('toast-root') || {}).textContent || '').includes(w), want, 8000);
+    const red = await until(page, () => typeof pdRedShows === 'function' && pdRedShows() && !!document.querySelector('#pd-redface'), null, 10000);
     /* 1 */
     const A = await page.evaluate(() => ({ lines: [...document.querySelectorAll('#ig-canvas [data-pd2-bl]')].map(x => x.getAttribute('data-pd2-bl')),
-      rest: ((document.querySelector('#ig-dock .pd2-fp-rest') || {}).textContent || '') }));
-    check('1 the front part\'s fields are lines on the negotiated paper, the clauses\' too, none in the clause with an open change',
-      up && A.lines.includes('nb~front~f:tenant~0') && A.lines.includes('nb~front~f:addr~0') && A.lines.some(k => /f:cover/.test(k)) && !A.lines.some(k => /f:law/.test(k))
-        && !/Tenant Name|Tenant Principal/.test(A.rest), A);
+      head: !!document.getElementById('pd2-fill-head'), on: pd2FillOn('MK-TF2') }));
+    check('1 with their change open, Fill in waits: no line on the paper (front part or clauses), said with the count, the way to Redlines opened',
+      C0.open === 1 && C0.why === 'open' && said && red && A.lines.length === 0 && !A.head && !A.on, { C0, want, said, red, A });
     /* 2 */
-    if (up){ await page.click('#ig-canvas [data-pd2-bl="nb~front~f:tenant~0"]'); await page.keyboard.type('Ventura Capital Ltd');
-      await page.click('#ig-canvas [data-pd2-bl="nb~front~f:addr~0"]'); await page.keyboard.type('Riverside Drive, Nairobi');
-      await page.evaluate(() => pd2FillSave()); }
-    const saved = await until(page, () => !document.getElementById('pd2-fill-head'), null, 10000);
-    await page.waitForTimeout(1500);
+    await page.evaluate(() => window.flushSaves && flushSaves()).catch(() => {});
     const R = await page.evaluate(async () => { const r = await api('contracts/MK-TF2'); const k = r.contract || r;
-      return (k.changes || []).filter(x => x.clauseId === 'front').map(x => ({ status: x.status, text: String(x.newText || '') })); });
-    check('2 Save files the front answers as one change of ours on the front part, pending, with the words typed',
-      saved && R.length === 1 && R[0].status === 'pending' && /Ventura Capital Ltd/.test(R[0].text) && /Riverside Drive, Nairobi/.test(R[0].text), R);
+      return { front: (k.changes || []).filter(x => x.clauseId === 'front').length, ours: (k.changes || []).filter(x => x.authorSide === 'owner').length, fills: k.fills && Object.keys(k.fills).length ? k.fills : null }; });
+    check('2 nothing is filed on the front part, nor kept as an answer, while the negotiation is open', R.front === 0 && R.ours === 0 && !R.fills, R);
   } finally { await browser.close(); await h.stop(); }
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');
   process.exit(fails ? 1 : 0);

@@ -72,7 +72,10 @@ describe('f1202 (4) the writing bar above the clause', () => {
     /* RE-POINTED 25 Nov 2026 (f1229): the bar is one white bar across the top of the page; it no longer moves at all —
        its width is the page's, and nothing animates it */
     assert.doesNotMatch(b, /style\.(left|top|height) =/);
-    assert.match(b, /const w = Math\.round\(left\.clientWidth/);
+    /* RE-POINTED 26 Nov 2026 (#1032, "The Editor tab's divider is the Dossier's own"): the bar is the page's width less
+       what the side panel lies over it (--ce-tab-over), so it never runs under the panel */
+    assert.match(b, /const over = parseInt\(pg\.style\.getPropertyValue\('--ce-tab-over'\)/);
+    assert.match(b, /const w = Math\.round\(\(left\.clientWidth[^;]*\) - over\)/);
     assert.match(H, /#clause-editor\.is-tabbed \.ce-head\{position:absolute;/);
     assert.match(H, /#clause-editor\.is-tabbed #ce-doc \.rl-clause-live::before\{/);
   });

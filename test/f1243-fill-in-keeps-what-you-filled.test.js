@@ -43,12 +43,11 @@ test('f1243 (4) on a paper with redlines, our own Fill in change gives its space
   assert.match(m, /data-pd2-nb-val/, 'the answer goes back into its space');
   assert.match(fnSrc(PD, 'pd2NegoRead'), /value: el\.getAttribute\('data-pd2-nb-val'\) \|\| ''/);
 });
-test('f1243 (5) a save files the clause again with every answer, so our one change is replaced, never a second', () => {
+test('f1243 (5) a save keeps every answer of the clause again, so nothing is added beside it (RE-POINTED 26 Nov 2026, f1246)', () => {
   const f = fnSrc(PD, 'pd2NegoFile');
-  assert.match(f, /fill = Object\.assign\(\{\}, own \? own\.fill : \{\}\)/, 'our earlier answers');
+  assert.match(f, /const fill = Object\.assign\(\{\}, \(typeof negoFillsOf === 'function' && negoFillsOf\(c, clauseId\)\) \|\| \{\}\)/, 'our earlier answers');
   assert.match(f, /else delete fill\[k\]/, 'a cleared answer goes back to its space');
-  assert.match(f, /negoFileFilledClause\(c, clauseId, host\.innerHTML, _pdT\('pd2_nb_note'\), fill\)/, 'the answers ride our change');
-  assert.match(fnSrc(read('js/negotiation.js'), 'negoFileFilledClause'), /live\.fill = Object\.assign\(\{\}, fill\)/, 'stamped by the door, before it saves');
+  assert.match(f, /negoFillsSet\(c, clauseId, fill,/, 'the answers kept as answers, replacing the clause\'s own');
   assert.match(fnSrc(PD, 'pd2FillSave'), /x\.b\.kind === 'nego' && \(x\.v \|\| String\(_pd2Fill\.was\[x\.b\.key\] \|\| ''\)\.trim\(\)\)/, 'a cleared answer counts as a change');
 });
 test('f1243 (6) after a filed save, no "Nothing changed"', () => {

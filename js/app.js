@@ -8,6 +8,7 @@ import './jurisdiction.js'; // where this workspace operates: law, money, which 
 import './outside.js';     // redline here, sign there: the working reference, the contract number and the word check (26 Sep 2026)
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
 import './hatisearch.js';   // the one search over HaTi: its words, both hosts (Jambo works like Copilot, stage 1, 22 Oct 2026)
+import './walkplan.js';     // WALK ME THROUGH IT: the lesson's plan, its drawings and its check, both hosts (owner, 26 Nov 2026)
 import './roundprep.js';    // Their round came back: one key for an ask of theirs, both hosts (27 Sep 2026)
 import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
@@ -31,6 +32,7 @@ import './richpaste.js';
 import './api.js';
 import './aimd.js';    // markdown + tone markers, escaped: a model's words are untrusted input
 import './aichart.js'; // in-chat charts, built from live state and never from the model
+import './lesson.js';  // WALK ME THROUGH IT: the lesson drawn in Jambo's panel, every figure from HaTi's own counting (owner, 26 Nov 2026)
 import './advice.js';
 import './metadata.js';
 import './versioning.js';

@@ -100,7 +100,10 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       const c = getContract(id);
       const paper = document.querySelector('#ig-canvas span[data-field-key="own_1"]');
       return { stored: /made on <span class="hati-field-done" data-field-key="own_1">8 October 2026<\/span>/.test(c.redlineText),
-        paper: paper ? paper.textContent : null, cls: paper ? paper.className : null,
+        paper: paper ? paper.textContent : null,
+        /* the light on the field being worked (is-fieldlit, contractFieldLight: one at a time, follows the box in hand) is a
+           pointing state, not what was written; the word's own class is what is pinned */
+        cls: paper ? [...paper.classList].filter(k => k !== 'is-fieldlit').join(' ') : null,
         box: (document.querySelector('#pd-og [data-blankf="own_1"]') || {}).value };
     }, aid);
     check('3  the date is written INTO the wording and shown on the paper',

@@ -469,11 +469,12 @@ function upNodesOf(root){
    words ("[insert amount]") still holds the handover (outsideBlanksOf),
    because whatever is in the file is what they sign. That is a question
    about the WORDING; this is a form beside it. */
+/* AND NOW EVERY UPLOAD (owner, 26 Nov 2026: "For counter party contracts or 3rd party contracts, they should be filled
+   in using their tools"): an upload is their paper (pd2RoadPaper), whoever signs it and wherever, so its spaces are
+   theirs to fill; a change we need in it is a redline. The same one reading, so everything stands down together. */
 function uploadBlanksTheirs(c){
   if(!c) return false;
-  try{ if(!(typeof isUpload === 'function' && isUpload(c))) return false; }catch(_){ return false; }
-  try{ return (typeof signRouteOf === 'function') ? signRouteOf(c) === 'outside' : c.signRoute === 'outside'; }
-  catch(_){ return c.signRoute === 'outside'; }
+  try{ return !!(typeof isUpload === 'function' && isUpload(c)); }catch(_){ return false; }
 }
 
 /* ---- MAY THIS UPLOAD'S BLANKS BE FILLED NOW ----

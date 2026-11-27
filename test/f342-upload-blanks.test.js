@@ -88,8 +88,14 @@ const WORDING = [
   '<p>Authorised signatory: ________</p>',
 ].join('');
 
+/* RE-POINTED 26 Nov 2026 (f1246): the owner ruled every upload THEIR paper ("they should be filled in using their
+   tools"), so uploadBlanksTheirs now answers yes for every upload and this whole form stands down in the product. The
+   machinery stays (a ruling can be lifted), and this file keeps proving it reads and writes right, under the gate it
+   was built behind: only a file signed outside is theirs. f1246 proves the new gate itself. */
+const OLD_THEIRS = c => !!(c && c.source === 'upload' && c.signRoute === 'outside');
 function stage(over, opts){
   const { win } = buildWorld(Object.assign({ blanks: true, templates: true }, opts || {}));
+  win.uploadBlanksTheirs = OLD_THEIRS;
   const c = Object.assign({
     id: 'MK-700', name: 'Supply Agreement', status: 'Under Review', source: 'upload',
     format: 'rich', redlineText: WORDING, fields: {}, audit: [], metadata: {},
@@ -537,8 +543,8 @@ describe('f342 (7) a file they sign — the blanks are theirs to fill', () => {
     assert.ok(/if\(uploadBlanksTheirs\(c\)\) return false;/.test(ub), 'uploadBlanksLive must ask uploadBlanksTheirs');
     const th = fnBody(UB_CODE, 'uploadBlanksTheirs');
     assert.ok(th, 'uploadBlanksTheirs not found');
-    assert.ok(/signRouteOf\(c\) === 'outside'/.test(th), 'the route is js/outside.js\'s own reading');
-    assert.ok(/c\.signRoute === 'outside'/.test(th), 'with the literal as the fallback where that file is absent');
+    /* RE-POINTED 26 Nov 2026 (f1246): every upload is theirs now, whoever signs it */
+    assert.ok(/isUpload\(c\)/.test(th), 'every upload is their paper');
   });
   test('7d and on a stage without js/outside.js the literal still answers', () => {
     const { win, c } = stage(THEIRS);
@@ -585,6 +591,7 @@ describe('f342 (7) a file they sign — the blanks are theirs to fill', () => {
    route LIVE both ways: the route can move after the arrival reading ran. */
 function tileStage(over, fill){
   const { win } = buildWorld({ blanks: true, templates: true, triage: true });
+  win.uploadBlanksTheirs = OLD_THEIRS;
   const c = Object.assign({
     id: 'MK-701', name: 'Supply Agreement', status: 'Under Review', source: 'upload',
     format: 'rich', redlineText: WORDING, fields: {}, audit: [], metadata: {},

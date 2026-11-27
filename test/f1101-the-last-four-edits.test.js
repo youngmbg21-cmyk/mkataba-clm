@@ -31,7 +31,8 @@ test('f1101 (1) a saved view is named in the one sheet, never in a box in the pa
 test('f1101 (2) a new note is a sheet over My notes in the new look; the one writer saves it', () => {
   const MN = read('js/views/mynotes.js');
   const n = strip(fnBody(MN, 'myNotesNew'));
-  assert.match(n, /const sheet = mnSheetOn\(\);/); assert.match(n, /if \(!sheet\) _mn\.mode = 'new';/, 'the panel stays as it was');
+  /* RE-POINTED 26 Nov 2026 (f1247): from another page the sheet opens over that page */
+  assert.match(n, /const sheet = away \|\| mnSheetOn\(\);/); assert.match(n, /if \(!sheet\) _mn\.mode = 'new';/, 'the panel stays as it was');
   assert.match(n, /if \(sheet\) mnSheetPaint\(true\);/);
   assert.match(strip(fnBody(MN, 'mnSheetOn')), /newLookOn\(\) && [^;]*insFits\(\)/);
   const o = strip(fnBody(MN, 'mnSheetOpts'));

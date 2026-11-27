@@ -23032,3 +23032,18 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ### Noticed, not fixed (26 Nov 2026)
 - f1241 (styling nothing draws only goes down) is red on main before this change: 859 rules against a ceiling of 857 (e.g. Import's .imp-tab.on, .modal-in[data-dlg-sap] .sap-row). Left red.
+
+### Removed or changed on the owner's word (26 Nov 2026, fill-ins are answers)
+- Fill in on an uploaded paper (their paper) is gone, the upload blanks form stands down (uploadBlanksTheirs = every upload). An upload's placeholders stay amber on the paper; a change there is a redline.
+- Noticed, not fixed: on the negotiated canvas, placeholders not yet answered are not drawn amber (they are words there), unlike the plain paper.
+- Noticed, not fixed: negoCommitText (plain-text contracts) does not write Fill in's answers into the wording; only rich papers carry them (negoCommitBody).
+
+### Noticed, not fixed (26 Nov 2026, walk me through it)
+- Noticed, not fixed: f148 "every plural key comes as a complete _one/_other pair" is red on main: nsn_link_one has no nsn_link_other in either book.
+- Noticed, not fixed: f1012 (7), f1202 (4) "the writing bar above the clause" and "moved by transform only, kept inside the paper's width" are red on main before this change.
+- Noticed, not fixed: CLAUDE.md is about 107 KB, past its own "keep it under about 80 KB" line, before this change added four lines.
+- 26 Nov 2026 · FIXED (PR #1038): #1029's clean-up took out the clause editor's writing-bar styling for the colour, highlight and size tools (.rb-wide, .rb-a, .rb-sw, .rb-size-v) as "nothing draws" — their names are built in pieces in richBarHtml. Put back; f1241 now counts a name built from a quoted beginning and a built ending as drawn (dead rules 831). Found by review, not by a check; not seen in a browser.
+- 26 Nov 2026 · Noticed, not fixed (PR #1038): on their paper (every upload) the links row's "fill in" and the Clauses tab's "Fill it in" stay live and only say "This is their paper…" — a refusal with its way forward, as #1035 built it; the owner may prefer them greyed with that reason.
+- 26 Nov 2026 · Noticed, not fixed (PR #1038): no browser check now drives "the table is clear, then Fill in, answers kept on c.fills" on a negotiated paper of OURS (f1246 covers it in node).
+- 27 Nov 2026 · Noticed, not fixed: the Handbook's how-to reader finds no chapter for "how do I add a duty" or "how do I create a template" (so "walk me through adding a duty" falls to the AI too); the chapters' everyday words do not hold those phrasings.
+- 27 Nov 2026 · Noticed, not fixed (red on main since #1041/#1043 merged; the same on #1043's own run aec9c7b9, seen again on PR #1042): f883 (16px inside every card), f977 (6, 7) (a HARMONY rule not waiting on the switch); browser checks explorer-brain 5c/5c2 ("walk me through them" on the map), one-door 8a–8c (their paper's sentence; setInputFiles timeout), board-remote 7 (the ninth chart's cap), jambo-words 4c (a third group "Charts"), jambo-map 1c/2a/2b ("how do I set signing limits?", "how do I get them to sign?" now read as directions).

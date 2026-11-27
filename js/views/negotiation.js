@@ -13768,14 +13768,17 @@ function redlineDocHtml(c, opts = {}){
   const _brand=(opts.look!==false&&typeof window!=='undefined'&&window.resolveDocBranding)?resolveDocBranding(c):null;
   const _dAttr=(_brand&&window.docDesignBodyAttr)?docDesignBodyAttr(_brand):'';
   const _dStyle=(_brand&&window.docDesignPaperStyle)?docDesignPaperStyle(_brand):'';
-  return `<div class="rl-zoom"${_dAttr} style="zoom:var(--rl-zoom,1)"><article class="nego-doc rl-paper"${_dStyle?` style="${_dStyle}"`:''}>
+  /* FILL-INS ARE ANSWERS, NOT REDLINES (owner, 26 Nov 2026): each answer Fill in kept sits in its space, on every face
+     and on the other side's page (negoFillsPaint) */
+  const _fillsPaint = (typeof window !== 'undefined' && typeof window.negoFillsPaint === 'function') ? window.negoFillsPaint : (x, h) => h;
+  return _fillsPaint(c, `<div class="rl-zoom"${_dAttr} style="zoom:var(--rl-zoom,1)"><article class="nego-doc rl-paper"${_dStyle?` style="${_dStyle}"`:''}>
     ${head}
     ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps',
       offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}
     ${rlRvDocNoticeHtml(c, opts, _rvHidden)}
     ${body || `<p class="rl-clause-p">${i18t('ng_no_clause_structure')}</p>`}
     ${rlPaperFootHtml(c)}
-  </article></div>`;
+  </article></div>`);
 }
 
 /* ---------- WHERE THE NAMES GO ----------

@@ -3352,6 +3352,20 @@ async function intelAsk(qRaw, opts){
   if(typeof window.teachSay==='function'){ const tt=teachSay(q);
     if(tt){ intel.history.push({role:'user', text:q}, Object.assign({role:'assistant', host:'ai', text:tt.html, read:tt.read}, tt.choices?{ choices:tt.choices }:{})); renderIntelDock(); return; }
     if(typeof window.teachDid==='function') teachDid('ask'); }
+  /* WALK ME THROUGH IT (js/walkplan.js walkAsked): a lesson about one's data is the conversation's, ahead of the
+     Board's and the page's own readers, which would take "my contracts" for a place or a picture */
+  if(typeof window.walkAsked==='function'&&walkAsked(q)) return intelWalkAsk(q);
+  /* SHOW ME, ON THE BOARD (owner, 27 Nov 2026: "Board is for KPIs and charts"): a chart or KPI question asked on Home is
+     drawn on the Board's page by its own drawing model — from the paper, the Dossier or the Calendar the Board comes up
+     first; Explorer keeps its own map (js/walkplan.js chartAsked, the one decider) */
+  /* a question asked of the contract on the paper (or held) stays that contract's */
+  /* already on the Board, its own readers answer as before (an open chart's "make it monthly", "as a pie") — only a
+     "show me" that names no chart is asked which one here */
+  const igOnBoardNow=state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board';
+  if(typeof window.chartAsked==='function'&&chartAsked(q)&&!igPaperInFront()&&!igHeldAskId()&&!(typeof window.hbFace==='function'&&hbFace()==='explorer')
+    &&(!igOnBoardNow||(typeof window.chartVague==='function'&&chartVague(q)))){
+    return boardShowGo(q, { here:true });
+  }
   intel.fdTab=false; intel.dayTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
   /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the
@@ -3673,6 +3687,63 @@ async function igBoardTalkAsk(q){
   }, { stay:true });
   return igTalkRun(q, ()=>intelChatAsk(q, { draw:true }));
 }
+/* A LESSON ASKED: the conversation's, in Jambo's panel (a Board card's Walk me through this asks it by name) */
+async function intelWalkAsk(q){
+  q=String(q||'').trim(); if(!q) return;
+  if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelWalkAsk(w)); return; }
+  if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); }
+  intel.history.push({role:'user', text:q});
+  intel.busy=true; renderIntelDock(); updateIntelNote();
+  try{ await intelChatAsk(q); }
+  catch(e){ intel.history.push(igFailTurn(e, q)); }
+  intel.busy=false; renderIntelDock();
+}
+/* A "SHOW ME" THAT NAMES NO CHART (owner, 27 Nov 2026): four charts to press, each a Board card HaTi draws itself
+   (hbAddCard: no AI call, its own counts); value only with money rights, else the count by stream */
+const BOARD_SHOW_CARDS=[
+  { k:'stage', label:'ig_show_c_stage', recipe:{ pic:'bars', split:{ by:'status' }, measure:'count' } },
+  { k:'stream', label:'ig_show_c_stream_v', money:true, recipe:{ pic:'bars', split:{ by:'folder' }, measure:'value', sort:{ by:'value', dir:'down' } } },
+  { k:'stream', label:'ig_show_c_stream_n', money:false, recipe:{ pic:'bars', split:{ by:'folder' }, measure:'count', sort:{ by:'count', dir:'down' } } },
+  { k:'party', label:'ig_show_c_party', recipe:{ pic:'bars', split:{ by:'counterparty' }, measure:'count', sort:{ by:'count', dir:'down' }, top:10 } },
+  { k:'ending', label:'ig_show_c_ending', recipe:{ pic:'cols', split:{ by:'date', unit:'m', date:'end' }, measure:'count', window:{ next:12, unit:'m' } } }];
+function boardShowCardsFor(){
+  const money=typeof window.canViewValues==='function'?!!canViewValues():true;
+  return BOARD_SHOW_CARDS.filter(c=>c.money==null||c.money===money);
+}
+function boardShowChoices(q){
+  intel.history.push({ role:'user', text:q });
+  intel.history.push({ role:'assistant', text:igEsc(i18t('ig_show_which')),
+    choices:boardShowCardsFor().map(c=>({ label:i18t(c.label), card:{ recipe:c.recipe, title:i18t(c.label) } })) });
+  renderIntelDock(); updateIntelNote();
+}
+/* a pressed chart: drawn on the Board's page, one line here says where */
+function boardShowCard(c){
+  if(!c||!c.recipe||typeof window.hbAddCard!=='function') return;
+  if(typeof window.caHomeFace==='function'&&!(state.view==='dashboard'&&hbFace()==='board')) caHomeFace('board');
+  hbAddCard({ all:true }, c.recipe, c.title);
+  if(typeof window.hbPaintBoard==='function') hbPaintBoard();
+  intel.history.push({ role:'assistant', text:igEsc(i18t('ig_show_drawn',{ t:c.title })) });
+  renderIntelDock(); updateIntelNote();
+}
+/* SHOW ME FROM ANYWHERE ENDS ON THE BOARD: Home turns to the Board (caHomeFace: a sheet with words asks first), the
+   dock opens, and the Board's own chart path draws it (igBoardTalkAsk); the bar's ‹ goes back to where you were */
+async function boardShowGo(q, o){
+  const onBoard=()=>state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&!igPaperInFront()&&!igHeldAskId();
+  if(!onBoard()){
+    if(typeof window.caHomeFace==='function') caHomeFace('board');
+    else { if(typeof window.setView==='function') setView('dashboard'); if(typeof window.hbSetFace==='function') hbSetFace('board'); }
+    await new Promise(r=>setTimeout(r,0));
+  }
+  if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); if(typeof igSyncDockWidth==='function') igSyncDockWidth(); }
+  void o;
+  if(typeof window.chartVague==='function'&&chartVague(q)) return boardShowChoices(q);
+  /* the Board takes this one question as its own chart question (boardShowAsking → hbAnalyticAsk); every other
+     question typed on the Board is read by the Board's readers exactly as before */
+  _bsAsk=String(q||'').trim();
+  try{ return await igBoardTalkAsk(q); } finally { _bsAsk=null; }
+}
+let _bsAsk=null;
+function boardShowAsking(q){ return _bsAsk!=null&&_bsAsk===String(q||'').trim(); }
 /* the other faces' Jambo tab: each face's OWN brain, its own controls with it — a contract on the paper (or held) is
    asked with its wording (igPaperAsk), any other question goes to the chat; Explorer's is the map's own (intelGraphAsk:
    it regroups and narrows the map, and hands wording to the chat itself); the Contracts place and the sheet the chat,
@@ -4256,6 +4327,17 @@ function igFmtRich(raw){
     .join(`<div class="ai-chart-host" id="${b.key}">${b.html}</div>`);
   return { html, blocks };
 }
+/* WALK ME THROUGH IT (js/lesson.js): an answer that is a lesson is pushed as one, drawn by the one conversation's builder */
+async function igLessonSettle(res, msgs, ctx){
+  if(!res||!res.lesson||typeof window.lessonSettle!=='function') return res;
+  return lessonSettle(res, note=>copilotAsk(msgs.concat([{ role:'assistant', content:String(res.answer||'') }, { role:'user', content:note }]), ctx, null, IG_QUIET));
+}
+function igLessonTake(res){
+  const L=(res&&res.lesson&&typeof window.lessonFromAnswer==='function')?lessonFromAnswer(res):null;
+  if(!L) return false;
+  intel.history.push(Object.assign({ role:'assistant' }, L));
+  return true;
+}
 function intelPushChatResult(res, q){
   const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
   /* THE NOTE IS DRAFTED HERE (owner picked "The Legora Way", 13 Nov 2026): a note for the open send screen is a
@@ -4419,8 +4501,10 @@ async function intelChatAsk(q, opts){
     /* f1042: a note asked for on the send screen — the server asks once more if none comes back */
     if(opts&&opts.note&&ctx&&ctx.page&&ctx.page.sending) ctx.noteAsk=true;
     if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
-    const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
+    const res=await igLessonSettle(await copilotAsk(msgs, ctx, null, IG_QUIET), msgs, ctx);
     if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;
+    /* WALK ME THROUGH IT (js/lesson.js): the lesson is the answer, drawn by the one conversation's builder */
+    if(igLessonTake(res)) return;
     intelPushChatResult(res, q);
     if(opts&&opts.controls&&res&&Array.isArray(res.page)&&res.page.length&&typeof window.lhControlsRun==='function'){
       let lines=[]; try{ lines=lhControlsRun(res.page)||[]; }catch(_){ lines=[]; }
@@ -10917,6 +11001,8 @@ function renderIntelDock(){
     if(!c) return;
     /* JAMBO THE INSTRUCTOR (js/teach.js): a walk's own presses draw their next turn themselves */
     if(c.teach&&typeof window.teachChoicePress==='function'){ m.choices=null; teachChoicePress(c); renderIntelDock(); return; }
+    /* A VAGUE "SHOW ME": the chart pressed is drawn on the Board by HaTi (boardShowCard) */
+    if(c.card){ m.choices=null; intel.history.push({ role:'user', text:c.label }); boardShowCard(c.card); return; }
     intel.history.push({ role:'user', text:c.label });
     /* JAMBO'S FIRST WORDS: each answer is an existing door (firstReadPress, js/triage.js) */
     if(c.fr&&typeof window.firstReadPress==='function'){ firstReadPress(c,m); renderIntelDock(); return; }
@@ -11331,6 +11417,8 @@ function igAskPlaceholder(){
   if(window.newLookOn&&newLookOn()&&window.pdAmendShows&&pdAmendShows()) return i18t('pd2_am_ph');
   const c=igPaperInFront()?getContract(intel.paper.id):null;
   /* A NEW PERSON'S FIRST DAYS (owner, 23 Nov 2026; js/teach.js): the box's own example words say how to ask for help */
+  /* the Board's remote up: the box takes a new chart in words (owner, 27 Nov 2026, as drawn) */
+  if(!c && window.hbRemoteOn&&hbRemoteOn()) return i18t('hb_rm_ph');
   if(!c && window.teachHintOn&&teachHintOn()) return i18t('teach_hint_ph');
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
@@ -12263,7 +12351,9 @@ function igRedOn(c){ const p=intel.paper; if(!p) return false;
    the SAME canvas with every change still open hidden — the wording that
    stands (an agreed change keeps its words, its marks taken off in the
    stylesheet), no step labels — so pressing Clean | Redlined never moves the page. */
-function igCleanOnRed(c){ return !igSignOn(c)&&!igRedOn(c)&&igHomePaperFace()!==null&&!!(window.pdRedOk&&pdRedOk(c))&&typeof window.redlineDocHtml==='function'; }
+/* AND A NEGOTIATED PAPER WHOSE TABLE IS CLEAR, while it is filled in or holds answers (owner, 26 Nov 2026: fill-ins are
+   answers, not redlines): the same canvas, so the answers sit in their spaces (negoFillsPaint) — pd2NegoPaperOk */
+function igCleanOnRed(c){ return !igSignOn(c)&&!igRedOn(c)&&igHomePaperFace()!==null&&!!((window.pdRedOk&&pdRedOk(c))||(window.pd2NegoPaperOk&&pd2NegoPaperOk(c)))&&typeof window.redlineDocHtml==='function'; }
 /* THEIR VIEW (stage 5: the Negotiate page's Internal | Counterparty, folded
    into Home): the same Redlined paper drawn from their seat, as a preview —
    what the other side reads, nothing to press */
@@ -12948,7 +13038,9 @@ async function igPaperAsk(q,cid){
   if(p){ p.words=igPaperWords(c)+(story.text?story.text.split(/\s+/).filter(Boolean).length:0); p.changes=story.count; }
   msgs.push({ role:'user', content:`${last.content}\n\n${IG_PAPER_RULE}${story.text?`\n\n${IG_PAPER_CHANGES_RULE}`:''}\n\n=== THE WORDING OF ${ref} (${c.name}) ===\n${wording}${story.text?`\n\n${story.text}`:''}` });
   try{
-    const res=await copilotAsk(msgs, { view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true }, null, IG_QUIET);
+    const pctx={ view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true };
+    const res=await igLessonSettle(await copilotAsk(msgs, pctx, null, IG_QUIET), msgs, pctx);
+    if(igLessonTake(res)) return;   /* a lesson about this contract (js/lesson.js) */
     intelPushChatResult(res, q);
     igPinsMint(c,res,intel.history.length-1);
   }catch(e){
@@ -12990,6 +13082,6 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut, IG_DOCK_FILLED_SEL, igOnce, igDockWrite });
 Object.assign(window,{ igMiniBrainHtml, igMiniWake, igMiniModel, igMiniBook, igMiniDraw });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
-Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
+Object.assign(window,{ boardShowGo, boardShowAsking, boardShowChoices, boardShowCard, boardShowCardsFor, BOARD_SHOW_CARDS, intelWalkAsk, igPaperInFront, igLessonTake, igLessonSettle, IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
   IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igMorePlace, igMrRepaint, igOneRepaint, IG_MENU_MIN_W, igOneHtml });

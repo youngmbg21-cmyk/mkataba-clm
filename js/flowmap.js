@@ -56,7 +56,8 @@ const FLOW_MAP = [
     a: [['document', _w('I have read it → the Dossier, the check cleared', 'Jag har läst den → dossiern, kontrollen klar')]], d: ['document', 'history'],
     p: [['fill', _w('the blanks', 'tomrummen')], ['approvals', _w('the approval', 'godkännandet')]] },
   /* FILL IN ON THE PAPER, THE LEGORA WAY (owner's pick, 11 Nov 2026): the paper first, the form for what has no place on it */
-  { k: 'fill', st: 'read', s: _w('the details owed, typed on the paper where they stand (signers too); the form for the rest', 'uppgifterna som saknas, skrivna på pappret där de står (även undertecknare); formuläret för resten'),
+  /* NEGOTIATE, THEN FILL IN (owner, 26 Nov 2026): our paper's answers once the redlines are settled, never a redline; their paper is theirs to fill */
+  { k: 'fill', st: 'read', s: _w('the details owed on our paper, typed where they stand once the redlines are settled (signers too); the form for the rest', 'uppgifterna som saknas på vårt papper, skrivna där de står när ändringarna är klara (även undertecknare); formuläret för resten'),
     /* CHOOSE THE ROAD (owner picked "The Legora Way", 11 Nov 2026): filled in and nothing sent, the card asks how it goes out */
     a: [['document', _w('Enter → the next space; the last saves and goes back to the Dossier', 'Enter → nästa plats; den sista sparar och går tillbaka till dossiern')],
       ['share', _w('Choose the road → negotiate, or send for their mark-up or for signature', 'Välj väg → förhandla, eller skicka för deras ändringar eller för underskrift')]], d: ['document', 'sign'],

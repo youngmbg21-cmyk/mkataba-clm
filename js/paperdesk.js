@@ -4752,7 +4752,8 @@ function signerOwed(c){
    contractBlanks — nothing is asked, spent or written. A stage's number is
    the count of owed rows filed under it, so the number on the spine is the
    list under it. */
-const DOSSIER_STAGES = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
+/* NEGOTIATE, THEN FILL IN (owner, 26 Nov 2026: "once you are done, you then fill in the contract right before signing") */
+const DOSSIER_STAGES = ['arrive', 'read', 'nego', 'fill', 'sign', 'live'];
 const DOSSIER_FILL_MAX = 4;
 const DOSSIER_ASKS_MAX = 3;
 /* which stage each owed kind belongs to (Needs you's own kinds, insNeedWords') */
@@ -4765,6 +4766,8 @@ function dossierNowStage(c){
     let signing = false; try { signing = typeof negoAnySignature === 'function' && !!negoAnySignature(c); } catch (_){ signing = false; }
     return signing ? 'sign' : 'nego';
   }
+  /* a draft with a change still open is negotiating; filling in comes after */
+  if (typeof negoFillOpenCount === 'function' && negoFillOpenCount(c) > 0) return 'nego';
   return 'fill';
 }
 /* the blanks are read off the paper, which draws the paper: once per wording */
@@ -9377,17 +9380,24 @@ function pd2RedStdAnswers(c, cv, x){
 }
 /* THE REDLINED PAPER'S NOTES IN BLOCKS: their asks stand alone as ever; the answers gather one group per clause (the
    section their words stand in), headed "3 · Pricing and Payment"; what has no clause, at the paper's end */
+/* ONE NUMBERING, BOTH PAPERS (owner, 26 Nov 2026: "the notes are numbered differently between clean and redline"): a
+   note is grouped and named by the paper's own numbered row it stands in (docXrayRows / docXrayLabel, "1.2 Lease Term"),
+   as the clean paper's notes are (pd2Groups); only a note in no row falls back to its clause section */
 function pd2RedBlocks(c, cv, notes){
   const blocks = [], by = new Map();
+  let rows = []; try { rows = (typeof docXrayRows === 'function') ? (docXrayRows(c, cv) || []) : []; } catch (_){ rows = []; }
+  const rowOf = node => { let k = -1; rows.forEach((r, i) => { if (!r.el) return; if (r.el === node || r.el.contains(node) || (r.el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) k = i; }); return k; };
   notes.forEach(n => {
     if (!n.red){ blocks.push({ ask: true, n, items: [n], hit: n.hit, at: 'ask:' + blocks.length }); return; }
     const node = n.own ? null : (n.hit.el || (n.hit.range && n.hit.range.startContainer));
-    const s = node ? (node.nodeType === 1 ? node : node.parentElement).closest('section[data-clause]') : null;
-    const key = s ? 'red:' + s.getAttribute('data-clause') : 'own:' + (n.own || '');
+    const k = node ? rowOf(node) : -1;
+    const s = node && k < 0 ? (node.nodeType === 1 ? node : node.parentElement).closest('section[data-clause]') : null;
+    const key = k >= 0 ? 'row:' + k : s ? 'red:' + s.getAttribute('data-clause') : 'own:' + (n.own || '');
     if (!by.has(key)){
       let label = n.own || '';
-      if (s){ const h = s.querySelector('h1, h2, h3, h4'); const t = String(h ? h.textContent : '').replace(/\s+/g, ' ').trim(); const m = t.match(/^(\d+(?:\.\d+)*)\.?\s*(.*)$/); label = m ? m[1] + ' · ' + m[2] : t; }
-      const g = { red: true, at: key, cid: c.id, label, items: [], hit: s ? { el: s } : n.hit };
+      if (k >= 0 && typeof docXrayLabel === 'function') label = docXrayLabel(rows[k]);
+      else if (s){ const h = s.querySelector('h1, h2, h3, h4'); const t = String(h ? h.textContent : '').replace(/\s+/g, ' ').trim(); const m = t.match(/^(\d+(?:\.\d+)*)\.?\s*(.*)$/); label = m ? m[1] + ' · ' + m[2] : t; }
+      const g = { red: true, at: key, cid: c.id, label, items: [], hit: k >= 0 ? { el: rows[k].el } : s ? { el: s } : n.hit };
       by.set(key, g); blocks.push(g);
     }
     by.get(key).items.push(n);
@@ -10867,7 +10877,9 @@ function pd2NegoFillOn(c){
     if (typeof igTheirsOn === 'function' && igTheirsOn(c)) return false;
     if (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c)) return false;
     if (typeof deskMayRedline === 'function' && !deskMayRedline(c)) return false;
-    return typeof negoFileFilledClause === 'function';
+    /* their paper is theirs to fill (pd2FillHeldWhy) */
+    if (typeof isUpload === 'function' && isUpload(c)) return false;
+    return typeof negoFillsSet === 'function';
   } catch (_){ return false; }
 }
 /* the clauses with a change open on them, read RAW (reading must not write) */
@@ -10886,7 +10898,7 @@ function pd2NegoSeq(root){
   try { for (const r of roots){
     const w = document.createTreeWalker(r, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode(n){
       if (n.nodeType === 1){
-        if (n.matches('h4.rl-clause-h, .rl-clause-top > h4, [data-pd-mark], .rl-gutter, .rl-hang-n, button, input, textarea, select, script, style')) return NodeFilter.FILTER_REJECT;
+        if (n.matches('del, s, h4.rl-clause-h, .rl-clause-top > h4, [data-pd-mark], .rl-gutter, .rl-hang-n, button, input, textarea, select, script, style')) return NodeFilter.FILTER_REJECT;
         if (n.matches(FIELD) || n.matches('[' + PD2_NB_ATTR + '], [data-pd2-nb-ans]')) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_SKIP; }
       const pa = n.parentElement; if (!pa || pa.closest(FIELD) || pa.closest('[' + PD2_NB_ATTR + '], [data-pd2-nb-ans]')) return NodeFilter.FILTER_REJECT;
@@ -11019,7 +11031,9 @@ function pd2NegoMark(c){
   regions.forEach(({ id, roots, changed }) => {
     if (!id) return;
     let own = null;
-    if (argued.has(String(id)) || changed){
+    /* a clause with a change OPEN on it takes no answer (only our own old Fill in change, given back); one whose change
+       was agreed is filled as it now reads (its struck words are never walked: pd2NegoSeq) */
+    if (argued.has(String(id))){
       own = pd2NegoOwnFill(c, id); if (!own) return;
       /* the clause as it stands, our answers to go back into its spaces (the paper is drawn whole again when Fill in ends) */
       const cl = typeof negoClauseNowById === 'function' ? negoClauseNowById(c, id) : null; if (!cl) return;
@@ -11036,7 +11050,9 @@ function pd2NegoMark(c){
     seq.forEach(b => {
       if (b.made) return;
       const key = 'nb~' + id + '~' + b.sig + '~' + b.n;
-      const had = own && own.fill[b.sig + '~' + b.n] != null ? String(own.fill[b.sig + '~' + b.n]) : '';
+      const kept = (typeof negoFillsOf === 'function' && negoFillsOf(c, id)) || null;
+      const had = own && own.fill[b.sig + '~' + b.n] != null ? String(own.fill[b.sig + '~' + b.n])
+        : kept && kept[b.sig + '~' + b.n] != null ? String(kept[b.sig + '~' + b.n]) : '';
       if (b.el && b.ans){ b.el.removeAttribute('data-pd2-nb-ans'); b.el.removeAttribute('title'); b.el.className = 'pd2-nb'; b.el.textContent = b.raw; }
       if (b.el){ b.el.setAttribute(PD2_NB_ATTR, key); b.el.setAttribute('data-pd2-nb-fk', b.fk); b.el.setAttribute('data-pd2-nb-raw', b.raw); if (had) b.el.setAttribute('data-pd2-nb-val', had); made++; return; }
       if (had) b.had = had;
@@ -11078,41 +11094,28 @@ function pd2NegoRead(c){
   });
   return out;
 }
-/* SAVE: each clause's answers filed as ONE change of ours through the one door, from the clause as it stands */
+/* SAVE: each clause's answers KEPT AS ANSWERS (owner, 26 Nov 2026: "Fill in should not be a redline"): never a change;
+   through the one writer, negoFillsSet, which writes them into the wording that travels and is sealed. Every answer must
+   find its own blank in the clause as it stands, or that clause is not touched and is said. */
 async function pd2NegoFile(c, items){
   const by = new Map(); items.forEach(x => { const k = String(x.b.clauseId); if (!by.has(k)) by.set(k, []); by.get(k).push(x); });
   const done = [], refused = [];
+  const last = [...by.keys()].pop();
   for (const [clauseId, L0] of by){
-    let ch = null, why = '';
-    /* every answer this clause holds: our earlier ones (the change Fill in filed, still ours) with today's over them; a
-       cleared one goes back to its space */
-    const own = pd2NegoOwnFill(c, clauseId), fill = Object.assign({}, own ? own.fill : {});
-    L0.forEach(x => { const k = x.b.sig + '~' + x.b.n; if (String(x.v || '').trim()) fill[k] = x.v; else delete fill[k]; });
-    const L = Object.keys(fill).map(k => { const i = k.lastIndexOf('~'); const mine = L0.find(x => x.b.sig + '~' + x.b.n === k);
-      return mine && String(mine.v || '').trim() ? mine : { b: { clauseId, sig: k.slice(0, i), n: Number(k.slice(i + 1)), section: (L0[0] && L0[0].b.section) || '' }, v: fill[k] }; });
+    let ok = false, why = '';
+    /* every answer this clause holds: those kept before with today's over them; a cleared one goes back to its space */
+    const fill = Object.assign({}, (typeof negoFillsOf === 'function' && negoFillsOf(c, clauseId)) || {});
+    L0.forEach(x => { const k = x.b.sig + '~' + x.b.n; if (String(x.v || '').trim()) fill[k] = String(x.v).trim(); else delete fill[k]; });
     try {
       const cl = negoClauseNowById(c, clauseId);
       const body = cl ? (cl.bodyHtml || (typeof textToRich === 'function' ? textToRich(cl.text || '') : '<p>' + _pdE(cl.text || '') + '</p>')) : '';
       const host = document.createElement('div'); host.innerHTML = body;
-      const seq = cl ? pd2NegoSeq(host) : [];
-      /* every answer must find its own blank in the wording as it stands, or the clause is not touched */
-      const hits = L.map(x => ({ x, at: seq.find(b => b.sig === x.b.sig && b.n === x.b.n) }));
-      if (!cl || hits.some(h => !h.at)) why = _pdT('pd2_nb_moved');
-      else {
-        /* text nodes are split from the END, so an earlier blank's offsets in the same node still hold */
-        hits.filter(h => h.at.el).forEach(({ x, at }) => {
-          if (at.kind === 'f'){ const sp = document.createElement('span'); sp.className = 'hati-field-done'; sp.setAttribute('data-field-key', at.fk); sp.textContent = x.v; at.el.replaceWith(sp); }
-          else at.el.replaceWith(document.createTextNode(x.v)); });
-        hits.filter(h => h.at.node).sort((a, b) => b.at.hit.s - a.at.hit.s).forEach(({ x, at }) => {
-          const t = at.node; t.data = t.data.slice(0, at.hit.s) + x.v + t.data.slice(at.hit.e); });
-        /* the answers ride our change (the door stamps them before it saves), so a later Fill in puts them back in their
-           spaces (pd2NegoOwnFill) */
-        ch = await negoFileFilledClause(c, clauseId, host.innerHTML, _pdT('pd2_nb_note'), fill);
-        if (!ch) why = String(window.negoLastRefusal || '') || _pdT('pd2_nb_moved');
-      }
-    } catch (e){ ch = null; why = (e && e.message) || String(e); }
+      const seq = cl && typeof negoFillSeq === 'function' ? negoFillSeq(host) : [];
+      if (!cl || Object.keys(fill).some(k => { const i = k.lastIndexOf('~'); return !seq.some(b => b.sig === k.slice(0, i) && b.n === Number(k.slice(i + 1))); })) why = _pdT('pd2_nb_moved');
+      else { ok = negoFillsSet(c, clauseId, fill, { hold: clauseId !== last }); if (!ok) why = String(window.negoFillLastRefusal || '') || _pdT('pd2_nb_moved'); }
+    } catch (e){ ok = false; why = (e && e.message) || String(e); }
     const name = (L0[0] && L0[0].b.section) || clauseId;
-    if (ch) L0.forEach(x => done.push(x)); else refused.push({ clauseId, say: name + ': ' + why });
+    if (ok) L0.forEach(x => done.push(x)); else refused.push({ clauseId, say: name + ': ' + why });
   }
   /* A COMPANY STANDARD'S ANSWER IS ITS FORM'S TOO ("Done straight away"): through its one writer, and the wording is
      then said to carry it, so no "Fill the document" is owed for an answer already on the paper as a change */
@@ -11248,9 +11251,66 @@ function pd2FillSigDrop(id){
   if (to) try { to.focus({ preventScroll: true }); } catch (_){}
   return true;
 }
+/* FILL IN COMES AFTER THE NEGOTIATION, AND ONLY ON OUR PAPER (owner, 26 Nov 2026: "You should negotiate or redline a
+   contract and once you are done, you then fill in the contract right before signing … For counter party contracts or
+   3rd party contracts, they should be filled in using their tools"): 'theirs' — an upload, their paper; 'open' — a
+   change still open on the table (an old Fill in change aside: those are turned into answers, pd2FillAdoptOld). '' = may. */
+/* THE NEGOTIATED CANVAS FOR A CLEAR TABLE: our paper whose wording has been on the table, while Fill in holds it (or is
+   about to) or answers are kept — the canvas Fill in marks and the answers are drawn on (igCleanOnRed asks it) */
+let _pd2FillWant = '';
+function pd2NegoPaperOf(c){
+  return !!(c && c.negotiation && pd2RoadPaper(c) !== 'theirs' && typeof negoWordingShared === 'function'
+    && (negoWordingShared(c) || (typeof negoFillsOn === 'function' && negoFillsOn(c))));
+}
+function pd2NegoPaperOk(c){
+  if (!pd2NegoPaperOf(c)) return false;
+  return pd2FillOn(c.id) || _pd2FillWant === String(c.id) || !!(typeof negoFillsOn === 'function' && negoFillsOn(c));
+}
+function pd2FillHeldWhy(c){
+  if (!c) return '';
+  if (pd2RoadPaper(c) === 'theirs') return 'theirs';
+  if (typeof negoFillOpenCount === 'function' && negoFillOpenCount(c) > 0) return 'open';
+  return '';
+}
+/* said where the reader looks, with its way forward: an open table goes to Redlines */
+function pd2FillHeldSay(c, why){
+  if (!c || !why) return false;
+  const n = why === 'open' && typeof negoFillOpenCount === 'function' ? negoFillOpenCount(c) : 0;
+  if (typeof toast === 'function') toast(why === 'theirs' ? _pdT('pd2_fill_theirs') : _pdTn('ng_fill_finish_first', n, { n }), 'warn');
+  if (why === 'open') try { pdRedOpen(c.id); } catch (_){}
+  return true;
+}
+/* STEP 3: AN OLD FILL IN CHANGE BECOMES ANSWERS (owner, 26 Nov 2026, of MK-469): a Fill in change of ours not yet sent is
+   taken back (negoRetractDraft) and its answers kept on the paper as answers (negoFillsSet); one already sent stays with
+   the other side to answer. On a press of Fill in, never on a read. */
+function pd2FillAdoptOld(c){
+  if (!c || typeof negoIsFillChange !== 'function' || typeof negoFillsSet !== 'function' || typeof negoRetractDraft !== 'function') return 0;
+  let n = 0;
+  (Array.isArray(c.changes) ? c.changes.slice() : []).filter(x => x && negoIsFillChange(x) && x.status === 'pending' && !x.withdrawn).forEach(x => {
+    const own = pd2NegoOwnFill(c, x.clauseId); if (!own || own.id !== x.id) return;
+    const fill = Object.assign({}, own.fill);
+    if (!negoRetractDraft(c, x.id, { side: 'owner', quiet: true })) return;
+    const merged = Object.assign({}, (typeof negoFillsOf === 'function' && negoFillsOf(c, x.clauseId)) || {}, fill);
+    if (negoFillsSet(c, x.clauseId, merged, { hold: true, adopt: true })) n++;
+  });
+  /* the save is the negotiation's own (the desk never saves: f563) */
+  if (n && typeof negoFillsSave === 'function') negoFillsSave(c);
+  return n;
+}
 function pd2FillStart(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !pd2On()) return false;
   if ((typeof canEdit === 'function') && !canEdit()) return false;
+  if (!pd2FillOn(id)){
+    if (pd2FillHeldWhy(c) === 'theirs') return false;
+    try { if (pd2FillAdoptOld(c)){ const host = document.getElementById('ig-paper'); if (host) delete host.dataset.for; if (typeof igPaintPaper === 'function') igPaintPaper(); } } catch (_){}
+    if (pd2FillHeldWhy(c)) return false;
+    /* a negotiated paper is filled on its own canvas: drawn so before its spaces are marked */
+    const cv0 = document.getElementById('ig-canvas');
+    if (pd2NegoPaperOf(c) && !(cv0 && cv0.closest('.ig-redpaper'))){
+      _pd2FillWant = String(id);
+      try { const host = document.getElementById('ig-paper'); if (host) delete host.dataset.for; if (typeof igPaintPaper === 'function') igPaintPaper(); } catch (_){}
+    }
+  }
   const first = !pd2FillOn(id);
   if (first) pd2NegoMark(c);
   if (first){ const was = {}; pd2FillBlanks(c).forEach(b => { was[b.key] = String(b.value || ''); });
@@ -11263,7 +11323,8 @@ function pd2FillStart(id, key){
   if (first) _pd2Fill.walk = pd2FillWalk(c);
   const anyBlank = !!document.querySelector('#ig-canvas ' + PD2_BL_SEL.split(', ').join(', #ig-canvas '));
   /* NOTHING ON THIS PAPER TO FILL: the form stays the door (the caller falls back to it) */
-  if (first && !_pd2Fill.walk.length && !anyBlank){ _pd2Fill = null; return false; }
+  if (first && !_pd2Fill.walk.length && !anyBlank){ _pd2Fill = null; _pd2FillWant = ''; return false; }
+  _pd2FillWant = '';
   pd2FillPaint(c);
   const spot = key ? (key.startsWith('s:') ? key : 'b:' + key) : (_pd2Fill.walk.find(s => !pd2FillDone(s)) || _pd2Fill.walk[0] || '');
   _pd2Fill.cur = spot;
@@ -11362,6 +11423,8 @@ function pd2FillFromPress(sp, pt){
     if (pd2Sealed(full) || (typeof window.igTheirsOn === 'function' && window.igTheirsOn(full))) return false;
     if (typeof window.mayActOn === 'function' && !window.mayActOn(full)) return false;
     if (sp && sp.closest('.ig-signpaper')) return false;
+    try { if (pd2FillHeldWhy(full) === 'open') pd2FillAdoptOld(full); } catch (_){}
+    const held = pd2FillHeldWhy(full); if (held) return pd2FillHeldSay(full, held) && false;
     if (!pd2FillStart(full.id, '')) return false;
     /* the space pressed carries its key now (the marks are made on the same element), else the first left to fill */
     let k = (pt && pt.key) || (sp && sp.isConnected ? pd2BlKey(sp) : null);
@@ -11410,7 +11473,7 @@ function pd2FillLeaveSoon(){
 }
 function pd2FillStop(){
   if (!_pd2Fill) return;
-  _pd2Fill = null;
+  _pd2Fill = null; _pd2FillWant = '';
   document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove());
   const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill');
   /* a negotiated paper's marks and boxes are the sitting's: the paper is drawn whole, never patched around them (a patch
@@ -11736,8 +11799,25 @@ function pdFillGo(id, key){
   /* FILLING IN IS NEVER ON THE SIGNING COPY (#762: "fill in" typed beside Before you sign stayed on that face): the face
      closes first, the paper comes back, then the one Fill in door */
   if (_pdSign && String(_pdSign) === String(id)) try { pdSignClose(); } catch (_){}
+  /* not yet, or not ours to fill: said with its way forward, never the form in its place (a detail with no place on the
+     paper still opens the form) */
+  if (pd2On() && (!key || !pdFillGoFormOnly(id, key))){
+    const c0 = (typeof getContract === 'function' && getContract(id)) || null;
+    try { if (c0 && !pd2FillOn(id) && pd2FillHeldWhy(c0) === 'open') pd2FillAdoptOld(c0); } catch (_){}
+    const why = c0 && !pd2FillOn(id) ? pd2FillHeldWhy(c0) : '';
+    /* THEIR PAPER'S SPACES ARE THEIRS, OUR RECORD'S DETAILS ARE OURS: the other party, the value, the start day have no
+       place on their paper, so while one is owed the button the card offers ("Fill in N details") opens the form of
+       those details, never the paper (a dead button wearing a live one's clothes otherwise); a press on one of the paper's
+       own spaces (an up_ key) still says it is their paper */
+    if (why === 'theirs' && pd2TheirsDetailsOwed(c0) && !(key && /^up_/.test(String(key)))) return pdFillOpen(id, key ? { key } : {});
+    if (why) return pd2FillHeldSay(c0, why);
+  }
   if (pd2On() && (!key || !pdFillGoFormOnly(id, key)) && pd2FillStart(id, key || '')) return true;
   return pdFillOpen(id, key ? { key } : {});
+}
+function pd2TheirsDetailsOwed(c){
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  return !!(d && d.live && d.left > 0);
 }
 function pdFillGoFormOnly(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c) return true;
@@ -12098,7 +12178,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
-Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoFillRead, pd2NegoFillOf, pd2NegoAnswersPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoPaperOk, pd2FillHeldWhy, pd2FillHeldSay, pd2TheirsDetailsOwed, pd2FillAdoptOld, pd2NegoFillRead, pd2NegoFillOf, pd2NegoAnswersPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* THE ARRIVAL VEIL: a page in the middle that opens only once its paper stands (History, pay, Key terms; pdMidArriving)
    has the page's own ground stand over the paper meanwhile, so the paper is never seen on the way; bounded (CV_LAND_MS).
    (The Cover page these were first built for was deleted, owner, 20 Nov 2026: "Delete it, open the Dossier instead".) */

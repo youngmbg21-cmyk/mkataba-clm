@@ -104,7 +104,9 @@ test('f1012 (6) every word the block says is in both books', () => {
 
 test('f1012 (7) the flow map and the Handbook say the paper', () => {
   const F = read('js/flowmap.js');
-  assert.match(F, /k: 'fill'[^\n]*typed on the paper where they stand/, 'the flow map\'s fill step');
+  /* RE-POINTED 26 Nov 2026 (NEGOTIATE, THEN FILL IN, owner: "Fill-ins are answers, not redlines, and come after the
+     negotiation", #1035): our paper's answers are typed where they stand once the redlines are settled */
+  assert.match(F, /k: 'fill'[^\n]*typed where they stand once the redlines are settled/, 'the flow map\'s fill step');
   assert.match(F, /Enter → the next space; the last saves and goes back to the Dossier/);
   const H = read('js/handbook.js'); const a = H.indexOf("{ k: '2.3'"), ch = H.slice(a, H.indexOf("{ k: '2.4'"));
   assert.match(ch, /Enter takes you to the next space/, 'the chapter says Enter');

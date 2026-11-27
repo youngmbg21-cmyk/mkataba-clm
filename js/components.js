@@ -660,8 +660,25 @@ function jamboWaysHere(){
   const face = JB_WAY_FACES.has(k);
   /* JAMBO THE INSTRUCTOR (js/teach.js): while teaching, "What can I do here?" leads the row */
   const teach = typeof window.teachOn === 'function' && window.teachOn();
-  return { k, doors: (teach ? ['teachhere'] : []).concat(row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
+  /* THE BOARD'S REMOTE (owner, 27 Nov 2026): 🎛️ stands FIRST on the Board's line, so the fitting that leaves words out
+     from the end never takes it — the same press always puts the remote away again (hbRemoteToggle) */
+  const remote = k === 'board' && typeof window.hbBoardHelloOn === 'function' && window.hbBoardHelloOn();
+  return { k, doors: (remote ? ['hbremote'] : []).concat(teach ? ['teachhere'] : [], row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
 }
+/* A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES IS GREY, WITH ITS REASON (owner, 27 Nov 2026: "grey them out"): on THEIR paper
+   (every upload) "fill in" has nothing of ours to fill unless a detail of our record is owed (pdFillGo opens that form) */
+function jamboWayShutWhy(d){
+  if (d !== 'fill') return '';
+  try {
+    const id = jamboWayCid(), c = id && typeof window.getContract === 'function' ? window.getContract(id) : null;
+    if (c && typeof window.pd2FillHeldWhy === 'function' && window.pd2FillHeldWhy(c) === 'theirs'
+      && !(typeof window.pd2TheirsDetailsOwed === 'function' && window.pd2TheirsDetailsOwed(c))) return _jbT('pd2_fill_theirs');
+  } catch (_){ /* the link stands */ }
+  return '';
+}
+/* which of a row's links stand grey, so a row kept between two papers is redrawn when that changes */
+function jamboWaysShutSig(here){ return ((here && here.doors) || []).filter(d => jamboWayShutWhy(d)).join(','); }
+function jamboWayShutAttr(d){ const w = jamboWayShutWhy(d); return w ? ` disabled title="${esc(w)}"` : ''; }
 function jamboWayWord(k){
   /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
      in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
@@ -671,7 +688,13 @@ function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
   if (!here.doors.length) return '';
-  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}">${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" data-jb-shut="${esc(jamboWaysShutSig(here))}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'hbremote' ? jamboRemoteBtnHtml() : d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}"${jamboWayShutAttr(d)}>${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+}
+/* the Board's remote's button: the control knobs, pressed while the remote is up (the Board's one listener, hbOnClick) */
+function jamboRemoteBtnHtml(){
+  const on = typeof window.hbRemoteOn === 'function' && window.hbRemoteOn();
+  const w = _jbT('hb_rm_btn');
+  return `<button type="button" class="jb-way jb-rm${on ? ' is-on' : ''}" data-hb-remote aria-pressed="${on}" title="${esc(w)}" aria-label="${esc(w)}">\u{1F39B}\uFE0F</button>`;
 }
 function jamboWaysSync(){
   if (typeof document === 'undefined') return;
@@ -698,13 +721,13 @@ function jamboWaysSync(){
         /* THE ROW ABOVE THE BOX IS LEFT WHERE THE PANEL DREW IT (11 Nov 2026): removing it after every repaint flashed it
            on and off; while a line is shown above the box the sheet hides it (index.html, "THE LINKS RIDE THE LINE") */
         const cur = door.querySelector('.jb-ways');
-        if (cur && !cur.classList.contains('is-carried') && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length) return;
+        if (cur && !cur.classList.contains('is-carried') && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length && (cur.getAttribute('data-jb-shut') || '') === jamboWaysShutSig(here)) return;
         if (cur) cur.remove();
         const inHtml = jamboWaysHtml(here, 'is-in-door'), sp = door.querySelector('.jb-door-sp');
         if (inHtml && sp) sp.insertAdjacentHTML('afterend', inHtml);
         return;
       }
-      if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
+      if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length && (old.getAttribute('data-jb-shut') || '') === jamboWaysShutSig(here)) return;
       if (old) old.remove();
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
       foot.insertAdjacentHTML('beforebegin', html);
@@ -716,13 +739,13 @@ function jamboWaysSync(){
 function jamboWaysCarry(door, row){
   const btns = [...row.querySelectorAll('button')].filter(b => !b.hidden);
   const words = btns.map(b => String(b.getAttribute('data-jb-full') || b.textContent || '').trim());
-  const sig = words.join('\u0001');
+  const sig = btns.map((b, i) => words[i] + (b.disabled ? '\u0002' : '')).join('\u0001');
   const cur = door.querySelector('.jb-ways');
   if (cur && cur.classList.contains('is-carried') && cur.getAttribute('data-jb-carry-sig') === sig) return;
   if (cur) cur.remove();
   if (!btns.length) return;
   const key = b => b.getAttribute('data-jb-way') || b.getAttribute('data-ca-chip') || '';
-  const html = `<nav class="jb-ways is-in-door is-carried" data-jb-ways="carried" data-jb-carry-sig="${esc(sig)}" aria-label="${esc(_jbT('jb_doors_label'))}">${btns.map((b, i) => `<button type="button" class="jb-way${b.classList.contains('ca-chip-owed') ? ' ca-chip-owed' : ''}" data-jb-carry="${i}" data-jb-key="${esc(key(b))}">${esc(words[i])}</button>`).join('')}</nav>`;
+  const html = `<nav class="jb-ways is-in-door is-carried" data-jb-ways="carried" data-jb-carry-sig="${esc(sig)}" aria-label="${esc(_jbT('jb_doors_label'))}">${btns.map((b, i) => `<button type="button" class="jb-way${b.classList.contains('ca-chip-owed') ? ' ca-chip-owed' : ''}" data-jb-carry="${i}" data-jb-key="${esc(key(b))}"${b.disabled ? ` disabled title="${esc(b.title || '')}"` : ''}>${esc(words[i])}</button>`).join('')}</nav>`;
   const sp = door.querySelector('.jb-door-sp');
   if (sp) sp.insertAdjacentHTML('afterend', html);
 }
@@ -838,8 +861,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   }
 }
-Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
-Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays,jamboWaysCarry,jamboCarryRow,jamboWaysFit,jamboWaysFitOne,jamboShortOf,JB_FIT_ROWS});
+Object.assign(window,{ jamboWayShutWhy,JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
+Object.assign(window,{JB_WAY_FEET,jamboRemoteBtnHtml,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays,jamboWaysCarry,jamboCarryRow,jamboWaysFit,jamboWaysFitOne,jamboShortOf,JB_FIT_ROWS});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.
@@ -1589,7 +1612,9 @@ function jamboTurnHtml(m, i, H, host){
   const born = jamboBornOf(m);
   let inner = '';
   try {
-    inner = born === 'ai' ? (typeof window.aiMsgHtml === 'function' ? window.aiMsgHtml(m, i) : '')
+    /* WALK ME THROUGH IT (js/lesson.js): a lesson draws itself, whichever host shows the conversation */
+    inner = (m && m.lesson && typeof window.lessonTurnHtml === 'function') ? window.lessonTurnHtml(m)
+      : born === 'ai' ? (typeof window.aiMsgHtml === 'function' ? window.aiMsgHtml(m, i) : '')
       : born === 'st' ? (typeof window.stJbTurnHtml === 'function' && m.st ? window.stJbTurnHtml(m.st) : '')
       : (typeof window.igMsgHTML === 'function' ? window.igMsgHTML(m, i, H) : '');
   } catch (_){ inner = ''; }
@@ -2340,6 +2365,39 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     /* a sheet in steps: Enter presses what the foot shows (Next ›, or the black act on the last step) */
     if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
 }
+/* A POP-UP'S DROPDOWN LIST IS NEVER CUT BY THE POP-UP (owner, 26 Nov 2026, of the desk's Add someone: "the drop down
+   disappears inside the pop up instead of being out so you can see the list"): a list opened under a box inside a pop-up
+   stands over everything at the box's width, under it (or above it where the window has no room below), wherever the
+   pop-up's own scroller ends; it follows the box while the pop-up scrolls or the window changes size. Measured after it
+   is placed, so a frame that is still arriving (moved or scaled) is allowed for. */
+var POP_LIST_Z = 90;   // over the dialog (80), under the toasts (110)
+function popListFloat(list, anchor){
+  if (!list || !anchor || typeof window === 'undefined') return false;
+  const place = () => {
+    if (list.hidden || !list.isConnected || !anchor.isConnected) return;
+    const a = anchor.getBoundingClientRect(), vh = window.innerHeight || 800;
+    const below = vh - a.bottom - 8, above = a.top - 8, up = below < 160 && above > below;
+    const room = Math.max(120, Math.min(320, up ? above : below));
+    const S = list.style;
+    S.position = 'fixed'; S.zIndex = String(POP_LIST_Z); S.margin = '0'; S.right = 'auto'; S.bottom = 'auto';
+    S.width = Math.round(a.width) + 'px'; S.maxHeight = Math.round(room) + 'px'; S.overflowY = 'auto';
+    S.left = Math.round(a.left) + 'px'; S.top = '0px';
+    const h = list.offsetHeight || 0;
+    const want = { x: a.left, y: up ? a.top - 2 - Math.min(h, room) : a.bottom + 2 };
+    S.top = Math.round(want.y) + 'px';
+    /* a moved or scaled frame makes "fixed" its own: the difference is put back */
+    const r = list.getBoundingClientRect();
+    if (Math.abs(r.left - want.x) > 1) S.left = Math.round(a.left + (want.x - r.left)) + 'px';
+    if (Math.abs(r.top - want.y) > 1) S.top = Math.round(want.y + (want.y - r.top)) + 'px';
+  };
+  place();
+  if (!list._popFloat){
+    list._popFloat = place;
+    window.addEventListener('scroll', () => { if (list.isConnected) list._popFloat(); }, true);
+    window.addEventListener('resize', () => { if (list.isConnected) list._popFloat(); });
+  } else list._popFloat = place;
+  return true;
+}
 /* THE WAVE ON EVERY POP-UP (owner, 24 Nov 2026: "Build it on every edit pop-up", then, after an audit, "All pop-ups,
    not pages"): ONE helper puts Jambo's moving weave across the top of a pop-up's FRAME (its look: index.html
    .lgp-wave) — the edit sheets, the older pop-ups (pickers, compare windows, the timeline), the yes/no and "why?"
@@ -2403,5 +2461,6 @@ if (typeof document !== 'undefined'){
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lgpWaveWatch, { once: true });
   else lgpWaveWatch();
 }
+Object.assign(window, { popListFloat, POP_LIST_Z });
 Object.assign(window, { LGP_WAVE_HTML, POP_WAVE_FRAME, POP_WAVE_TITLE, lgpWaveSweep, popWaveFit, lgpWaveWatch });
 Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });

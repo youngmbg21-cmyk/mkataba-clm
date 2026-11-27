@@ -105,12 +105,17 @@ const check = (name, pass, detail) => {
     /* 6. a contract's ⋯ menu */
     await page.evaluate(() => openWorkspace('MK-A2', { room: true }));
     await until(() => !!document.getElementById('ws-mynote'));
+    const view0 = await page.evaluate(() => state.view);
     await page.evaluate(() => document.getElementById('ws-mynote').click());
     /* RE-POINTED 19 Nov 2026 (owner, "Build 1": a new note is the one edit pop-up beside Jambo's panel; f1101): the
        contract stands in the sheet's About line (#mn-sheet .lgp-in.is-read); narrower, the page's own form (.mn-chosen) */
-    const fromRoom = await until(() => { const el = document.querySelector('#mn-sheet .lgp-in.is-read') || document.querySelector('.mn-chosen');
-      return state.view === 'mynotes' && el ? el.textContent.replace(/\s+/g, ' ').trim() : null; });
-    check('6. a contract\'s ⋯ menu opens the form with the contract filled in', !!fromRoom && /MK-A2/.test(fromRoom), fromRoom);
+    /* RE-POINTED 26 Nov 2026 (owner, f1247: "it pushes me to the notes page. The pop up should appear but on top of the
+       paper"): a note started on a contract opens its sheet OVER the page the reader is on — the view stays what it was
+       before the press, never My notes — and the sheet carries the contract */
+    const fromRoom = await until(() => { const el = document.querySelector('#mn-sheet .lgp-in.is-read');
+      return el ? { text: el.textContent.replace(/\s+/g, ' ').trim(), view: state.view } : null; });
+    check('6. a contract\'s ⋯ menu opens the form over the page, with the contract filled in',
+      !!fromRoom && /MK-A2/.test(fromRoom.text) && view0 !== 'mynotes' && fromRoom.view === view0, JSON.stringify({ view0, fromRoom }));
     check('7. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
     check('the run stopped', false, e && e.message);

@@ -701,7 +701,7 @@ function mActionBarHtml(c){
      reading, dossierNowStage), the sentence in bold, what still holds signing, the act and "Read it first" */
   if(typeof window.newLookOn==='function' && window.newLookOn()){
     let now = ''; try{ now = (typeof dossierNowStage==='function') ? dossierNowStage(c) : ''; }catch(_){ now = ''; }
-    const ST = ['arrive','read','fill','nego','sign','live'], at = ST.indexOf(now);
+    const ST = ['arrive','read','nego','fill','sign','live'], at = ST.indexOf(now);
     const yours = btn && !bl.length;
     const road = at < 0 ? '' : `<div class="m-nl-road">${ST.map((k,i)=>i===at
       ? `<b>${mEsc(i18t('pol_rd_'+k))}${yours?', '+mEsc(i18t('pol_your_move')):''}</b>` : `<span class="${i<at?'is-done':''}">${mEsc(i18t('pol_rd_'+k))}</span>`).join(' · ')}</div>`;

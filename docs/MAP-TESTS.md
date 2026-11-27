@@ -176,6 +176,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NUMBER LEADS THE ROW (23 Oct 2026): f925 3c2 (new; the Board's Agreement cell is number · name, the name in `.nd-deal-t` gives way, the number never cut); f803 2a–2c/5a and f925 2b re-pointed (Home's line leads with the number); counter-as-drawn 11b re-pointed.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- NEEDS YOU FOLDS (27 Nov 2026): `node --test test/f1250-needs-you-folds.test.js test/f925-the-one-desk.test.js`.
+- THE BOARD'S REMOTE (27 Nov 2026): `node --test test/f1249-the-board-remote.test.js` (here); `test/chromium/board-remote-verify.js` (GitHub only: the button first, the panel, bring/put away, the card's × followed, eight at most said, "/pipe", nothing spills, three screens).
 - f1175 "which approvals are late" is not read as late duties (22 Nov 2026; red at the parent).
 - NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026): f1042 1a (re-pointed: no brain card, his line first); board-as-drawn-verify 5b (re-pointed).
 - THE SAME SPACE ABOVE THE FIRST CARD (owner, 14 Nov 2026): f745 7a re-pointed (red at the parent: the greeting's white band still painted over the gap). Photos at the three screens: 12px of the Board's ground under the greeting, as between Your book and Needs you. white-sheet-verify: Board · side list's grey ground ALLOWED in WHITE_KNOWN with the owner's words (red on GitHub before it, as foretold).
@@ -1270,3 +1272,16 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (26 Nov 2026, answers stay on the paper)
 - f1245-filled-answers-stay-on-the-paper; re-pointed f1243 (4), f1244 (3).
+
+## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (26 Nov 2026, fill-ins are answers)
+- f1246-fill-ins-are-answers; re-pointed f1033 (2)(4), f1036 (front part), f1243 (5), f342 (stage gate kept as OLD_THEIRS, 7c).
+
+## THE POP-UPS, THE SAP WAY (26 Nov 2026, over the page, ribbon, lists)
+- f1247-pop-ups-over-the-page; re-pointed f1101 (2).
+
+## WALK ME THROUGH IT — LESSONS IN JAMBO'S PANEL (26 Nov 2026)
+- f1248-walk-me-through-it (the plan's check, walkAsked, one tool on both hosts, no drawn number from the AI, money only with money rights, both books); browser test/chromium/walk-through-verify.js (GitHub: arrives, Board's counts, Next/Replay/Save, no stutter, reload, no money, ordinary question, three screens). f705 (8) and f804 pins kept: the two parts stand after 'listask'.
+- f1248 (7) every drawing is a table (card, head row, one figure column); **bold** drawn bold, the full stop kept with its word.
+- f1248 (8)–(13): narrowing and its head, periods, the same drawing twice, every number in a sentence on a drawing, the one send-back and plain words, findings only for the paper on screen, waiting = the list's count, money left out said, and the question bank (25 lesson questions, 16 that are not, 12 narrowings counted against a plain filter). Browser: walk-through-verify 9a–9d (one folder asked; a wrong number sent back).
+- (27 Nov 2026) ONE DECIDER: f1248 (14) — about 90 phrasings en/sv: "show me" a chart → 'board', "walk me through" → 'lesson', lists/pages/how-to → null, never both; every box asks it. f1248 (15) the bridges (card menu Walk me through this, Put on the Board offered only for a question the Board takes). Browser: walk-through-verify 10 (show me from Duties lands on the Board, asks render_graph, no lesson), 11 (card → lesson), 12 (Put on the Board). f999 (6) still green: the decider lives inside `hbAnalyticAsk`.
+- (27 Nov 2026) f1248 (16): a vague "show me" → 'choose', four buttons, nothing drawn before a press, value only with money rights. f1249: any way of asking for directions → the chapter's guided steps (17 phrasings en/sv), never a data lesson, a chart, a contract's wording or a move.

@@ -128,6 +128,8 @@ function teachSet(v){
 }
 /* the one writer the boxes call: keeps the answer, gives back the turn to draw */
 function teachSay(q){
+  /* a lesson about one's DATA ("walk me through my renewals") is Jambo's walk_through, not the Handbook's (js/walkplan.js) */
+  if (typeof walkAsked === 'function' && walkAsked(q)) return null;
   const turn = teachTurn(q);
   if (turn){ try { teachSet(turn.ask); } catch (_){} return turn; }
   /* HaTi's own words ("what is a dossier?"), free for everyone; "what can I do here?" while teaching is on */
@@ -136,7 +138,7 @@ function teachSay(q){
   return w;
 }
 /* does the sentence belong to the instructor? (the boxes ask this before any other reader) */
-function teachTakes(q){ return !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachHowOf(q)); }
+function teachTakes(q){ return !(typeof walkAsked === 'function' && walkAsked(q)) && !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachHowOf(q)); }
 
 /* THE HINT: a person's first days, while they have said neither */
 function teachHintOn(u){
@@ -339,10 +341,32 @@ function teachStepHtml(c, i, steps, where){
    steps drawn the Legora + Stripe way, with Walk me through it and the chapter one press away. The Contracts page's
    box used to send it to the AI, which wrote its own steps. A move ("how do I get to the calendar") stays a move. */
 const TEACH_HOW_MOVE = / (get to|go to|get back to|komma till|gå till|ta mig till) /;
+/* ANY REASONABLE WAY OF ASKING FOR DIRECTIONS (owner, 27 Nov 2026: "the walk me through, show me, how do I, and any other
+   reasonable phrase should help you get the guidance for direction to do something"): an opening that asks to be guided
+   ("walk me through …", "show me how to …", "guide me …", "help me …", "teach me how …", "what are the steps to …", their
+   Swedish twins) followed by something to DO in HaTi gets the chapter's own steps — ahead of the door that would just
+   open the page ("how do I create a new contract" used to open New agreement with no steps). A lesson about one's
+   own data ("walk me through my renewals", walkAsked) and a chart (askRouteOf) are not directions. */
+const TEACH_GUIDE_RE = /^\s*(?:please\s+|can you\s+|could you\s+|would you\s+|kan du\s+)?(?:how (?:do|can|should|would|could|will) (?:i|we|one|you)|how to|how does one|walk (?:me|us) through(?: how(?: to| do i| i)?)?|take (?:me|us) through(?: how to)?|talk (?:me|us) through(?: how to)?|run (?:me|us) through(?: how to)?|show (?:me|us) how(?: to| do i| can i| i can| we)?|guide (?:me|us)(?: through| on| to| in| how to)?|help (?:me|us)(?: to| with)?|teach (?:me|us)(?: how)?(?: to)?|explain how(?: to| do i| i can)?|tell (?:me|us) how(?: to| do i)?|what are the steps (?:to|for)|what(?:'s| is) the way to|steps (?:to|for)|hur (?:gör|kan|ska|skulle) (?:jag|vi|man)|hur \S+ (?:jag|vi|man)|visa (?:mig|oss) hur(?: man| jag)?|guida (?:mig|oss)(?: genom| i)?|hjälp (?:mig|oss)(?: att| med)?|lär (?:mig|oss)(?: hur)?(?: man)?|gå igenom hur(?: man)?|vilka är stegen för att)\b[\s,:]*/i;
+const TEACH_GUIDE_NOT = /\b(?:approach|handle|negotiate|respond|reply|argue|push back|liability|indemnit\w*|clause|wording|hantera|bemöta|förhandla|klausul|ansvar)\b|\b[A-Za-z]{2,5}-[A-Za-z0-9]*\d/i;
+function teachGuideOf(q){
+  const raw = String(q || '').trim(); if (!raw || raw.length > 200) return null;
+  if (typeof walkAsked === 'function' && walkAsked(raw)) return null;
+  if (typeof askRouteOf === 'function' && askRouteOf(raw)) return null;
+  const m = raw.match(TEACH_GUIDE_RE); if (!m) return null;
+  const rest = raw.slice(m[0].length).replace(/[?.!]+$/, '').trim();
+  if (rest.length < 3 || TEACH_GUIDE_NOT.test(rest)) return null;
+  if (typeof hbkFind !== 'function') return null;
+  const lang = _thLang(), other = lang === 'sv' ? 'en' : 'sv';
+  const hit = hbkFind(rest, lang) || hbkFind(raw, lang) || hbkFind(rest, other) || hbkFind(raw, other);
+  return hit && hit.k ? hit.k : null;
+}
 function teachHowOf(q){
   try {
-    if (typeof navReadHandbook !== 'function' || typeof navNorm !== 'function') return null;
+    if (typeof navNorm !== 'function') return null;
     const t = navNorm(q); if (TEACH_HOW_MOVE.test(t)) return null;
+    const g = teachGuideOf(q); if (g && teachWalkSteps(teachChapter(g)).length) return g;
+    if (typeof navReadHandbook !== 'function') return null;
     const r = navReadHandbook(q, t); const k = r && r.chapter;
     return k && teachWalkSteps(teachChapter(k)).length ? k : null;
   } catch (_){ return null; }
@@ -490,7 +514,7 @@ function teachTasksGroup(){
 
 const TEACH_API = { TEACH_HINT_DAYS, TEACH_STATES, TEACH_STEPS, teachNorm, teachRead, teachState, teachOn, teachSeat, teachChoices, teachTurn, teachSet, teachSay, teachTakes, teachHintOn, teachPh, teachHintSweep,
   TEACH_WORDS, teachWordOf, teachWordTurn, TEACH_HERE_RE, teachHereAsked, teachHereChapters, teachHereTurn,
-  TEACH_FN_DOORS, TEACH_HOW_MOVE, teachHowOf, teachHowTurn, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
+  TEACH_FN_DOORS, TEACH_HOW_MOVE, TEACH_GUIDE_RE, TEACH_GUIDE_NOT, teachGuideOf, teachHowOf, teachHowTurn, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
   TEACH_TASKS, TEACH_DONE_KEYS, teachDoneSet, teachTasks, teachDid, teachTasksGroup };
 if (typeof window !== 'undefined') Object.assign(window, TEACH_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = TEACH_API;
