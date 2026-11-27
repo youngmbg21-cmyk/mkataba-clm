@@ -4742,7 +4742,7 @@ function stJbTalkInnerHtml(){
      empty panel. His greeting stands there until the first turn, the way
      Home's talk view falls back to its welcome line. */
   /* JAMBO IS THINKING (owner, 28 Oct 2026): while his answer is on its way the conversation says so, as every panel's does */
-  const busy=!!(window.ai&&ai.busy)&&typeof jamboThinkingHtml==='function'?`<div class="ai-msg flex gap-2.5">${typeof jamboFaceHtml==='function'?jamboFaceHtml('think',28,'ai-face shrink-0 mt-0.5'):''}${jamboThinkingHtml()}</div>`:'';
+  const busy=!!(window.ai&&ai.busy)&&typeof jamboThinkingHtml==='function'?`<div class="ai-msg jb-wait-row flex gap-2.5">${jamboThinkingHtml()}</div>`:'';
   if(!H.length) return busy||((typeof jamboHelloHtml==='function')?jamboHelloHtml():`<p class="st-note">${esc(i18t('int_notebook_welcome'))}</p>`);
   return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('')+busy;
 }

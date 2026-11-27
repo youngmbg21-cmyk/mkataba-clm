@@ -2054,6 +2054,71 @@ function caSlashRows(w, opts = {}){
     .map(r => ({ kind: 'place', k: r.k, word: '/' + r.word, sub: _caT('ca_sl_' + r.k), n: r.n }));
 }
 
+/* ---- JAMBO'S COMMANDS IN EVERY "/" LIST (owner, 27 Nov 2026: "think of the effective or value add commands", drawn
+   "managed inside the panel", "/" to show them; round 1 by the owner's pick "Menu + easy four first") ----
+   Four commands stand first in every "/" list (the boxes' caSlRead, the list panel's jlPopRead, the Board's
+   hbAskPopRows): Prepare my call, Check against a Notebook document, Handover pack, What's changed. A choice WRITES
+   Jambo's question into the box the reader is typing in and waits for Enter, as the Board's "/" rows always have
+   ("never ask Copilot by itself"): the box's own door asks it, spending only on that press. A command about one
+   contract is offered only with a contract in front; Check lists the Notebook documents the reader may see
+   (window.nbFilters.docs, behind nbSees), one row each. "Since you were last here" is this browser's own mark
+   (CA_SINCE_KEY), a convenience; none kept = the last seven days. Nothing is written, sent or filed. */
+const CA_CMDS = [{ k: 'prepare', one: true }, { k: 'check', one: true, nb: true }, { k: 'handover', one: true }, { k: 'changed' }];
+const CA_CMD_NB_MAX = 6;
+const CA_SINCE_KEY = 'hati.v1.jamboSince';
+let _caSince;
+function caCmdSince(){
+  if (_caSince !== undefined) return _caSince;
+  let all = {}; try { all = JSON.parse(localStorage.getItem(CA_SINCE_KEY) || '{}') || {}; } catch (_){ all = {}; }
+  const w = caUsesWho(), prev = typeof all[w] === 'string' ? all[w] : null;
+  const now = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  try { all[w] = now; localStorage.setItem(CA_SINCE_KEY, JSON.stringify(all)); } catch (_){}
+  _caSince = prev && prev < now ? prev : null;
+  return _caSince;
+}
+function caCmdWord(k){ return '/' + String(_caT('ca_cmd_w_' + k)).trim().replace(/\s+/g, '-'); }
+function caCmdNbDocs(){
+  const N = (typeof window !== 'undefined' && window.nbFilters) || null;
+  if (N && !Array.isArray(N.docs) && typeof window.nbLoad === 'function' && !caCmdNbDocs._asked){ caCmdNbDocs._asked = true; try { window.nbLoad(); } catch (_){} }
+  return (N && Array.isArray(N.docs) ? N.docs : []).filter(d => d && d.id && !d.deletedAt);
+}
+/* the rows for a typed word: c = the contract in front (or null) */
+function caCmdRows(w, c){
+  const q = String(w || '').toLowerCase(), out = [];
+  const ref = c ? caRef(c) : '';
+  for (const m of CA_CMDS){
+    if (m.one && !c) continue;
+    const word = caCmdWord(m.k), bare = word.slice(1).toLowerCase();
+    if (q && !(bare.startsWith(q) || q.startsWith(bare))) continue;
+    if (m.nb){
+      const docs = caCmdNbDocs();
+      const pick = q.length > bare.length ? q.slice(bare.length).replace(/^-/, '') : '';
+      docs.filter(d => !pick || String(d.name || '').toLowerCase().includes(pick)).slice(0, CA_CMD_NB_MAX).forEach(d => out.push({ kind: 'cmd', k: m.k, word,
+        sub: _caT('ca_cmd_s_check_doc', { doc: String(d.name || '') }), q: _caT('ca_cmd_q_check', { ref, doc: String(d.name || '') }) }));
+      continue;
+    }
+    const since = m.k === 'changed' ? caCmdSince() : null;
+    const qk = m.k === 'changed' ? (c ? (since ? 'ca_cmd_q_changed_one' : 'ca_cmd_q_changed_one_week') : (since ? 'ca_cmd_q_changed' : 'ca_cmd_q_changed_week')) : 'ca_cmd_q_' + m.k;
+    out.push({ kind: 'cmd', k: m.k, word, sub: _caT('ca_cmd_s_' + m.k, { ref }), q: _caT(qk, { ref, since: since || '' }) });
+  }
+  return out;
+}
+/* a command chosen: its question written into the box, the caret at its end; Enter asks it */
+function caCmdFill(inp, r){
+  if (!inp || !r || !r.q) return false;
+  inp.value = r.q;
+  try { inp.focus({ preventScroll: true }); inp.setSelectionRange(r.q.length, r.q.length); } catch (_){}
+  if (typeof chatFieldGrow === 'function') try { chatFieldGrow(inp); } catch (_){}
+  try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){}
+  return true;
+}
+/* the group's head, drawn once before the first row of its kind (every "/" list) */
+function caSlHeadOf(rows, i){
+  const r = rows[i], p = rows[i - 1];
+  if (p && (p.kind === 'cmd') === (r.kind === 'cmd')) return '';
+  return `<h5>${_caE(_caT(r.kind === 'cmd' ? 'ca_cmd_head' : 'hb_pop_places'))}</h5>`;
+}
+
 /* ---- THE WAY BACK (the plan: "the panel always offers ‹ Back to …") ----
    Every move a word makes leaves the place it left on a short trail; the
    panel's back row returns there. A place the reader has since gone back to
@@ -3179,6 +3244,7 @@ function caAskAnywhere(text, opts = {}){
 const CA_SL_MAX = 40;
 /* A PLACE ROW SAYS WHAT A PRESS DOES (owner, 25 Oct 2026: the "/" rows opened a place with nothing on them saying so):
    every "/" list ends each place row in "Open ›", as the chart rows end in "Draw ›" — one builder, four lists */
+function caCmdGoHtml(){ return `<span class="hb-pop-go ca-go" aria-hidden="true">${_caE(_caT('ca_cmd_go'))} ›</span>`; }
 function caSlashGoHtml(){ return `<span class="hb-pop-go ca-go" aria-hidden="true">${_caE(_caT('ca_sl_open'))} ›</span>`; }
 const CA_SL_TALL = 360;   // the Counter's list is as tall; the rest scrolls inside it
 let _caSl = null;   // { inp, rows, on }
@@ -3186,7 +3252,7 @@ function caSlRead(inp){
   const m = /^\s*\/([\w\-åäöÅÄÖ'’]*)$/.exec(String(inp.value || ''));
   if (!m){ caSlClose(); return; }
   const one = caOpenContract() ? new Set() : new Set(CA_PLACES.filter(p => p.need === 'one').map(p => p.k));
-  const rows = caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => !one.has(r.k)).slice(0, CA_SL_MAX);
+  const rows = caCmdRows(m[1].toLowerCase(), caOpenContract()).concat(caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => !one.has(r.k))).slice(0, CA_SL_MAX);
   if (!rows.length){ caSlClose(); return; }
   _caSl = { inp, rows, on: Math.min((_caSl && _caSl.on) || 0, rows.length - 1) };
   caSlPaint();
@@ -3195,8 +3261,8 @@ function caSlPaint(){
   if (!_caSl) return;
   let el = document.getElementById('ca-slash');
   if (!el){ el = document.createElement('div'); el.id = 'ca-slash'; el.className = 'ca-pop ca-slash'; document.body.appendChild(el); }
-  el.innerHTML = `<h5>${_caE(_caT('hb_pop_places'))}</h5><div role="listbox">${_caSl.rows.map((r, i) =>
-    `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span>${caSlashGoHtml()}</div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
+  el.innerHTML = `<div role="listbox">${_caSl.rows.map((r, i) => caSlHeadOf(_caSl.rows, i) +
+    `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span>${r.kind === 'cmd' ? caCmdGoHtml() : caSlashGoHtml()}</div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
   const r = _caSl.inp.getBoundingClientRect();
   el.style.left = Math.max(8, r.left) + 'px';
   el.style.width = Math.max(260, r.width) + 'px';
@@ -3215,6 +3281,7 @@ function caSlPaint(){
 function caSlClose(){ _caSl = null; const el = document.getElementById('ca-slash'); if (el) el.remove(); }
 function caSlTake(i){
   const P = _caSl; const r = P && P.rows[i]; if (!r) return;
+  if (r.kind === 'cmd'){ caSlClose(); caCmdFill(P.inp, r); return; }
   P.inp.value = ''; caSlClose();
   /* A PAGE THAT KEEPS WORK leaves through its own way out (the template
      builder's tbLeave keeps what was typed): the box names it, `_caLeave` */
@@ -3435,6 +3502,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
+Object.assign(window, { CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdSince, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });

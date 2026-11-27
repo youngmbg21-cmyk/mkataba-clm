@@ -11692,7 +11692,9 @@ function hbAskPopRows(v){
     const moves = onBoard ? HB_SLASH.filter(k => k.startsWith(w)).map(k => ({ kind: 'slash', k, word: '/' + k, sub: i18t('hb_sl_' + k) })) : [];
     /* the Board's charts, the remote's own rows (hbRemoteSlashRows) */
     const charts = onBoard ? hbRemoteSlashRows(w) : [];
-    return { mode: 'slash', rows: places.concat(moves).concat(charts) }; }
+    /* Jambo's commands first (caCmdRows): a choice writes his question in this box, Enter asks it */
+    const cmds = (typeof window.caCmdRows === 'function') ? caCmdRows(w, (typeof window.caOpenContract === 'function' && !onBoard) ? caOpenContract() : null) : [];
+    return { mode: 'slash', rows: cmds.concat(places.concat(moves).concat(charts)) }; }
   if (!onBoard) return null;
   m = /\b(?:by|per|efter)\s+([a-zåäö-]*)$/i.exec(t);
   if (m){ const w = m[1].toLowerCase(), start = t.length - m[1].length;
@@ -11708,10 +11710,10 @@ function hbAskPopHtml(P){
   const head = i18t('hb_pop_' + P.mode);
   let lastKind = null;
   const grouped = P.mode === 'gallery' || P.mode === 'slash';
-  const secHead = r => P.mode === 'gallery' ? i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head') : i18t(r.kind === 'place' ? 'hb_pop_places' : r.kind === 'chart' ? 'hb_rm_slash_head' : 'hb_pop_slash');
+  const secHead = r => P.mode === 'gallery' ? i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head') : i18t(r.kind === 'cmd' ? 'ca_cmd_head' : r.kind === 'place' ? 'hb_pop_places' : r.kind === 'chart' ? 'hb_rm_slash_head' : 'hb_pop_slash');
   const rows = P.rows.slice(0, grouped ? HB_ASKPOP_LONG : HB_ASKPOP_MAX).map((r, i) => {
     const sec = grouped && r.kind !== lastKind ? `<h5>${_hbE(secHead(r))}</h5>` : ''; lastKind = r.kind;
-    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}" data-hb-pop-kind="${_hbE(r.kind || '')}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${''/* THE ROW SAYS WHAT IT DOES (owner picked "The Legora way", 25 Oct 2026): a chart row ends in "Draw ›", as the Dossier's door rows end in "Open ›" */}${r.kind === 'gal' || r.kind === 'myq' || r.kind === 'chart' ? `<span class="hb-pop-go" aria-hidden="true">${_hbE(r.kind === 'chart' && r.on ? i18t('hb_rm_on') : i18t('hb_pop_draw') + ' ›')}</span>` : ''}${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}${r.kind === 'place' && typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`; }).join('');
+    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}" data-hb-pop-kind="${_hbE(r.kind || '')}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${''/* THE ROW SAYS WHAT IT DOES (owner picked "The Legora way", 25 Oct 2026): a chart row ends in "Draw ›", as the Dossier's door rows end in "Open ›" */}${r.kind === 'gal' || r.kind === 'myq' || r.kind === 'chart' ? `<span class="hb-pop-go" aria-hidden="true">${_hbE(r.kind === 'chart' && r.on ? i18t('hb_rm_on') : i18t('hb_pop_draw') + ' ›')}</span>` : ''}${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}${r.kind === 'place' && typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}${r.kind === 'cmd' && typeof caCmdGoHtml === 'function' ? caCmdGoHtml() : ''}</div>`; }).join('');
   return `${grouped ? '' : `<h5>${_hbE(head)}</h5>`}<div role="listbox">${rows}</div><p class="ca-hint">${_hbE(i18t(P.mode === 'by' || P.mode === 'in' ? 'hb_pop_keys_tab' : 'hb_pop_keys'))}</p>`;
 }
 function hbAskPopClose(){ _hbPop = null; const el = document.getElementById('hb-askpop'); if (el) el.remove(); }
@@ -11740,6 +11742,7 @@ function hbAskPopChoose(inp, i){
   const P = _hbPop; const r = P && P.rows[i]; if (!r) return;
   hbAskPopClose();
   if (r.kind === 'word'){ const v = String(inp.value || ''); _hbAskSet(inp, v.slice(0, P.start) + r.word + ' '); return; }
+  if (r.kind === 'cmd'){ _hbAskSet(inp, r.q); return; }
   if (r.kind === 'place'){
     if (r.k === 'draft'){ _hbAskSet(inp, r.word.slice(1) + ' '); return; }
     _hbAskSet(inp, '');

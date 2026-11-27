@@ -10710,8 +10710,7 @@ function renderIntelDock(){
   const msgs=!say?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
     :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${intel.history.map((m,i,a)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a)).join('')}</div>`;
   const typing=intel.busy?`
-    <div class="ai-msg flex gap-2">
-      ${igFaceHtml('think')}
+    <div class="ai-msg jb-wait-row flex gap-2">
       ${typeof window.jamboThinkingHtml==='function'?jamboThinkingHtml():'<div class="jl-bub typing"><span></span><span></span><span></span></div>'}
     </div>`:'';
   /* ---- ONE COPILOT PANEL, ON THE CALENDAR TAB TOO (owner, 11 Oct 2026,
