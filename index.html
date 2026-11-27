@@ -17871,9 +17871,10 @@
   .jb-door-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
   .jb-door .jb-bin{flex:none;cursor:pointer}
   .jb-talk-label{cursor:default}
-  /* THE STATUS LINE (owner, 27 Nov 2026; reverses 28 Oct's dots alone): the step in plain words, three small dots pulsing
-     in turn in the words' own colour, then Stop; one line that wraps neatly, never "…" */
-  .jl-bub.jb-thinking{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:2px;min-height:36px;max-width:100%;padding:6px 14px;color:var(--color-quiet);font-size:var(--t-body);line-height:1.35}
+  /* THE STATUS LINE (owner, 27 Nov 2026; reverses 28 Oct's dots alone; "this is how the status line should look"): plain
+     grey words at the foot of the conversation, no bubble and no face, three small dots pulsing in turn in the words' own
+     colour; Stop shows only once a step has stood long ("Still working on it"); one line that wraps neatly, never "…" */
+  :is(#app-shell, #modal-root, body) .jl-bub.jb-thinking{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:2px;min-height:0;max-width:100%;padding:4px 0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--color-neutral-400);font-size:var(--t-body);line-height:1.35}
   .jb-thinking .jb-step{min-width:0}
   .jb-thinking .jb-dots{display:inline-flex;align-items:center;gap:3px}
   .jb-thinking .jb-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.35;animation:jb-busy 1.2s infinite ease-in-out}

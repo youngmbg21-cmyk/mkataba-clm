@@ -1559,9 +1559,11 @@ function jamboThinkingNow(){ try { return typeof window.aiThinkingNow === 'funct
 /* the words now: never ending in "…" (the dots say it) */
 function jamboStatusWords(){
   const S = JB_STATUS, tr = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
-  const k = (S.at && Date.now() - S.at >= JB_STILL_MS) ? 'jb_st_still' : (S.key || 'jb_st_thinking');
+  const k = jamboStatusStill() ? 'jb_st_still' : (S.key || 'jb_st_thinking');
   return String(tr(k, S.vars || undefined)).replace(/(…|\.\.\.)\s*$/, '').trim();
 }
+/* a step that has stood JB_STILL_MS: the words say so, and only then is Stop offered (the owner's picture: words and dots) */
+function jamboStatusStill(){ const S = JB_STATUS; return !!(S.at && Date.now() - S.at >= JB_STILL_MS); }
 function jamboStatusBegin(){ const S = JB_STATUS; if (S.live) return; S.live = true; S.key = 'jb_st_start'; S.vars = null; S.at = Date.now(); jamboStatusTick(); }
 function jamboStatusSet(key, vars){
   const S = JB_STATUS; if (!S.live) jamboStatusBegin();
@@ -1588,7 +1590,7 @@ function jamboStop(){
 }
 function jamboStatusPatch(){
   if (typeof document === 'undefined') return;
-  const w = jamboStatusWords(), stop = !!JB_STATUS.stop;
+  const w = jamboStatusWords(), stop = !!JB_STATUS.stop && jamboStatusStill();
   document.querySelectorAll('[data-jb-thinking]').forEach(el => {
     const sc = el.closest('.jl-talk-sc, #ai-feed, #jl-feed, .igd-scroll, [data-jb-turns]');
     const near = !!sc && (sc.scrollHeight - sc.scrollTop - sc.clientHeight) <= JB_NEAR_BOTTOM;
@@ -1612,7 +1614,7 @@ function jamboThinkingHtml(){
   jamboStatusBegin();
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const tr = k => (typeof i18t === 'function') ? i18t(k) : k;
-  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true"><span class="jb-step">${e(jamboStatusWords())}</span><span class="jb-dots" aria-hidden="true"><span class="jb-dot"></span><span class="jb-dot"></span><span class="jb-dot"></span></span><button type="button" class="jb-stop" data-jb-stop title="${e(tr('jb_stop_tip'))}"${JB_STATUS.stop ? '' : ' hidden'}>${e(tr('jb_stop'))}</button></div>`;
+  return `<div class="jl-bub jb-thinking" data-jb-thinking role="status" aria-live="polite" aria-busy="true"><span class="jb-step">${e(jamboStatusWords())}</span><span class="jb-dots" aria-hidden="true"><span class="jb-dot"></span><span class="jb-dot"></span><span class="jb-dot"></span></span><button type="button" class="jb-stop" data-jb-stop title="${e(tr('jb_stop_tip'))}"${JB_STATUS.stop && jamboStatusStill() ? '' : ' hidden'}>${e(tr('jb_stop'))}</button></div>`;
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jbStopWired)){
   if (typeof window !== 'undefined') window._jbStopWired = true;
@@ -1993,7 +1995,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,JB_STATUS,JB_STILL_MS,JB_STEP_KEYS,jamboStatusWords,jamboStatusBegin,jamboStatusSet,jamboStepSay,jamboStopOn,jamboStopGone,jamboStop,jamboStatusPatch,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,JB_STATUS,JB_STILL_MS,JB_STEP_KEYS,jamboStatusWords,jamboStatusStill,jamboStatusBegin,jamboStatusSet,jamboStepSay,jamboStopOn,jamboStopGone,jamboStop,jamboStatusPatch,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

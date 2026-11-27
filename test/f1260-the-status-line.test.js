@@ -18,7 +18,9 @@ describe('f1260 (1) the line: words, three dots, Stop', () => {
   test('one builder draws the step in words, the dots hidden from screen readers, Stop only where an ask can stop', () => {
     assert.match(CO, /<span class="jb-step">\$\{e\(jamboStatusWords\(\)\)\}<\/span><span class="jb-dots" aria-hidden="true">/);
     assert.match(CO, /role="status" aria-live="polite" aria-busy="true"/);
-    assert.match(CO, /data-jb-stop title="\$\{e\(tr\('jb_stop_tip'\)\)\}"\$\{JB_STATUS\.stop \? '' : ' hidden'\}/);
+    /* the owner's picture (27 Nov 2026): words and dots only; Stop only once a step has stood long */
+    assert.match(CO, /data-jb-stop title="\$\{e\(tr\('jb_stop_tip'\)\)\}"\$\{JB_STATUS\.stop && jamboStatusStill\(\) \? '' : ' hidden'\}/);
+    assert.match(CO, /stop = !!JB_STATUS\.stop && jamboStatusStill\(\);/);
     assert.doesNotMatch(CO.slice(CO.indexOf('function jamboThinkingHtml'), CO.indexOf('function jamboThinkingHtml') + 900), /aria-label=/, 'the words are read, not a hidden label');
   });
   test('the words are patched in place, never a redraw; kept in view only near the bottom', () => {
@@ -28,7 +30,8 @@ describe('f1260 (1) the line: words, three dots, Stop', () => {
   });
   test('"Still working on it" after 20 seconds on one step; never "…"', () => {
     assert.match(CO, /const JB_STILL_MS = 20000;/);
-    assert.match(CO, /Date\.now\(\) - S\.at >= JB_STILL_MS\) \? 'jb_st_still'/);
+    assert.match(CO, /function jamboStatusStill\(\)\{ const S = JB_STATUS; return !!\(S\.at && Date\.now\(\) - S\.at >= JB_STILL_MS\); \}/);
+    assert.match(CO, /const k = jamboStatusStill\(\) \? 'jb_st_still'/);
     assert.ok(CO.includes(".replace(/(…|\\.\\.\\.)\\s*$/, '')"), 'a trailing … is taken off');
   });
   test('every tool Jambo can use has its words, in both books, none ending in "…"', () => {
@@ -39,6 +42,15 @@ describe('f1260 (1) the line: words, three dots, Stop', () => {
       const rows = I.match(new RegExp('\\b' + k + ": '([^']*)'", 'g')) || [];
       assert.equal(rows.length, 2, k);
       if (/^jb_st_/.test(k)) for (const r of rows) assert.doesNotMatch(r, /…'$|\.\.\.'$/, k);
+    }
+  });
+  test('the owner\'s picture: plain grey words, no bubble and no face beside them', () => {
+    assert.ok(H.includes(':is(#app-shell, #modal-root, body) .jl-bub.jb-thinking{'));
+    assert.match(H, /\.jl-bub\.jb-thinking\{[^}]*padding:4px 0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var\(--color-neutral-400\)/);
+    for (const f of ['js/ai.js', 'js/views/intelligence.js', 'js/views/settings.js']) {
+      const src = R(f), at = src.indexOf('jb-wait-row');
+      assert.ok(at > 0, f);
+      assert.doesNotMatch(src.slice(at, at + 160), /FaceHtml/, f + ': no face beside the line');
     }
   });
   test('less motion: three still dots; "Jambo ›" carries them while an answer is on its way', () => {

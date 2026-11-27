@@ -1677,8 +1677,7 @@ function renderAIFeed(typing){
     if(inList&&i<_from) return '';
     return (typeof jamboTurnHtml==='function')?jamboTurnHtml(m,i,H,'ai'):aiMsgHtml(m,i);
   }).join('') + (typing?`
-    <div class="ai-msg flex gap-2.5">
-      ${aiFaceHtml('think')}
+    <div class="ai-msg jb-wait-row flex gap-2.5">
       ${typeof window.jamboThinkingHtml==='function'?jamboThinkingHtml():'<div class="jl-bub typing"><span></span><span></span><span></span></div>'}
     </div>`:'');
   /* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
