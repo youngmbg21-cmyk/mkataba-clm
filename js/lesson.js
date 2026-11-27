@@ -621,6 +621,8 @@ function lessonStepHtml(L, R, i, now){
     const start = words.length * LS_WORD_MS + LS_AFTER_MS;
     const money = s.board.nomoney ? `<div class="lsn-nomoney" ${_lnD(start - 100, el)}><span>${_lnE(_lnT('ls_nomoney'))}</span>${(typeof isAdmin === 'function' && isAdmin()) ? '' : `<button type="button" class="ui-link" data-lsn-act="askadmin">${_lnE(_lnT('ls_ask_admin'))}</button>`}</div>` : '';
     bd = money + lessonBoardHtml(s.board, start, el);
+    /* PUT ON THE BOARD (owner, 27 Nov 2026): a drawing of the book asked again as a chart on the Board's page */
+    if (s.board.scope && s.board.type !== 'say' && !lsPhone() && lessonBoardAsk(s.board)) bd += `<div class="lsn-tob"><button type="button" class="ui-link" data-lsn-act="board" data-lsn-step-i="${i}">${_lnE(_lnT('ls_to_board'))}</button></div>`;
   }
   return `<div class="lsn-step${still ? ' is-still' : ''}${s.op ? ' is-op' : ''}" data-lsn-step="${i}"><p class="lsn-say">${say}</p>${bd}</div>`;
 }
@@ -712,6 +714,18 @@ function lessonReplay(K, L){
   K.querySelector('.lsn-steps').innerHTML = '';
   lessonPatch(K, L);
 }
+/* THE BOARD'S QUESTION FOR A LESSON'S DRAWING: what it counts, by what, for which narrowing — said the way the Board
+   reads a chart question ("Show me contracts by stage for Marketing & Brand") */
+function lessonBoardAsk(b){
+  if (!b || !b.scope) return '';
+  const H = lessonHeadOf(b);
+  if (b.type === 'table' || !LS_HEADS[b.what]) return '';
+  const what = _lnT('ls_by', { a: _lnT(H[1]).toLowerCase(), b: _lnT(H[0]).toLowerCase() });
+  const words = lessonScopeWords(Object.assign({}, b.scope, { n: null, whole: false })).split(' · ').filter(Boolean).join(', ');
+  const q = _lnT('ls_board_q', { what }) + (words ? _lnT('ls_for', { s: words }) : '');
+  /* only a question the Board takes as its own is offered (the one decider, chartAsked) */
+  return (typeof chartAsked === 'function' && chartAsked(q)) ? q : '';
+}
 /* SAVE: the lesson as words in My notes (private to this person), with Undo */
 function lessonText(L){
   const line = (b) => { if (!b) return ''; if (b.type === 'say') return _lnT(b.lk);
@@ -746,6 +760,7 @@ if (typeof document !== 'undefined' && !document._lnWired){
     else if (act === 'all') lessonAll(K, L);
     else if (act === 'replay') lessonReplay(K, L);
     else if (act === 'save') lessonSave(L);
+    else if (act === 'board'){ const st = L.steps[Number(b.getAttribute('data-lsn-step-i'))]; const q = st && lessonBoardAsk(st.board); if (q && typeof boardShowGo === 'function') boardShowGo(q); }
     else if (act === 'askadmin' && typeof stAskFrom === 'function') stAskFrom('directory', _lnT('ls_money_ask'));
   }, true);
 }
@@ -763,6 +778,8 @@ const LS_CSS = `
 .lsn-nomoney .ui-link{ font-size:12.5px; }
 .lsn-bd{ min-width:0; }
 .lsn-scope{ padding:8px 12px 0; font-size:12px; line-height:1.4; color:var(--color-text); font-weight:var(--w-label); overflow-wrap:anywhere; }
+.lsn-tob{ margin:6px 0 0; text-align:right; }
+.lsn-tob .ui-link{ font-size:12.5px; }
 .lsn-foot{ padding:4px 12px 8px; font-size:11.5px; line-height:1.4; color:var(--color-quiet); }
 .lsn-card{ border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); overflow:hidden; }
 .lsn-thd{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); gap:10px; align-items:center; padding:6px 12px; background:var(--color-surface); font-size:11.5px; color:var(--color-quiet); white-space:nowrap; }
@@ -852,6 +869,6 @@ function lessonCssOn(){
   const el = document.createElement('style'); el.id = 'lsn-css'; el.textContent = LS_CSS; document.head.appendChild(el);
 }
 
-Object.assign(window, { lessonWords, lessonHeadOf, LS_HEADS, lessonScope, lessonScopeWords, lessonFigures, lessonNumbersOf, lessonCheck, lessonCheckNote, lessonPlain, lessonSettle, LS_WORD_MS, LS_AFTER_MS, LS_STILL_MS, LS_ALL_MS, LS_GAP, LS_READ, lsMoneyOk, lsMayAct, lessonBoard, lessonFill, lessonFromAnswer,
+Object.assign(window, { lessonBoardAsk, lessonWords, lessonHeadOf, LS_HEADS, lessonScope, lessonScopeWords, lessonFigures, lessonNumbersOf, lessonCheck, lessonCheckNote, lessonPlain, lessonSettle, LS_WORD_MS, LS_AFTER_MS, LS_STILL_MS, LS_ALL_MS, LS_GAP, LS_READ, lsMoneyOk, lsMayAct, lessonBoard, lessonFill, lessonFromAnswer,
   lessonRunOf, lessonBoardHtml, lessonStepHtml, lessonInnerHtml, lessonTurnHtml, lessonMountAll, lessonRetime, lessonOpsApply, lessonOpsOf, lessonPatch,
   lessonNext, lessonAll, lessonReplay, lessonText, lessonSave, lessonLessonOf, lessonCssOn, _lnRun, _lnKept });

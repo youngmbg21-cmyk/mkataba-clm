@@ -364,3 +364,115 @@ describe('f1248 (13) the question bank', () => {
     if (st.scope) assert.equal(st.scope.n, want.length, 'the head says how many');
   });
 });
+
+/* f1248 (14) ONE DECIDER FOR EVERY BOX (owner, 27 Nov 2026: "Board is for KPIs and charts … walk me through … from the
+   side panel"): "Show me" a chart or a figure → the Board draws it; "Walk me through" → a lesson in Jambo's panel;
+   a list or a page ("show me signed contracts", "show me the guide") opens its page as before; anything else is
+   an ordinary answer. askRouteOf is the one reading every host asks (caAskAnywhere, intelAsk, aiSubmit). */
+describe('f1248 (14) one decider: show me → the Board, walk me through → a lesson', () => {
+  const board = ['show me value by stream', 'show me my renewals', 'show me what ends this quarter', 'show me our largest deals',
+    'compare our streams by value', 'break down my contracts by stream', 'show me contracts by stage', 'show me value by counterparty',
+    'chart my contracts by status', 'plot value over time', 'graph renewals month by month', 'draw a pie of our streams',
+    'show me the pipeline', 'show me our KPIs', 'show me the key figures', 'show me our exposure', 'show me risks by stream',
+    'show me duties due this month', 'show me our top 5 counterparties', 'show me the biggest contracts', 'display value per stream',
+    'show the split of contracts by type', 'show me the distribution by stage', 'can you show me value by quarter', 'please show me the renewals',
+    'show me our payment days', 'show me days to sign', 'top 10 suppliers by value', 'compare Naivas and Bidco by value', 'what is the share of value by stream',
+    'show me contract value by month', 'show me expiring contracts by month', 'show me obligations by side', 'show me value for the marketing folder by stage',
+    'chart contracts ending next year', 'show me a timeline of renewals', 'show me the trend of signed contracts', 'show me contracts per counterparty',
+    'visa värde per värdeström', 'visa mig våra förnyelser', 'visa fördelning per motpart', 'jämför våra värdeströmmar', 'visa nyckeltal', 'rita avtal per månad',
+    'visa mig våra största avtal', 'bryt ner mina avtal per värdeström'];
+  const lesson = ['walk me through my contracts', 'walk me through value by counterparty', 'gå igenom mina avtal', 'take me through our duties this month',
+    'walk me through my renewals for next quarter', 'teach me where our money is', 'step by step, my risks please', 'walk me through the status of our contracts',
+    'talk me through the negotiation with Naivas', 'walk me through contracts by stage for Marketing & Brand', 'run me through my approvals', 'give me a tour of my portfolio'];
+  const page = ['show me signed contracts', 'show me all imports', 'show me MK-BP2', 'show me the guide', 'show me overdue contracts', 'show me drafts',
+    'show me negotiations', 'show me the risk lens', 'explain my renewals', 'teach me', 'walk me through sending a contract', 'walk me through the settings page',
+    'how do I show value by stream?', 'where is the chart of renewals?', 'show me the marketing folder', 'open contracts', 'renewals', 'how many contracts do we have',
+    'why is the Naivas value high?', 'change the payment days to 500', 'show me the settings', 'show me the handbook', 'hur gör jag ett diagram?', 'show me this page',
+    'show me the Board', 'what ends this quarter?', "I'm new", 'gå till inställningar', 'visa mig handboken', 'show me MK-B2 by value', 'show me the risk lens by stream'];
+  for (const q of board) test('the Board draws it: ' + q, () => assert.equal(W.askRouteOf(q), 'board'));
+  for (const q of lesson) test('a lesson in the panel: ' + q, () => assert.equal(W.askRouteOf(q), 'lesson'));
+  for (const q of page) test('neither (its page, or an ordinary answer): ' + q, () => assert.equal(W.askRouteOf(q), null));
+  test('the decider reads only the person\'s words, never the page\'s description put in front (red at the parent: the Board\'s wrapper named MK-B2 and the chart became a lesson)', () => {
+    const wrap = q => '[The reader is on the Home board. What the board shows now:\nYour book: 10 live contracts; Retail Supply — Coast MK-B2 waits.\nAnswer from these numbers when the question is about the board.]\n\n' + q;
+    assert.equal(W.chartAsked(wrap('show me contracts by stage')), true);
+    assert.equal(W.chartAsked(wrap('show me signed contracts')), false);
+    assert.equal(W.askOwnWords(wrap('show me value by stream')), 'show me value by stream');
+  });
+  test('the two never overlap: a lesson is never a Board chart', () => {
+    for (const q of [...board, ...lesson, ...page]) assert.ok(!(W.walkAsked(q) && W.chartAsked(q)), q);
+  });
+  test('every box asks the one decider before its own reading, and a chart there ends on the Board', () => {
+    const CA = fs.readFileSync(path.join(ROOT, 'js/copilotacts.js'), 'utf8');
+    const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
+    assert.match(CA, /chartAsked\(t\)[\s\S]{0,700}boardShowGo\(t\)/, 'caAskAnywhere');
+    assert.match(IG, /chartAsked\(q\)[\s\S]{0,500}boardShowGo\(q/, 'intelAsk');
+    assert.match(AI, /chartAsked\(q\)[\s\S]{0,300}boardShowGo\(q\)/, 'the ✦ window');
+    assert.match(IG, /function boardShowGo[\s\S]{0,900}igBoardTalkAsk\(q\)/, 'boardShowGo hands the Board its question');
+  });
+  test('a chart question is never offered the lesson tool, on either host (red at the parent: the Board\'s fallback answer became a lesson)', () => {
+    assert.match(SERVER, /function copilotToolsFor\(context, question\)[\s\S]{0,300}chartAsked\(question\) \? copilotToolsNow\(\)\.filter\(t => t\.name !== 'walk_through'\)/);
+    assert.equal((SERVER.match(/tools: copilotToolsFor\(context, typeof question === 'string' \? question : ''\)/g) || []).length, 2, 'both chat routes');
+    assert.match(AI, /function localAiTools\(q\)\{[\s\S]{0,200}chartAsked\(q\)\)\?LOCAL_AI_TOOLS\.filter\(t=>t\.name!=='walk_through'\)/);
+    assert.match(AI, /tools:localAiTools\(lastQ\)/);
+  });
+});
+
+/* f1248 (15) THE BRIDGES: a Board card's ⋯ menu has Walk me through this (a lesson about that card, in the panel);
+   a lesson's book drawing has Put on the Board (the same drawing asked as the Board's chart, the same narrowing). */
+describe('f1248 (15) the bridges between the Board and a lesson', () => {
+  const HB = fs.readFileSync(path.join(ROOT, 'js/views/homeboard.js'), 'utf8');
+  const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
+  test('both Board card menus carry Walk me through this, and it asks a lesson by name', () => {
+    assert.equal((HB.match(/data-hb-walk="/g) || []).length, 2, 'chart cards and kind panels');
+    assert.match(HB, /on\('\[data-hb-walk\]'\)[\s\S]{0,120}hbWalkThis/);
+    assert.match(HB, /function hbWalkThis[\s\S]{0,400}intelWalkAsk\(i18t\('hb_walk_q'/);
+    assert.match(IG, /function intelWalkAsk[\s\S]{0,600}intelChatAsk\(q\)/);
+  });
+  const EN = require('../js/i18n.js').STRINGS.en;
+  const say = (k, v) => String(EN[k] == null ? k : EN[k]).replace(/\{(\w+)\}/g, (m, x) => (v && v[x] != null ? v[x] : m));
+  const ctx = lessonWorld({ extra: { chartAsked: W.chartAsked, i18t: say } });
+  test('a lesson\'s drawing is asked on the Board as the same chart with the same narrowing', () => {
+    const b = ctx.lessonBoard('stages', null, { what: 'stages', where: { stream: 'mktg', stage: 'Signed' } });
+    const q = ctx.lessonBoardAsk(b);
+    assert.ok(q, 'a question'); assert.equal(W.askRouteOf(q), 'board', q);
+    assert.match(q, /Marketing & Brand/);
+  });
+  test('a list of contracts is never offered to the Board', () => {
+    const tb = ctx.lessonBoard('contracts', null, { what: 'contracts', where: { stream: 'mktg' } });
+    assert.equal(ctx.lessonBoardAsk(tb), '');
+  });
+  test('the press goes through boardShowGo, never the phone', () => {
+    assert.match(LESSON, /act === 'board'[\s\S]{0,240}boardShowGo\(q\)/);
+    assert.match(LESSON, /!lsPhone\(\) && lessonBoardAsk\(s\.board\)/);
+  });
+});
+
+/* f1248 (16) A "SHOW ME" THAT NAMES NO CHART ASKS WHICH (owner, 27 Nov 2026: "add 4 buttons in the jambo panel asking
+   which one the user mean so they can press instead of build charts they may not want to see"): Jambo's panel asks
+   with four buttons; nothing is drawn until one is pressed, and only that one is drawn on the Board, by HaTi (no AI). */
+describe('f1248 (16) a vague "show me" gets four buttons, and only the pressed one is drawn', () => {
+  const vague = ['show me', 'Show me.', 'show me a chart', 'show me how we are doing', 'show me something', 'show me the numbers', 'show me our charts',
+    'show me everything', 'can you show me some charts', 'visa mig', 'visa mig hur det går', 'visa mig något'];
+  const notVague = ['show me my contracts', 'show me the board', 'show me this page', 'show me how to create a new contract', 'show me value',
+    'show me value by stream', 'show me signed contracts', 'show me the guide', 'show me MK-B2', 'walk me through my contracts'];
+  for (const q of vague) test('asks which: ' + q, () => assert.equal(W.askRouteOf(q), 'choose'));
+  for (const q of notVague) test('not asked which: ' + q, () => assert.notEqual(W.askRouteOf(q), 'choose'));
+  const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
+  test('the buttons are asked in the panel; nothing is drawn before a press; a press draws that one card with HaTi\'s own recipe', () => {
+    assert.match(IG, /chartVague\(q\)\) return boardShowChoices\(q\);[\s\S]{0,400}return await igBoardTalkAsk\(q\);/, 'vague → the buttons, never the drawing model');
+    const choices = IG.slice(IG.indexOf('function boardShowChoices('), IG.indexOf('function boardShowCard('));
+    assert.doesNotMatch(choices, /hbAddCard|igBoardTalkAsk|intelGraphAsk|api\(/, 'asking draws nothing and calls nothing');
+    assert.match(IG, /if\(c\.card\)\{ m\.choices=null;[^\n]*boardShowCard\(c\.card\)/, 'the press draws');
+    assert.match(IG.slice(IG.indexOf('function boardShowCard(')), /^function boardShowCard[\s\S]{0,500}hbAddCard\(\{ all:true \}, c\.recipe, c\.title\)/);
+  });
+  test('four buttons; value only with money rights, else the count by stream', () => {
+    const win = { state: { view: 'dashboard' } };
+    const src = IG.slice(IG.indexOf('const BOARD_SHOW_CARDS='), IG.indexOf('function boardShowChoices('));
+    for (const money of [true, false]){
+      const f = new Function('window', 'canViewValues', src + '; return boardShowCardsFor();');
+      const cards = f(Object.assign(win, { canViewValues: () => money }), () => money);
+      assert.equal(cards.length, 4, 'four');
+      assert.equal(cards.some(c => c.recipe.measure === 'value'), money, money ? 'value shown' : 'no value without money rights');
+    }
+  });
+});
