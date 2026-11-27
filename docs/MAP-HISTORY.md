@@ -40905,3 +40905,7 @@ Two drawings missed: the first (four ways, ticking the four figure cards) and th
 - 3, "/" lists the same charts: hbRemoteSlashRows after the places and the moves (f672 pins `places.concat(moves)` first).
 Built beyond the drawing: a "Ready charts" group (the "/" gallery, HB_GALLERY), since those are the charts "summoned by the slash prompt". The drawing's examples "Contracts by counterparty"/"Monday review" are the person's own kept questions (s.myq) and saved boards (s.saved), shown only when they exist.
 The panel's head tab ("Overview") showed over the remote at first: the welcome's own rule (jov5 slot hb) hides the head; the remote got the same rule.
+
+
+## HOME — THE BOARD AND THE MAP: NEEDS YOU FOLDS AGAIN (27 Nov 2026)
+The owner: "Add a feature to minimize needs chart in the board page". The fold had been built on 25 Oct 2026 ("add the ability for the needs you card to be able to be minimized": Hide/Show, hbS().ndFold) and taken off the new look by P-39 (20 Nov 2026, "the Board's Needs you has no Hide"), which also stopped honouring a kept fold. This reverses that part of P-39: the new look draws the panels' own minimise chevron at the head's right end (ndFoldArrowHtml, ui-btn-plain ui-btn-icon), in line with Your book's figure-picker button; the old look keeps its Hide button (f925 pins it). Photographed at 1440×780, 1536×730, 1366×950: folded the card is its 44px head with "3 things · the oldest has waited 57 days"; kept through a refresh; the arrow opens it.
