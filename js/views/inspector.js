@@ -1952,20 +1952,23 @@ function jlPopRead(inp){
   if (!m || typeof caSlashRows !== 'function'){ jlPopClose(); return; }
   const held = !!jlHeldContract();
   const one = new Set((typeof CA_PLACES !== 'undefined' ? CA_PLACES : []).filter(p => p.need === 'one').map(p => p.k));
-  const rows = caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => held || !one.has(r.k)).slice(0, 8);
+  /* Jambo's commands first (caCmdRows), about the contract this panel holds */
+  const cmds = (typeof caCmdRows === 'function') ? caCmdRows(m[1].toLowerCase(), jlHeldContract() || null) : [];
+  const rows = cmds.concat(caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => held || !one.has(r.k)).slice(0, 8));
   if (!rows.length){ jlPopClose(); return; }
   _jlPop = { rows, on: Math.min((_jlPop && _jlPop.on) || 0, rows.length - 1) };
   jlPopPaint();
 }
 function jlPopPaint(){
   const el = document.querySelector('[data-jl-pop]'); if (!el || !_jlPop) return;
-  el.innerHTML = `<h5>${esc(i18t('hb_pop_places'))}</h5><div role="listbox">${_jlPop.rows.map((r, i) =>
-    `<div class="ca-opt${i === _jlPop.on ? ' on' : ''}" role="option" aria-selected="${i === _jlPop.on}" data-jl-pop-row="${i}"><span class="who"><b>${esc(r.word)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span>${typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`).join('')}</div><p class="ca-hint">${esc(i18t('hb_pop_keys'))}</p>`;
+  el.innerHTML = `<div role="listbox">${_jlPop.rows.map((r, i) => (typeof caSlHeadOf === 'function' ? caSlHeadOf(_jlPop.rows, i) : '') +
+    `<div class="ca-opt${i === _jlPop.on ? ' on' : ''}" role="option" aria-selected="${i === _jlPop.on}" data-jl-pop-row="${i}"><span class="who"><b>${esc(r.word)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span>${r.kind === 'cmd' && typeof caCmdGoHtml === 'function' ? caCmdGoHtml() : typeof caSlashGoHtml === 'function' ? caSlashGoHtml() : ''}</div>`).join('')}</div><p class="ca-hint">${esc(i18t('hb_pop_keys'))}</p>`;
   el.hidden = false;
 }
 function jlPopClose(){ _jlPop = null; const el = document.querySelector('[data-jl-pop]'); if (el){ el.hidden = true; el.innerHTML = ''; } }
 function jlPopTake(i){
   const r = _jlPop && _jlPop.rows[i]; if (!r) return;
+  if (r.kind === 'cmd'){ jlPopClose(); const box = document.getElementById('jl-q'); if (box && typeof caCmdFill === 'function') caCmdFill(box, r); return; }
   const q = document.getElementById('jl-q'); if (q) q.value = '';
   if (typeof boxDraftClear === 'function') boxDraftClear('list');
   jlPopClose(); jlAsk(r.word);
