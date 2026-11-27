@@ -404,10 +404,10 @@ describe('f1248 (14) one decider: show me → the Board, walk me through → a l
   test('every box asks the one decider before its own reading, and a chart there ends on the Board', () => {
     const CA = fs.readFileSync(path.join(ROOT, 'js/copilotacts.js'), 'utf8');
     const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
-    assert.match(CA, /chartAsked\(t\)[\s\S]{0,400}boardShowGo\(t\)/, 'caAskAnywhere');
-    assert.match(IG, /chartAsked\(q\)[\s\S]{0,300}boardShowGo\(q/, 'intelAsk');
+    assert.match(CA, /chartAsked\(t\)[\s\S]{0,700}boardShowGo\(t\)/, 'caAskAnywhere');
+    assert.match(IG, /chartAsked\(q\)[\s\S]{0,500}boardShowGo\(q/, 'intelAsk');
     assert.match(AI, /chartAsked\(q\)[\s\S]{0,300}boardShowGo\(q\)/, 'the ✦ window');
-    assert.match(IG, /function boardShowGo[\s\S]{0,600}igBoardTalkAsk\(q\)/, 'boardShowGo hands the Board its question');
+    assert.match(IG, /function boardShowGo[\s\S]{0,900}igBoardTalkAsk\(q\)/, 'boardShowGo hands the Board its question');
   });
   test('a chart question is never offered the lesson tool, on either host (red at the parent: the Board\'s fallback answer became a lesson)', () => {
     assert.match(SERVER, /function copilotToolsFor\(context, question\)[\s\S]{0,300}chartAsked\(question\) \? copilotToolsNow\(\)\.filter\(t => t\.name !== 'walk_through'\)/);
@@ -444,5 +444,35 @@ describe('f1248 (15) the bridges between the Board and a lesson', () => {
   test('the press goes through boardShowGo, never the phone', () => {
     assert.match(LESSON, /act === 'board'[\s\S]{0,240}boardShowGo\(q\)/);
     assert.match(LESSON, /!lsPhone\(\) && lessonBoardAsk\(s\.board\)/);
+  });
+});
+
+/* f1248 (16) A "SHOW ME" THAT NAMES NO CHART ASKS WHICH (owner, 27 Nov 2026: "add 4 buttons in the jambo panel asking
+   which one the user mean so they can press instead of build charts they may not want to see"): Jambo's panel asks
+   with four buttons; nothing is drawn until one is pressed, and only that one is drawn on the Board, by HaTi (no AI). */
+describe('f1248 (16) a vague "show me" gets four buttons, and only the pressed one is drawn', () => {
+  const vague = ['show me', 'Show me.', 'show me a chart', 'show me how we are doing', 'show me something', 'show me the numbers', 'show me our charts',
+    'show me everything', 'can you show me some charts', 'visa mig', 'visa mig hur det går', 'visa mig något'];
+  const notVague = ['show me my contracts', 'show me the board', 'show me this page', 'show me how to create a new contract', 'show me value',
+    'show me value by stream', 'show me signed contracts', 'show me the guide', 'show me MK-B2', 'walk me through my contracts'];
+  for (const q of vague) test('asks which: ' + q, () => assert.equal(W.askRouteOf(q), 'choose'));
+  for (const q of notVague) test('not asked which: ' + q, () => assert.notEqual(W.askRouteOf(q), 'choose'));
+  const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
+  test('the buttons are asked in the panel; nothing is drawn before a press; a press draws that one card with HaTi\'s own recipe', () => {
+    assert.match(IG, /chartVague\(q\)\) return boardShowChoices\(q\);[\s\S]{0,40}return igBoardTalkAsk\(q\);/, 'vague → the buttons, never the drawing model');
+    const choices = IG.slice(IG.indexOf('function boardShowChoices('), IG.indexOf('function boardShowCard('));
+    assert.doesNotMatch(choices, /hbAddCard|igBoardTalkAsk|intelGraphAsk|api\(/, 'asking draws nothing and calls nothing');
+    assert.match(IG, /if\(c\.card\)\{ m\.choices=null;[^\n]*boardShowCard\(c\.card\)/, 'the press draws');
+    assert.match(IG.slice(IG.indexOf('function boardShowCard(')), /^function boardShowCard[\s\S]{0,500}hbAddCard\(\{ all:true \}, c\.recipe, c\.title\)/);
+  });
+  test('four buttons; value only with money rights, else the count by stream', () => {
+    const win = { state: { view: 'dashboard' } };
+    const src = IG.slice(IG.indexOf('const BOARD_SHOW_CARDS='), IG.indexOf('function boardShowChoices('));
+    for (const money of [true, false]){
+      const f = new Function('window', 'canViewValues', src + '; return boardShowCardsFor();');
+      const cards = f(Object.assign(win, { canViewValues: () => money }), () => money);
+      assert.equal(cards.length, 4, 'four');
+      assert.equal(cards.some(c => c.recipe.measure === 'value'), money, money ? 'value shown' : 'no value without money rights');
+    }
   });
 });

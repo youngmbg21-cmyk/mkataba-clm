@@ -3104,7 +3104,7 @@ function caAskAnywhere(text, opts = {}){
      turns to Home's Board and is drawn there; the phone has no Board and answers in words */
   if (!opts.cal && typeof chartAsked === 'function' && chartAsked(t) && typeof boardShowGo === 'function'
     && !(typeof mPhone === 'function' && mPhone())
-    && !(typeof state !== 'undefined' && state && state.view === 'dashboard' && ((typeof hbFace === 'function' && hbFace() === 'explorer') || (typeof igPaperInFront === 'function' && igPaperInFront()) || (typeof igHeldAskId === 'function' && igHeldAskId())))){
+    && !(typeof state !== 'undefined' && state && state.view === 'dashboard' && ((typeof hbFace === 'function' && (hbFace() === 'explorer' || (hbFace() === 'board' && !(typeof chartVague === 'function' && chartVague(t))))) || (typeof igPaperInFront === 'function' && igPaperInFront()) || (typeof igHeldAskId === 'function' && igHeldAskId())))){
     boardShowGo(t); return true;
   }
   if (!opts.cal && typeof walkAsked === 'function' && walkAsked(t)){

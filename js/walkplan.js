@@ -125,12 +125,24 @@ const CHART_NOT_RE = /\b(?:how (?:do|can|to|should)|where (?:is|are|can|do)|hur 
 /* the person's own words: a page's description put in front of the question ("[The reader is on the Home board …]")
    is the page's, never theirs — the decider reads only what they typed */
 const askOwnWords = q => String(q == null ? '' : q).replace(/^\s*(?:\[[\s\S]*?\]\s*\n\n)+/, '').trim();
+/* A "SHOW ME" THAT NAMES NO CHART (owner, 27 Nov 2026: "When I say show me on the board and the request is not clear,
+   do I get button options to press?"): only the opening and filler words — "show me", "show me a chart", "show me how
+   we are doing" — gets four charts to press, drawn by HaTi without the AI (boardShowChoices) */
+const SHOW_FILLER_RE = /^(?:a|an|the|my|our|me|us|some|something|anything|stuff|things?|it|this|that|charts?|graphs?|diagrams?|pictures?|overview|summary|insights?|everything|all|please|now|how|we|are|were|is|it's|doing|going|what|we've|have|got|on|of|numbers|figures|data|något|några|allt|översikt|sammanfattning|diagram|siffror(?:na)?|hur|vi|det|går|ligger|till|oss|mig|ett|en|lite)$/i;
+function chartVague(q){
+  const t = askOwnWords(q); if (!t || t.length > 120) return false;
+  const m = t.match(SHOW_LEAD_RE); if (!m) return false;
+  if (walkAsked(t) || WALK_APP_RE.test(t) || CHART_NOT_RE.test(t)) return false;
+  const rest = t.slice(m[0].length).replace(/[?.!,;:'"]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  return rest.every(w => SHOW_FILLER_RE.test(w));
+}
 function chartAsked(q){
   const t = askOwnWords(q); if (!t || t.length > 300) return false;
+  if (chartVague(t)) return true;
   if (walkAsked(t) || CHART_NOT_RE.test(t) || WALK_APP_RE.test(t)) return false;
   return CHART_ASK_RE.test(t) || (SHOW_LEAD_RE.test(t) && SHOW_MEASURE_RE.test(t));
 }
-function askRouteOf(q){ return walkAsked(q) ? 'lesson' : chartAsked(q) ? 'board' : null; }
+function askRouteOf(q){ return walkAsked(q) ? 'lesson' : chartVague(q) ? 'choose' : chartAsked(q) ? 'board' : null; }
 
 const _wTxt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 const _wNorm = s => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
@@ -277,6 +289,6 @@ function walkSummary(plan, said){
 const WALK_SHOWN_NOTE = 'The lesson is on screen. Do not repeat it. End with nothing or one short sentence.';
 
 const WALK_API = { WALK_STEPS_MIN, WALK_STEPS_MAX, WALK_SAY_MAX, WALK_TITLE_MAX, WALK_SHOWS, WALK_OPS, WALK_SHOW_KEYS, WALK_FIXED_NAMES,
-  chartAsked, askRouteOf, askOwnWords, WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, WALK_PERIOD_MAX, WALK_STAGE_KEYS, walkWhereClean, walkPeriodClean, walkShowOf, walkAsked, walkPlanClean, walkNamesBad, walkSummary, walkSomeContracts };
+  chartAsked, chartVague, askRouteOf, askOwnWords, WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, WALK_PERIOD_MAX, WALK_STAGE_KEYS, walkWhereClean, walkPeriodClean, walkShowOf, walkAsked, walkPlanClean, walkNamesBad, walkSummary, walkSomeContracts };
 if (typeof window !== 'undefined') Object.assign(window, WALK_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = WALK_API;
