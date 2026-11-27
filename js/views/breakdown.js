@@ -499,7 +499,7 @@ function stkCardHtml(c, p, i, redWhy){
     ${stake && stake !== p.title ? `<p class="stk-st">${_bdE(stake)}</p>` : ''}
     ${p.stdPos && p.by !== 'std' ? `<div class="stk-std" title="${_bdE(p.stdPos)}">${_bdE(i18t('stk_our_std', { pos: p.stdPos }))}</div>` : ''}
     <div class="stk-cacts">${p.blank
-      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : (typeof window.pd2Sealed === 'function' && window.pd2Sealed(c)) ? i18t('pd2_n_blank_signed_w') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
+      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : (typeof window.pd2Sealed === 'function' && window.pd2Sealed(c)) ? i18t('pd2_n_blank_signed_w') : (typeof window.pd2FillHeldWhy === 'function' && window.pd2FillHeldWhy(c) === 'theirs') ? i18t('pd2_fill_theirs') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
       : `<button type="button" class="stk-a is-go is-link" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a is-link" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button>`}<span class="stk-mks">${mark}</span></div></div>`;
 }
 /* ---- ONE "WHAT TO WATCH" PER CLAUSE (owner picked "One list", 11 Nov 2026) ----
