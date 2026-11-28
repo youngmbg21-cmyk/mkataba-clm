@@ -1305,6 +1305,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1270 Chase everyone as drawn: the four kinds off the record (never signed, yours or ours), late ticked, a duty's words typed and sent with it, the others HaTi's own said so, each by its own door, a refusal said, both books. f1262 (3) re-pointed.
 - f1271 Handover pack as drawn: duties We · They soonest first, dates with the notice day, contacts, the card's parts, colleagues only and greyed, each through caPassSend, no AI, both books.
 - f1273 Check against as drawn: the route (both texts read, walls on the contract and the document, quotes checked, met without words = Partly), kept until either changes, the card's parts, Redline carries the wording, Draft through the funnel unsent, both books.
+- f1274 Amend many as drawn: the plan route (one call, the rule, too little refused), the card's parts and the cap said, Create = createAmendment per ticked with the wording added, Discover's engine in batches with Stop, both books.
 - `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
 - f658 A1b (28 Nov 2026): no chart list on an empty box. f1249 (remote on the Overview only).
 

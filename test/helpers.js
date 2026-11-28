@@ -84,6 +84,9 @@ function startAiStub() {
         : toolName === 'propose_sections' ? { sections: [{ heading: 'Supply & Specification', intent: 'What is supplied, how much, to what standard.' },
             { heading: 'Quality & Rejection', intent: 'How goods are checked and what happens to goods that fail.' }], note: '' }
         /* FROM SCRATCH: one section's wording, naming the heading it was asked for */
+        /* AMEND MANY: the plan from one sentence */
+        : toolName === 'amend_plan' ? { question: 'Does this contract contain a data protection clause?', needs: 'no', heading: 'Data protection', found: 'have no data protection clause',
+            wording: 'Where the Supplier processes personal data on behalf of the Customer, it does so only on the Customer\'s documented instructions and keeps it secure.' }
         /* CHECK AGAINST: one met (quoting the paper), one partly, one missing with wording, one quote that is not the paper's */
         : toolName === 'check_against' ? { kind: 'policy requirements', rows: [
             { asks: 'The governing law is Swedish', ref: '§ 1', status: 'met', says: 'This Agreement is governed by the laws of Sweden.', clause: '4' },

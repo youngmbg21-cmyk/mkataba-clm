@@ -2370,20 +2370,14 @@ function caCmdAmendRows(c0){
   return same.concat(all.filter(c => !same.includes(c)));   /* the whole book; the open one's party first */
 }
 async function caCmdAct(k, host, said, chosen){
-  const c0 = chosen || caOpenContract(), ref = c => caRef(c);
+  const c0 = chosen || caOpenContract();
   if (k === 'changed') return caCmdChanged(host);
   if (k === 'prepare') return caCmdPrepare(host, chosen || null);
   if (k === 'handover') return caCmdHandover(host, chosen || null);
   if (k === 'check') return caCmdCheck(host, chosen || null, said && typeof said === 'object' ? said : null);
   if (k === 'chase') return caCmdChase(host);
   if (k === 'approve') return caCmdApprove(host);
-  if (k === 'amend'){
-    const R = caCmdAmendRows(c0);
-    const rows = R.slice(0, CA_CMD_ROWS_MAX).map(c => ({ title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`,
-      go: 'amend', label: _caT('ca_cmd_go_amend'), data: { cid: c.id, say: said || '' } }));
-    return caCmdSay(host, _caT('ca_cmd_lead_amend') + ' ' + (said || ''), caCmdTurnHtml(R.length ? _caT('ca_cmd_amend_lead', { n: R.length }) : _caT('ca_cmd_amend_none'), rows,
-      R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
-  }
+  if (k === 'amend') return caCmdAmendMany(host, said);
   if (k === 'request') return caCmdRequest(host, said, c0);
   return false;
 }
@@ -2899,6 +2893,97 @@ async function caCmdCheckFile(c, d, r){
   const bag = { side: 'owner', author, note, summary: note };
   return await window.negoAddNamedClause(c, { headingText: String(r.asks || '').slice(0, 80), bodyHtml: body, afterClauseId: after }, bag);
 }
+/* ---- AMEND MANY, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations") ----
+   The sentence becomes, in one Jambo call (POST /api/ai/amend-plan), the yes-or-no question and the ONE wording; the
+   signed agreements the Amend door is open on (caCmdAmendRows) are read with Discover's own engine (POST /api/ai/column,
+   answers kept, so asking again is free), in batches with Stop, at most CA_AMN_MAX — the rest COUNTED and said. A
+   contract whose answer says it needs the change is Drafted; one Jambo marks a concern on, or whose wording could not
+   tell, needs the reader's own look (its own Amend question, pd2AmAskOpen). Change the wording edits the one wording;
+   Create N amendments makes each ticked one an ordinary draft amendment (createAmendment, the wording as an added
+   clause), each with its own approval and signing, nothing sent. */
+const CA_AMN_MAX = 100, CA_AMN_BATCH = 10;
+function caCmdAmnTurn(){ const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : []; return H.slice().reverse().find(x => x && x._amn) || null; }
+function caCmdAmnHtml(A){
+  const P = A.plan || {}, rows = A.rows || [], max = CA_CMD_ROWS_MAX;
+  if (A.state === 'plan') return `<div class="ca-cmd-turn is-amn"><p class="ca-cmd-more">${typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_amn_planning')) : _caE(_caT('ca_amn_planning'))}</p></div>`;
+  if (A.state === 'fail') return `<div class="ca-cmd-turn is-amn"><p>${_caE(A.err || _caT('ca_amn_failed'))}</p></div>`;
+  if (A.state === 'read') return `<div class="ca-cmd-turn is-amn"><p><b>${_caE(_caT('ca_amn_reading', { n: A.done || 0, of: A.of || 0 }))}</b></p><p class="ca-cmd-more">${_caE(P.question || '')}</p>`
+    + `<div class="ca-cmd-bar"><button type="button" class="ca-cmd-seen" data-ca-amn-stop>${_caE(_caT('ca_amn_stop'))}</button></div></div>`;
+  const drafted = rows.filter(r => r.kind === 'draft'), look = rows.filter(r => r.kind === 'look');
+  const lead = rows.length ? _caT(look.length ? 'ca_amn_lead' : 'ca_amn_lead_l0', { n: rows.length, found: P.found || '', read: A.read || 0, d: drafted.length, l: look.length })
+    : _caT('ca_amn_none', { found: P.found || '', read: A.read || 0 });
+  const row = (r, i) => {
+    const made = r.made ? `<button type="button" class="ca-cmd-go" data-ca-cmd-go="open" data-cid="${_caE(r.made)}">${_caE(_caT('ca_amn_open_new'))}</button>` : '';
+    const badge = r.made ? `<span class="ca-cmd-bd is-green">${_caE(_caT('ca_amn_created'))}</span>` : r.kind === 'draft' ? `<span class="ca-cmd-bd is-green">${_caE(_caT('ca_amn_drafted'))}</span>` : `<span class="ca-cmd-bd is-amber">${_caE(_caT('ca_amn_look'))}</span>`;
+    const sub = [String(r.c.name || ''), r.why || ''].filter(Boolean).join(' · ');
+    return `<label class="ca-cmd-row is-tick"><input type="checkbox" class="ca-cmd-tick" data-ca-amn="${i}"${r.kind === 'draft' && !r.made ? ' checked' : ''}${r.made ? ' disabled' : ''}>`
+      + `<span class="ca-cmd-g"><b>${_caE(caRef(r.c) + ' · ' + String(r.c.counterparty || ''))}</b><small>${_caE(sub)}</small></span>${badge}${made}`
+      + (r.kind === 'look' && !r.made ? `<button type="button" class="ca-cmd-go" data-ca-cmd-go="amend" data-cid="${_caE(r.c.id)}" data-say="${_caE(A.said || '')}">${_caE(_caT('ca_ap_open'))}</button>` : '') + `</label>`;
+  };
+  const ticked = drafted.filter(r => !r.made).length;
+  return `<div class="ca-cmd-turn is-amn"><p><b>${_caE(lead)}</b></p>`
+    + (rows.length ? `<h4 class="ca-cmd-h">${_caE(_caT('ca_amn_wording'))}</h4>`
+      + (A.editing ? `<textarea class="ca-amn-words" rows="5" data-ca-amn-words aria-label="${_caE(_caT('ca_amn_wording'))}">${_caE(P.wording || '')}</textarea>`
+        : `<p class="ca-amn-q">“${_caE(P.wording || '')}”</p>`)
+      + `<h4 class="ca-cmd-h">${_caE(_caT('ca_amn_list'))}</h4><div class="ca-cmd-rows">${rows.slice(0, max * 2).map(row).join('')}</div>`
+      + (rows.length > max * 2 ? `<p class="ca-cmd-more">${_caE(_caT('ca_cmd_more', { n: rows.length - max * 2 }))}</p>` : '') : '')
+    + (A.capped ? `<p class="ca-cmd-more">${_caE(_caT('ca_amn_capped', { n: A.capped, max: CA_AMN_MAX }))}</p>` : '')
+    + (A.stopped ? `<p class="ca-cmd-more">${_caE(_caT('ca_amn_stopped', { n: A.read || 0, of: A.of || 0 }))}</p>` : '')
+    + (A.said2 ? `<p class="ca-cmd-said">${_caE(A.said2)}</p>` : '')
+    + (rows.length ? `<div class="ca-cmd-bar" data-ca-amn-bar><button type="button" class="ca-cmd-seen" data-ca-amn-edit>${_caE(_caT(A.editing ? 'ca_amn_edit_done' : 'ca_amn_edit'))}</button>`
+      + `<button type="button" class="ca-cmd-seen is-ink" data-ca-amn-go${ticked ? '' : ' disabled'}>${_caE(_caT(ticked === 1 ? 'ca_amn_go_1' : 'ca_amn_go', { n: ticked }))}</button></div>` : '')
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_amn_from', { n: A.read || 0 }))}</p></div>`;
+}
+function caCmdAmnPaint(m, host){
+  m.text = caCmdAmnHtml(m._amn);
+  if (host === 'ig' && typeof window.renderIntelDock === 'function') window.renderIntelDock();
+  else if (typeof window.renderAIFeed === 'function') window.renderAIFeed();
+}
+async function caCmdAmendMany(host, said){
+  const q = _caT('ca_cmd_lead_amend') + ' ' + (said || '');
+  caCmdSay(host, q, caCmdAmnHtml({ state: 'plan' }), _caT('ca_ch_ctx'));
+  const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  const m = H.length ? H[H.length - 1] : null; if (!m) return false;
+  m._amn = { state: 'plan', said: String(said || ''), host };
+  let P = null, err = '';
+  try { P = (typeof api === 'function') ? await api('ai/amend-plan', 'POST', { said }) : null; } catch (e){ err = String((e && e.message) || ''); }
+  if (!P || !P.question){ Object.assign(m._amn, { state: 'fail', err: /key|configured/i.test(err) ? _caT('ca_req_nokey') : (err || _caT('ca_amn_failed')) }); caCmdAmnPaint(m, host); return true; }
+  const all = caCmdAmendRows(null), books = all.slice(0, CA_AMN_MAX);
+  Object.assign(m._amn, { state: 'read', plan: P, of: books.length, done: 0, read: 0, rows: [], capped: all.length > books.length ? all.length - books.length : 0 });
+  caCmdAmnPaint(m, host);
+  const needYes = P.needs === 'yes';
+  for (let i = 0; i < books.length && !m._amn.stop; i += CA_AMN_BATCH){
+    const batch = books.slice(i, i + CA_AMN_BATCH);
+    let r = null; try { r = await api('ai/column', 'POST', { question: P.question, ids: batch.map(c => c.id) }); } catch (_){ r = null; }
+    const ans = (r && r.answers) || {};
+    for (const c of batch){
+      const a = ans[c.id];
+      m._amn.read++;
+      if (!a || a.noWording || typeof a.yes !== 'boolean'){ m._amn.rows.push({ c, kind: 'look', why: _caT('ca_amn_why_unread') }); continue; }
+      if (a.yes !== needYes) continue;
+      if (a.tone === 'concern') m._amn.rows.push({ c, kind: 'look', why: String(a.why || a.detail || '').slice(0, 140) || _caT('ca_amn_why_concern') });
+      else m._amn.rows.push({ c, kind: 'draft', why: '' });
+    }
+    m._amn.done = Math.min(books.length, i + batch.length);
+    if (!m._amn.stop) caCmdAmnPaint(m, host);
+  }
+  m._amn.stopped = !!m._amn.stop && m._amn.read < books.length;
+  m._amn.state = 'done';
+  caCmdAmnPaint(m, host);
+  return true;
+}
+/* each ticked agreement its own draft amendment, the one wording as an added clause */
+function caCmdAmnCreate(A, idxs){
+  let made = 0, held = 0;
+  for (const i of idxs){
+    const r = A.rows[i]; if (!r || r.made) continue;
+    let out = null;
+    try { out = (typeof window.createAmendment === 'function') ? window.createAmendment(r.c, { relation: 'amendment', skeleton: true, kind: 'terms', note: A.said || '',
+      items: [{ op: 'insert', clauseLabel: (A.plan && A.plan.heading) || '', clauseNumber: '', signed: '', amended: (A.plan && A.plan.wording) || '' }] }) : null; } catch (_){ out = null; }
+    if (out && out.contract){ r.made = out.contract.id; made++; } else held++;
+  }
+  return { made, held };
+}
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
@@ -2947,11 +3032,29 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const turn = t.closest('.ca-cmd-turn');
     const ch = turn && turn.querySelector('[data-ca-ch-go]');
     if (ch){ const n = turn.querySelectorAll('[data-ca-ch]:checked:not(:disabled)').length; ch.textContent = _caT(n === 1 ? 'ca_ch_go_1' : 'ca_ch_go', { n }); ch.disabled = !n; return; }
+    const amg = turn && turn.querySelector('[data-ca-amn-go]');
+    if (amg){ const n = turn.querySelectorAll('[data-ca-amn]:checked:not(:disabled)').length; amg.textContent = _caT(n === 1 ? 'ca_amn_go_1' : 'ca_amn_go', { n }); amg.disabled = !n; return; }
     const go = turn && turn.querySelector('[data-ca-ap-go]'); if (!go) return;
     const n = turn.querySelectorAll('.ca-cmd-tick:checked').length;
     go.textContent = _caT('ca_ap_go', { n }); go.disabled = !n;
   });
   document.addEventListener('click', async e => {
+    /* Amend many: Stop, Change the wording, Create N amendments */
+    const am = e.target && e.target.closest ? e.target.closest('[data-ca-amn-stop], [data-ca-amn-edit], [data-ca-amn-go]') : null;
+    if (am){ e.preventDefault(); if (am.disabled) return;
+      const m = caCmdAmnTurn(); if (!m) return; const A = m._amn;
+      if (am.hasAttribute('data-ca-amn-stop')){ A.stop = true; am.disabled = true; return; }
+      if (am.hasAttribute('data-ca-amn-edit')){
+        if (A.editing){ const t = am.closest('.ca-cmd-turn').querySelector('[data-ca-amn-words]'); if (t && t.value.trim()) A.plan.wording = t.value.trim(); }
+        A.editing = !A.editing; caCmdAmnPaint(m, A.host); return; }
+      const turn = am.closest('.ca-cmd-turn');
+      if (A.editing){ const t = turn.querySelector('[data-ca-amn-words]'); if (t && t.value.trim()) A.plan.wording = t.value.trim(); A.editing = false; }
+      const idxs = [...turn.querySelectorAll('[data-ca-amn]:checked:not(:disabled)')].map(n => Number(n.getAttribute('data-ca-amn')));
+      if (!idxs.length) return;
+      if (typeof window.mayActOn === 'function' && !window.mayActOn(A.rows[idxs[0]].c)){ if (typeof toast === 'function') toast(_caT('ca_amn_viewer'), 'warn'); return; }
+      const r = caCmdAmnCreate(A, idxs);
+      A.said2 = _caT(r.held ? 'ca_amn_made_some' : 'ca_amn_made', { n: r.made, h: r.held });
+      caCmdAmnPaint(m, A.host); return; }
     /* Check against: a row's Redline (the editor, wording carried), Draft the N redlines (unsent, each through the
        funnel), Show on the paper, Check again */
     const ck = e.target && e.target.closest ? e.target.closest('[data-ca-ck-red], [data-ca-ck-draft], [data-ca-ck-show], [data-ca-ck-again]') : null;
@@ -4528,7 +4631,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_AMN_MAX, CA_AMN_BATCH, caCmdAmnTurn, caCmdAmnHtml, caCmdAmnPaint, caCmdAmendMany, caCmdAmnCreate, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
