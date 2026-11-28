@@ -2398,6 +2398,19 @@ function caCmdPrepAsk(c, ch){
   if (!say) say = String(ch.summary || '').trim();
   return { clause, say: say ? say.charAt(0).toUpperCase() + say.slice(1) : '' };
 }
+/* our ask in our voice, off its own stored ops (the one cut reader, pdAskParts) */
+function caCmdPrepOurs(ch){
+  if (ch.changeType === 'insertClause') return _caT('ca_prep_our_new');
+  if (ch.changeType === 'deleteClause') return _caT('ca_prep_our_del');
+  let P = null; try { P = (typeof window.pdAskParts === 'function') ? window.pdAskParts(ch) : null; } catch (_){ P = null; }
+  const flat = t => String(t || '').replace(/\s+/g, ' ').trim();
+  const cut = t => { const x = flat(t); return x.length > 80 ? x.slice(0, 79) + '…' : x; };
+  const b = P ? flat(P.b) : '', a = P ? flat(P.a) : '';
+  if (b && a) return _caT('ca_prep_our_swap', { a: cut(a), b: cut(b) });
+  if (a) return _caT('ca_prep_our_add', { a: cut(a) });
+  if (b) return _caT('ca_prep_our_cut', { b: cut(b) });
+  return String(ch.summary || '').trim() || _caT('ca_prep_our_words');
+}
 function caCmdPrepRead(c){
   const changes = Array.isArray(c && c.changes) ? c.changes : [];
   let plan = []; try { plan = (typeof window.redlinePlan === 'function') ? window.redlinePlan(c) || [] : []; } catch (_){ plan = []; }
@@ -2407,6 +2420,16 @@ function caCmdPrepRead(c){
     let reason = ''; try { reason = (typeof window.negoReasonOf === 'function') ? String(window.negoReasonOf(ch) || '').trim() : ''; } catch (_){ reason = ''; }
     return { id: ch.id, clauseId: ch.clauseId || '', clause: A.clause, say: A.say, reason, why: String((p.why || [])[0] || ''), verdict: CA_PREP_BADGE[p.verdict] ? p.verdict : 'review' };
   }).filter(Boolean).sort((a, b) => CA_PREP_ORDER[a.verdict] - CA_PREP_ORDER[b.verdict]);
+  /* WHAT YOU ASK OF THEM (owner, 28 Nov 2026: "needs to also show what you are asking of them not just them of you"):
+     our own asks on the table, read RAW (never negoInit), each said in our voice off its own ops, sent or not yet sent
+     by the same reading negoUnsentAsks makes (held back or kept = not sent; after the last hand-over = not sent) */
+  const neg0 = c && c.negotiation, turnAt = (neg0 && neg0.turnAt) || null;
+  const held = new Set([].concat((neg0 && neg0.holdIds) || [], (neg0 && neg0.keptIds) || []).map(String));
+  const ours = changes.filter(x => x && x.authorSide === 'owner' && x.status === 'pending' && !x.withdrawn).map(ch => {
+    const clause = (typeof window.pdAskClause === 'function') ? window.pdAskClause(c, ch) : String(ch.clauseLabel || '');
+    const sent = !held.has(String(ch.id)) && (turnAt ? String(ch.createdAt || '') <= String(turnAt) : false);
+    return { id: ch.id, clauseId: ch.clauseId || '', clause, say: caCmdPrepOurs(ch), sent };
+  });
   const given = [], seen = new Set();
   const neg = c && c.negotiation;
   const take = (ch, n) => {
@@ -2425,7 +2448,7 @@ function caCmdPrepRead(c){
   for (const r of ((neg && Array.isArray(neg.rounds)) ? neg.rounds : [])) for (const ch of (r.changes || [])) take(ch, r.n);
   for (const ch of changes) take(ch, (neg && typeof neg.round === 'number') ? neg.round : 1);
   const rounds = (neg && Array.isArray(neg.rounds) ? neg.rounds.length : 0) + (changes.length ? 1 : 0);
-  return { open, given, rounds, call: caCmdPrepCall(c) };
+  return { open, ours, given, rounds, call: caCmdPrepCall(c) };
 }
 /* the reader's own next event on this contract, today or later (js/mine.js); none = none said */
 function caCmdPrepCall(c){
@@ -2442,7 +2465,7 @@ function caCmdPrepWhen(ev){
 function caCmdPrepHtml(c, R, host){
   const who = String(c.counterparty || '').trim() || _caT('ca_cmd_them'), ref = caRef(c);
   const head = R.call ? _caT('ca_prep_head_call', { who, when: caCmdPrepWhen(R.call) }) : _caT('ca_prep_head', { who, ref });
-  const sum = _caT(R.open.length === 1 ? 'ca_prep_sum_1' : 'ca_prep_sum', { n: R.open.length })
+  const sum = _caT(R.open.length === 1 ? 'ca_prep_sum_1' : 'ca_prep_sum', { n: R.open.length, m: (R.ours || []).length })
     + ' ' + (R.given.length ? _caT(R.given.length === 1 ? 'ca_prep_given_1' : R.given.length === 2 ? 'ca_prep_given_2' : 'ca_prep_given_n', { n: R.given.length }) : _caT('ca_prep_given_0'));
   const point = o => { const [w, tone] = CA_PREP_BADGE[o.verdict];
     const sub = [o.say, o.reason ? `“${o.reason}”` : '', o.why].filter(Boolean).join(' · ');
@@ -2450,9 +2473,14 @@ function caCmdPrepHtml(c, R, host){
       + `<span class="ca-cmd-g"><b>${_caE(o.clause)}</b><small>${_caE(sub)}</small></span><span class="ca-cmd-bd is-${tone}">${_caE(_caT(w))}</span></button>`; };
   const gave = g => `<button type="button" class="ca-cmd-row is-press" data-ca-cmd-go="clause" data-cid="${_caE(c.id)}" data-clause="${_caE(g.clauseId)}">`
     + `<span class="ca-cmd-g"><b>${_caE(g.line)}</b><small>${_caE([g.clause, g.round ? _caT('ca_prep_round', { n: g.round }) : ''].filter(Boolean).join(' · '))}</small></span></button>`;
+  const ours = R.ours || [];
+  const mine = o => `<button type="button" class="ca-cmd-row is-press" data-ca-cmd-go="clause" data-cid="${_caE(c.id)}" data-clause="${_caE(o.clauseId)}" title="${_caE(o.say)}">`
+    + `<span class="ca-cmd-g"><b>${_caE(o.clause)}</b><small>${_caE(o.say)}</small></span><span class="ca-cmd-bd is-${o.sent ? 'grey' : 'amber'}">${_caE(_caT(o.sent ? 'ca_prep_our_sent' : 'ca_prep_our_unsent'))}</span></button>`;
   return `<div class="ca-cmd-turn is-prep"><p><b>${_caE(head)}</b> ${_caE(sum)}</p>`
-    + `<h4 class="ca-cmd-h">${_caE(_caT('ca_prep_open'))}</h4>`
+    + `<h4 class="ca-cmd-h">${_caE(_caT('ca_prep_open', { who }))}</h4>`
     + (R.open.length ? `<div class="ca-cmd-rows">${R.open.map(point).join('')}</div>` : `<p class="ca-cmd-more">${_caE(_caT('ca_prep_open_none'))}</p>`)
+    + `<h4 class="ca-cmd-h">${_caE(_caT('ca_prep_ours', { who }))}</h4>`
+    + (ours.length ? `<div class="ca-cmd-rows">${ours.map(mine).join('')}</div>` : `<p class="ca-cmd-more">${_caE(_caT('ca_prep_ours_none'))}</p>`)
     + `<div class="ca-cmd-two"><div><h4 class="ca-cmd-h">${_caE(_caT('ca_prep_gave'))}</h4>`
     + (R.given.length ? `<div class="ca-cmd-rows">${R.given.map(gave).join('')}</div>` : `<p class="ca-cmd-more">${_caE(_caT('ca_prep_gave_none'))}</p>`)
     + `</div><div><h4 class="ca-cmd-h">${_caE(_caT('ca_prep_trades'))}</h4><p class="ca-cmd-more">${_caE(_caT('ca_prep_trades_say'))}</p>`
@@ -2463,9 +2491,12 @@ function caCmdPrepHtml(c, R, host){
 }
 /* the brief in plain words: the note a colleague receives */
 function caCmdPrepText(c, R){
-  const L = [caRef(c) + ' · ' + String(c.name || '') + ' · ' + String(c.counterparty || ''), '', _caT('ca_prep_open') + ':'];
+  const L = [caRef(c) + ' · ' + String(c.name || '') + ' · ' + String(c.counterparty || ''), '', _caT('ca_prep_open', { who: String(c.counterparty || '').trim() || _caT('ca_cmd_them') }) + ':'];
   R.open.forEach(o => L.push(`- ${o.clause}: ${o.say} [${_caT(CA_PREP_BADGE[o.verdict][0])}]${o.why ? ' ' + o.why : ''}`));
   if (!R.open.length) L.push('- ' + _caT('ca_prep_open_none'));
+  L.push('', _caT('ca_prep_ours', { who: String(c.counterparty || '').trim() || _caT('ca_cmd_them') }) + ':');
+  (R.ours || []).forEach(o => L.push(`- ${o.clause}: ${o.say} [${_caT(o.sent ? 'ca_prep_our_sent' : 'ca_prep_our_unsent')}]`));
+  if (!(R.ours || []).length) L.push('- ' + _caT('ca_prep_ours_none'));
   L.push('', _caT('ca_prep_gave') + ':');
   R.given.forEach(g => L.push(`- ${g.line} (${[g.clause, g.round ? _caT('ca_prep_round', { n: g.round }) : ''].filter(Boolean).join(', ')})`));
   if (!R.given.length) L.push('- ' + _caT('ca_prep_gave_none'));
@@ -4147,7 +4178,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });

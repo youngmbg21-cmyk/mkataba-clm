@@ -1298,6 +1298,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1265 What's changed as drawn: the trail's groups and merged lines, dates and stage against the snapshot, only Mark all seen moves the mark, the card's parts, no Jambo call, no "Read from" under a command, both books.
 - f1265 (3) the head's context beside Jambo's name: the newest turn's `ctx`, cleared by any later turn, drawn by the one label and synced where the head is painted once.
 - f1266 Prepare my call as drawn: Still open by the one judge, Given so far RAW over rounds, the call's time only from the reader's own event, the card's parts and presses, Jambo asked only on Suggest trades, both books.
+- f1266 (1) You ask of them: our pending asks only (never withdrawn), in our voice, Sent · waiting on them or Not sent yet off turnAt and the held lists; in the lead and the shared note.
 - f1267 Approve the ones that meet our standards: meets vs needs-your-look with reasons, the card, each its own yes by the one writer of its kind with no note asked, Undo for rule steps and the rest said, the button follows the ticks, both books. f1262 (3) re-pointed.
 - f1268 Email request as drawn: the route (the person's words and what is owed go in, the governance rule, no invented deadline, walled, nothing kept; Make it shorter), the owed reading, the card's parts, words kept on a redraw, Create request to the Send screen, both books.
 - `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
