@@ -2265,6 +2265,7 @@ function caSlashTake(inp, r){
   }
   if (r.kind === 'ct'){
     const ref = caRef(r.c);
+    if (r.k === 'prepare'){ put(''); caCmdAct('prepare', caCmdHostOf(inp), '', r.c); return true; }
     if (r.k === 'check' || r.k === 'request') return put(`${caCmdWord(r.k)} ${ref} `);
     return put(_caT('ca_cmd_q_' + r.k, { ref }));
   }
@@ -2358,6 +2359,7 @@ function caCmdAmendRows(c0){
 async function caCmdAct(k, host, said, chosen){
   const c0 = chosen || caOpenContract(), ref = c => caRef(c), word = _caT('ca_cmd_t_' + k);
   if (k === 'changed') return caCmdChanged(host);
+  if (k === 'prepare') return caCmdPrepare(host, chosen || null);
   if (k === 'chase'){
     const R = caCmdChaseRows(null);
     const rows = R.slice(0, CA_CMD_ROWS_MAX).map(({ c, o, d }) => ({ title: String(c.counterparty || ref(c)), sub: `${String(o.desc || o.title || '')} · ${ref(c)}`,
@@ -2394,9 +2396,113 @@ async function caCmdAct(k, host, said, chosen){
   }
   return false;
 }
+/* ---- PREPARE MY CALL, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations on both") ----
+   The brief is drawn at once from HaTi's own records, with no Jambo call: Still open = their asks on the table, each
+   judged against the Playbook by the one judge (redlinePlan → rlpJudge: escalate = Hold, push back = Room, accept =
+   Can give, nothing to measure = Read it) and said in words by the one reader (pdAskSay); Given so far = their asks we
+   accepted, in any round (read RAW off the rounds and the changes, never negoInit); the call's day and time only from
+   the reader's own calendar event on that contract, else left out. Trades to offer are Jambo's judgement, so they are
+   asked only on a press (Suggest trades), through the box's own door. Share with a colleague = the Send screen to a
+   colleague with the brief as the note; Print brief prints the card. A press on a point takes the paper to it. */
+const CA_PREP_BADGE = { escalate: ['ca_prep_hold', 'red'], push: ['ca_prep_room', 'amber'], accept: ['ca_prep_give', 'green'], review: ['ca_prep_read', 'grey'] };
+const CA_PREP_ORDER = { escalate: 0, push: 1, review: 2, accept: 3 };
+const CA_PREP_GLUE = new Set(['of', 'the', 'a', 'an', 'and', 'or', 'to', 'in', 'on', 'at', 'by', 'for', 'with', 'from', 'av', 'och', 'i', 'på', 'till', 'för', 'med', 'från']);
+function caCmdPrepAsk(c, ch){
+  const clause = (typeof window.pdAskClause === 'function') ? window.pdAskClause(c, ch) : String(ch.clauseLabel || '');
+  let say = ''; try { say = (typeof window.pdAskSay === 'function') ? String(window.pdAskSay(c, ch) || '') : ''; } catch (_){ say = ''; }
+  if (clause && say.startsWith(clause + ': ')) say = say.slice(clause.length + 2);
+  say = say.replace(/\.$/, '');
+  if (!say) say = String(ch.summary || '').trim();
+  return { clause, say: say ? say.charAt(0).toUpperCase() + say.slice(1) : '' };
+}
+function caCmdPrepRead(c){
+  const changes = Array.isArray(c && c.changes) ? c.changes : [];
+  let plan = []; try { plan = (typeof window.redlinePlan === 'function') ? window.redlinePlan(c) || [] : []; } catch (_){ plan = []; }
+  const open = plan.map(p => {
+    const ch = changes.find(x => x && String(x.id) === String(p.id)); if (!ch) return null;
+    const A = caCmdPrepAsk(c, ch);
+    let reason = ''; try { reason = (typeof window.negoReasonOf === 'function') ? String(window.negoReasonOf(ch) || '').trim() : ''; } catch (_){ reason = ''; }
+    return { id: ch.id, clauseId: ch.clauseId || '', clause: A.clause, say: A.say, reason, why: String((p.why || [])[0] || ''), verdict: CA_PREP_BADGE[p.verdict] ? p.verdict : 'review' };
+  }).filter(Boolean).sort((a, b) => CA_PREP_ORDER[a.verdict] - CA_PREP_ORDER[b.verdict]);
+  const given = [], seen = new Set();
+  const neg = c && c.negotiation;
+  const take = (ch, n) => {
+    if (!ch || seen.has(String(ch.id)) || ch.authorSide !== 'counterparty' || ch.status !== 'accepted') return;
+    seen.add(String(ch.id));
+    let P = null; try { P = (typeof window.pdAskParts === 'function') ? window.pdAskParts(ch) : null; } catch (_){ P = null; }
+    const flat = t => String(t || '').replace(/\s+/g, ' ').trim();
+    const A = caCmdPrepAsk(c, ch);
+    /* "Notice 90 → 60 days": the change, then what it is of — the words after it on the paper, a few, to a stop */
+    const ofW = P ? flat(String(P.post || '').split(/[.;:,()\n]/)[0]).split(' ').filter(Boolean).slice(0, 2) : [];
+    while (ofW.length && CA_PREP_GLUE.has(ofW[ofW.length - 1].toLowerCase())) ofW.pop();   /* never a dangling "of" */
+    const of = ofW.join(' ');
+    const line = (P && flat(P.b) && flat(P.a)) ? `${flat(P.b)} → ${flat(P.a)}${of ? ' ' + of : ''}` : A.say;
+    given.push({ clauseId: ch.clauseId || '', clause: A.clause, line, round: n || null });
+  };
+  for (const r of ((neg && Array.isArray(neg.rounds)) ? neg.rounds : [])) for (const ch of (r.changes || [])) take(ch, r.n);
+  for (const ch of changes) take(ch, (neg && typeof neg.round === 'number') ? neg.round : 1);
+  const rounds = (neg && Array.isArray(neg.rounds) ? neg.rounds.length : 0) + (changes.length ? 1 : 0);
+  return { open, given, rounds, call: caCmdPrepCall(c) };
+}
+/* the reader's own next event on this contract, today or later (js/mine.js); none = none said */
+function caCmdPrepCall(c){
+  const ev = (typeof window.mineList === 'function') ? window.mineList('event') : [];
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  return ev.filter(e => e && String(e.contractId || '') === String(c.id) && String(e.date || '') >= today)
+    .sort((a, b) => (String(a.date) + String(a.start || '')).localeCompare(String(b.date) + String(b.start || '')))[0] || null;
+}
+function caCmdPrepWhen(ev){
+  const t = Date.parse(String(ev.date || '') + 'T12:00:00Z'); if (!isFinite(t)) return '';
+  const day = new Date(t).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return ev.start ? `${day}, ${ev.start}` : day;
+}
+function caCmdPrepHtml(c, R, host){
+  const who = String(c.counterparty || '').trim() || _caT('ca_cmd_them'), ref = caRef(c);
+  const head = R.call ? _caT('ca_prep_head_call', { who, when: caCmdPrepWhen(R.call) }) : _caT('ca_prep_head', { who, ref });
+  const sum = _caT(R.open.length === 1 ? 'ca_prep_sum_1' : 'ca_prep_sum', { n: R.open.length })
+    + ' ' + (R.given.length ? _caT(R.given.length === 1 ? 'ca_prep_given_1' : R.given.length === 2 ? 'ca_prep_given_2' : 'ca_prep_given_n', { n: R.given.length }) : _caT('ca_prep_given_0'));
+  const point = o => { const [w, tone] = CA_PREP_BADGE[o.verdict];
+    const sub = [o.say, o.reason ? `“${o.reason}”` : '', o.why].filter(Boolean).join(' · ');
+    return `<button type="button" class="ca-cmd-row is-press" data-ca-cmd-go="clause" data-cid="${_caE(c.id)}" data-clause="${_caE(o.clauseId)}" title="${_caE(sub)}">`
+      + `<span class="ca-cmd-g"><b>${_caE(o.clause)}</b><small>${_caE(sub)}</small></span><span class="ca-cmd-bd is-${tone}">${_caE(_caT(w))}</span></button>`; };
+  const gave = g => `<button type="button" class="ca-cmd-row is-press" data-ca-cmd-go="clause" data-cid="${_caE(c.id)}" data-clause="${_caE(g.clauseId)}">`
+    + `<span class="ca-cmd-g"><b>${_caE(g.line)}</b><small>${_caE([g.clause, g.round ? _caT('ca_prep_round', { n: g.round }) : ''].filter(Boolean).join(' · '))}</small></span></button>`;
+  return `<div class="ca-cmd-turn is-prep"><p><b>${_caE(head)}</b> ${_caE(sum)}</p>`
+    + `<h4 class="ca-cmd-h">${_caE(_caT('ca_prep_open'))}</h4>`
+    + (R.open.length ? `<div class="ca-cmd-rows">${R.open.map(point).join('')}</div>` : `<p class="ca-cmd-more">${_caE(_caT('ca_prep_open_none'))}</p>`)
+    + `<div class="ca-cmd-two"><div><h4 class="ca-cmd-h">${_caE(_caT('ca_prep_gave'))}</h4>`
+    + (R.given.length ? `<div class="ca-cmd-rows">${R.given.map(gave).join('')}</div>` : `<p class="ca-cmd-more">${_caE(_caT('ca_prep_gave_none'))}</p>`)
+    + `</div><div><h4 class="ca-cmd-h">${_caE(_caT('ca_prep_trades'))}</h4><p class="ca-cmd-more">${_caE(_caT('ca_prep_trades_say'))}</p>`
+    + `<button type="button" class="ca-cmd-seen" data-ca-cmd-go="trades" data-cid="${_caE(c.id)}" data-host="${_caE(host)}"${R.open.length ? '' : ` disabled title="${_caE(_caT('ca_prep_open_none'))}"`}>${_caE(_caT('ca_prep_trades_go'))}</button></div></div>`
+    + `<div class="ca-cmd-bar"><button type="button" class="ca-cmd-seen" data-ca-cmd-go="prep-share" data-cid="${_caE(c.id)}">${_caE(_caT('ca_prep_share'))}</button>`
+    + `<button type="button" class="ca-cmd-seen is-ink" data-ca-cmd-go="prep-print" data-cid="${_caE(c.id)}">${_caE(_caT('ca_prep_print'))}</button></div>`
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_prep_from', { ref, n: R.rounds, who }))}</p></div>`;
+}
+/* the brief in plain words: the note a colleague receives */
+function caCmdPrepText(c, R){
+  const L = [caRef(c) + ' · ' + String(c.name || '') + ' · ' + String(c.counterparty || ''), '', _caT('ca_prep_open') + ':'];
+  R.open.forEach(o => L.push(`- ${o.clause}: ${o.say} [${_caT(CA_PREP_BADGE[o.verdict][0])}]${o.why ? ' ' + o.why : ''}`));
+  if (!R.open.length) L.push('- ' + _caT('ca_prep_open_none'));
+  L.push('', _caT('ca_prep_gave') + ':');
+  R.given.forEach(g => L.push(`- ${g.line} (${[g.clause, g.round ? _caT('ca_prep_round', { n: g.round }) : ''].filter(Boolean).join(', ')})`));
+  if (!R.given.length) L.push('- ' + _caT('ca_prep_gave_none'));
+  return L.join('\n');
+}
+async function caCmdPrepare(host, c){
+  if (!c) return false;
+  if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){}
+  if (typeof window.mineLoad === 'function') try { await window.mineLoad(); } catch (_){}
+  const R = caCmdPrepRead(c);
+  return caCmdSay(host, _caT('ca_prep_asked', { ref: caRef(c), who: String(c.counterparty || '').trim() || _caT('ca_cmd_them') }), caCmdPrepHtml(c, R, host),
+    `${caRef(c)} · ${String(c.counterparty || '').trim()}`.replace(/ · $/, ''));
+}
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
+  /* "/prepare MK-402" typed whole and Enter: the brief, as chosen from the list */
+  { const m = /^\/(\S+)\s+(\S+)\s*$/.exec(t);
+    if (m && m[1].toLowerCase() === caCmdWord('prepare').slice(1).toLowerCase()){
+      const c = caCmdRefOf(m[2]); if (c){ caCmdAct('prepare', host || caCmdHostOf(null), '', c); return true; } } }
   /* "/request MK-402 what we need" (the one "/" list's Email request, finished in words) */
   { const m = /^\/(\S+)\s+(\S+)\s+([\s\S]+)$/.exec(t);
     if (m && m[1].toLowerCase() === caCmdWord('request').slice(1).toLowerCase()){
@@ -2425,6 +2531,33 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault();
     const go = b.getAttribute('data-ca-cmd-go'), cid = b.getAttribute('data-cid');
     const c = cid && typeof getContract === 'function' ? getContract(cid) : null;
+    if (go === 'clause' && c){
+      const k = b.getAttribute('data-clause') || '';
+      const on = typeof window.pdContract === 'function' ? window.pdContract() : null;
+      if (!(on && String(on.id) === String(c.id)) && typeof window.roomHomeLand === 'function'){ window.roomHomeLand(c.id, { open: true }); await new Promise(r => setTimeout(r, 400)); }
+      if (k && typeof window.pdGlGoTo === 'function') try { window.pdGlGoTo(k); } catch (_){}
+      return;
+    }
+    if (go === 'trades' && c){
+      const q = _caT('ca_prep_trades_q', { ref: caRef(c) }), h = b.getAttribute('data-host') || 'ai';
+      b.disabled = true;
+      if (h === 'ig' && typeof window.intelAsk === 'function') window.intelAsk(q);
+      else if (h === 'jl' && typeof window.jlAsk === 'function') window.jlAsk(q);
+      else if (typeof window.aiSubmit === 'function') window.aiSubmit(q);
+      return;
+    }
+    if (go === 'prep-share' && c && typeof window.openShareModal === 'function'){
+      if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){}
+      window.openShareModal(c, { purpose: 'colleague', note: caCmdPrepText(c, caCmdPrepRead(c)) }); return;
+    }
+    if (go === 'prep-print' && c){
+      const turn = b.closest('.ca-cmd-turn'), root = document.getElementById('print-root');
+      if (!turn || !root) return;
+      const copy = turn.cloneNode(true); copy.querySelectorAll('button[data-ca-cmd-go="trades"], .ca-cmd-bar').forEach(n => n.remove());
+      root.innerHTML = `<div class="ca-prep-print"><h1>${_caE(caRef(c) + ' · ' + String(c.name || ''))}</h1>${copy.innerHTML}</div>`;
+      const done = () => { window.removeEventListener('afterprint', done); if (typeof window.clearPrintRoot === 'function') window.clearPrintRoot(); else root.innerHTML = ''; };
+      window.addEventListener('afterprint', done); window.print(); return;
+    }
     if (go === 'chase' && typeof window.obligationChase === 'function'){ window.obligationChase(cid, b.getAttribute('data-oid')); return; }
     if (go === 'open' && c && typeof window.roomHomeLand === 'function'){ window.roomHomeLand(c.id, { open: true }); return; }
     if (go === 'amend' && c && typeof window.pd2AmAskOpen === 'function'){ window.pd2AmAskOpen(c.id, b.getAttribute('data-say') || ''); return; }
@@ -3835,7 +3968,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
