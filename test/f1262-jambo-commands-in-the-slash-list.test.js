@@ -58,6 +58,15 @@ describe('f1262 (1) "/" is the eight commands, and nothing else (owner, 28 Nov 2
     const none = ctx.caSlashList('/prepare MK-999', A);
     assert.equal(none.length, 1); assert.equal(none[0].kind, 'none', 'nothing found is said, so Enter cannot send the half-made line');
   });
+  test('every contract is reachable: all listed up to the cap, the count in the head, the rest counted, never cut silently', () => {
+    const { ctx } = load(); ctx.canEdit = () => true;
+    ctx.state = { contracts: Array.from({ length: 130 }, (_, i) => ({ id: 'MK-' + (500 + i), name: 'Paper ' + i, counterparty: 'P' })) };
+    const R = ctx.caSlashList('/request ', null);
+    assert.equal(R.filter(r => r.kind === 'ct').length, 100);
+    assert.equal(R[R.length - 1].kind, 'none'); assert.match(R[R.length - 1].word, /and 30 more/);
+    assert.match(R[0].head, /All 130 are below; type a number or name to narrow/);
+    assert.match(ctx.caSlashList('/request MK-62', null)[0].head, /match "MK-62"/);
+  });
   test('Check then asks which Notebook document; Email request leaves the words to the reader', () => {
     const { ctx } = load(); ctx.canEdit = () => true;
     const A = { id: 'MK-401', name: 'Distribution agreement' };
