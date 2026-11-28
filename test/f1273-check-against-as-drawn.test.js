@@ -1,5 +1,5 @@
 'use strict';
-/* f1272 — CHECK AGAINST, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"). Choosing the Notebook document
+/* f1273 — CHECK AGAINST, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"). Choosing the Notebook document
    asks Jambo once (POST /api/ai/check: the STORED contract, money masked without the right, against the document behind
    nbSees); a quote not in the contract's own words is dropped, and "met" without one is a look (Partly), never a tick.
    Kept in this browser per contract and document until either changes. The card: ring, the table, a Redline per row
@@ -18,7 +18,7 @@ const CID = 'MK-CHK-1';
 const DOC = ['SUPPLY AGREEMENT', '', '3. Liability cap', '', 'Each party\'s liability is capped at the total fees paid in the twelve (12) months preceding the claim.', '',
   '4. Governing Law', '', 'This Agreement is governed by the laws of Sweden.'].join('\n');
 
-describe('f1272 (1) the route: once, walled, quotes checked against the contract\'s own words', () => {
+describe('f1273 (1) the route: once, walled, quotes checked against the contract\'s own words', () => {
   let h, W, doc, mine;
   before(async () => {
     h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
@@ -50,7 +50,7 @@ describe('f1272 (1) the route: once, walled, quotes checked against the contract
   });
 });
 
-describe('f1272 (2) the card, kept, and its presses', () => {
+describe('f1273 (2) the card, kept, and its presses', () => {
   function load(win){
     const en = {}, store = {};
     for (const m of I.matchAll(/^ {4}(ca_(?:cmd|ck|chg)_[a-z_0-9]+): (['"])((?:(?!\2)[^\\]|\\.)*)\2,$/gm)) if (!(m[1] in en)) en[m[1]] = m[3].replace(/\\'/g, "'");
