@@ -1320,3 +1320,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## JAMBO'S PANELS — THE FIVE PARTS (seven panels L+S, 28 Nov 2026)
 - f1267 (1) the seven slots draw no grey card on figures, groups, act or agents; (2) regNegoSayFive reads no money.
+
+## THE DOSSIER END TO END, L+S (four contract panels, 28 Nov 2026)
+- f1269 (1) no grey card on Before you sign, Fill in, Clauses' card, Redlines' Edit/Add and empty risk row; (2) later circle edged, space in hand light green.
