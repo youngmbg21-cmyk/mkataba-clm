@@ -27,9 +27,9 @@ function load(){
   const line = n => CA.slice(CA.indexOf(n), CA.indexOf('\n', CA.indexOf(n)) + 1);
   const src = CA.slice(CA.indexOf('const CA_CMDS'), CA.indexOf('];\n', CA.indexOf('const CA_CMDS')) + 3)
     + ['const CA_CMD_NB_MAX', 'const CA_SINCE_KEY', 'const CA_CMD_CT ', 'const CA_CMD_CT_MAX', 'const _caCmdBook'].map(line).join('')
-    + 'let _caSince;\n' + ['function caUsesWho', 'function caRef'].map(line).join('')
-    + ['function caCmdSince', 'function caCmdWord', 'function caCmdNbDocs', 'function caCmdRows', 'function caCmdRefOf', 'function caCmdCtRows', 'function caCmdDocRows', 'function caSlashList'].map(grab).join('\n');
-  vm.runInContext(src + '\nthis.caCmdRows = caCmdRows; this.caSlashList = caSlashList; this.reset = () => { _caSince = undefined; };', ctx);
+    + ['function caUsesWho', 'function caRef'].map(line).join('')
+    + ['function caCmdWord', 'function caCmdNbDocs', 'function caCmdRows', 'function caCmdRefOf', 'function caCmdCtRows', 'function caCmdDocRows', 'function caSlashList'].map(grab).join('\n');
+  vm.runInContext(src + '\nthis.caCmdRows = caCmdRows; this.caSlashList = caSlashList; this.reset = () => {};', ctx);
   return { ctx, store };
 }
 const W = rows => Array.from(rows).map(r => r.word).join(' | ');
@@ -75,13 +75,12 @@ describe('f1262 (1) "/" is the eight commands, and nothing else (owner, 28 Nov 2
     assert.equal(W(D), 'Data protection policy'); assert.equal(D[0].kind, 'doc');
     assert.equal(ctx.caSlashList('/request MK-401 ', null).length, 0, 'the list steps aside while the request is typed');
   });
-  test('"since you were last here" is the mark this browser kept; none = the last seven days', () => {
-    const { ctx, store } = load(); ctx.canEdit = () => true;
-    const q = () => Array.from(ctx.caCmdRows('changed')).find(r => r.k === 'changed').q;
-    assert.match(q(), /in the last seven days/);
-    store['hati.v1.jamboSince'] = JSON.stringify({ u1: '2026-11-20' }); ctx.reset();
-    assert.match(q(), /since 2026-11-20\?/);
+  test('What\'s changed acts at once (f1264), it writes no question', () => {
+    const { ctx } = load(); ctx.canEdit = () => true;
+    const r = Array.from(ctx.caCmdRows('changed')).find(x => x.k === 'changed');
+    assert.equal(r.act, true); assert.equal(r.q, undefined);
   });
+
 });
 
 describe('f1262 (2) one list in every box; a choice writes, never asks', () => {
@@ -104,7 +103,7 @@ describe('f1262 (2) one list in every box; a choice writes, never asks', () => {
   test('the words are in both books', () => {
     for (const k of ['ca_cmd_head', 'ca_cmd_go', 'ca_cmd_go_choose', 'ca_cmd_which_ct', 'ca_cmd_which_doc', 'ca_cmd_open_now', 'ca_cmd_no_ct', 'ca_cmd_no_doc',
       'ca_cmd_g_prepare', 'ca_cmd_g_check', 'ca_cmd_g_handover', 'ca_cmd_g_request', 'ca_cmd_g_changed', 'ca_cmd_g_chase', 'ca_cmd_g_amend', 'ca_cmd_g_approve',
-      'ca_cmd_q_prepare', 'ca_cmd_q_check', 'ca_cmd_q_handover', 'ca_cmd_q_changed', 'ca_cmd_q_changed_week'])
+      'ca_cmd_q_prepare', 'ca_cmd_q_check', 'ca_cmd_q_handover'])
       assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
   });
 });

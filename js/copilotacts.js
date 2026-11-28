@@ -2073,19 +2073,112 @@ function caSlashRows(w, opts = {}){
    said (pd2AmAskOpen), Create request › opens the Send screen with nothing of the paper going (purpose 'status') and the
    request as the note. A Viewer is offered none of the four (`write`). */
 const CA_CMDS = [{ k: 'prepare', one: true }, { k: 'check', one: true, nb: true }, { k: 'handover', one: true }, { k: 'request', one: true, lead: true, write: true },
-  { k: 'changed' }, { k: 'chase', act: true, write: true }, { k: 'amend', lead: true, write: true }, { k: 'approve', act: true, write: true }];
+  { k: 'changed', act: true }, { k: 'chase', act: true, write: true }, { k: 'amend', lead: true, write: true }, { k: 'approve', act: true, write: true }];
 const CA_CMD_ROWS_MAX = 8;
 const CA_CMD_NB_MAX = 6;
 const CA_SINCE_KEY = 'hati.v1.jamboSince';
-let _caSince;
-function caCmdSince(){
-  if (_caSince !== undefined) return _caSince;
-  let all = {}; try { all = JSON.parse(localStorage.getItem(CA_SINCE_KEY) || '{}') || {}; } catch (_){ all = {}; }
-  const w = caUsesWho(), prev = typeof all[w] === 'string' ? all[w] : null;
-  const now = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  try { all[w] = now; localStorage.setItem(CA_SINCE_KEY, JSON.stringify(all)); } catch (_){}
-  _caSince = prev && prev < now ? prev : null;
-  return _caSince;
+/* ---- WHAT'S CHANGED, AS DRAWN (owner, 28 Nov 2026: "why would you tell me you built something and not give me what you
+   stated?"; the drawing: "8 things since yesterday, 16:40." · Replies · Mentions · Decisions · Dates moved · Stage, each
+   counted with Open, and Mark all seen) ----
+   NO JAMBO CALL: read off HaTi's own records. The mark is this browser's, per person (CA_SINCE_KEY): the moment of the
+   last Mark all seen and what each agreement's stage and end day were then. Opening the "/" list moves nothing; only
+   Mark all seen does. Replies, Mentions and Decisions are the trail's entries since the mark written by someone else
+   (actSayOf reads each); Dates moved and Stage compare today's book with the mark's snapshot, so they are only said once
+   a mark is kept (none kept: the trail's last CA_CHANGED_DAYS days, and those two say they start from the first mark). */
+const CA_CHANGED_DAYS = 7;
+const CA_CHANGED_GROUPS = ['replies', 'mentions', 'decisions', 'dates', 'stage'];
+function caCmdMarkAll(){ let all = {}; try { all = JSON.parse(localStorage.getItem(CA_SINCE_KEY) || '{}') || {}; } catch (_){ all = {}; } return (all && typeof all === 'object') ? all : {}; }
+function caCmdMark(){
+  const m = caCmdMarkAll()[caUsesWho()];
+  return (m && typeof m === 'object' && typeof m.at === 'string' && isFinite(Date.parse(m.at))) ? m : null;
+}
+function caCmdEndOf(c){ let e = null; try { e = (typeof window.effectiveExpiry === 'function') ? window.effectiveExpiry(c) : null; } catch (_){ e = null; } return String(e || c.expiry || '').slice(0, 10); }
+function caCmdMarkSeen(now){
+  const snap = {};
+  for (const c of _caCmdBook()) snap[c.id] = [String(c.status || ''), caCmdEndOf(c)];
+  const all = caCmdMarkAll(); all[caUsesWho()] = { at: now || new Date().toISOString(), snap };
+  try { localStorage.setItem(CA_SINCE_KEY, JSON.stringify(all)); } catch (_){ return false; }
+  return true;
+}
+/* the trail since a moment, others' entries only, said in one short line each (actSayOf) */
+function caCmdTrailSince(feed, sinceMs){
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const mine = [me && me.name, me && me.email].filter(Boolean).map(x => String(x).trim().toLowerCase());
+  const first = me && me.name ? String(me.name).trim().split(/\s+/)[0].toLowerCase() : '';
+  const named = d => first && (d.includes('@' + first) || new RegExp('\\b' + first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(d));
+  const KIND = { round: ['replies', 'round'], proposed: ['replies', 'proposed'], signed: ['replies', 'signed'], opened: ['replies', 'opened'],
+    approved: ['decisions', 'approved'], declined: ['decisions', 'declined'], decided: ['decisions', 'decided'], asked_changes: ['decisions', 'asked_changes'] };
+  const by = new Map();
+  for (const a of (Array.isArray(feed) ? feed : [])){
+    const t = Date.parse(a && a.at || ''); if (!isFinite(t) || t <= sinceMs) continue;
+    const who = String(a.user || '').trim(); if (who && mine.includes(who.toLowerCase())) continue;
+    const S = (typeof window.actSayOf === 'function') ? window.actSayOf(a) : { say: '' };
+    const d = String(a.detail || '').toLowerCase();
+    let gk = KIND[S.say] || null;
+    if (S.say === 'note' && named(d)) gk = ['mentions', 'mention'];
+    if (S.say === 'duty' && /^completed\b/.test(d)) gk = ['decisions', 'duty_done'];
+    if (!gk) continue;
+    const ref = String(a.ref || a.id || ''), name = who ? who.split(/\s+/)[0] : 'HaTi', key = gk.join('|') + '|' + name + '|' + ref;
+    const hit = by.get(key);
+    if (hit){ hit.n++; continue; }
+    by.set(key, { g: gk[0], k: gk[1], id: a.id, ref, who: name, n: 1, t });
+  }
+  return Array.from(by.values()).map(x => Object.assign(x, { line: _caT('ca_chg_s_' + x.k + (x.n > 1 ? '_n' : ''), { who: x.who, ref: x.ref, n: x.n }) }))
+    .sort((x, y) => y.t - x.t);
+}
+/* stage and end day against the mark's snapshot */
+function caCmdBookMoves(mark){
+  const out = []; if (!mark || !mark.snap) return out;
+  for (const c of _caCmdBook()){
+    const was = mark.snap[c.id]; if (!Array.isArray(was)) continue;
+    const st = String(c.status || ''), end = caCmdEndOf(c), ref = caRef(c);
+    if (was[1] !== end && (was[1] || end)) out.push({ g: 'dates', id: c.id, ref, line: _caT(end ? (was[1] ? 'ca_chg_end_moved' : 'ca_chg_end_set') : 'ca_chg_end_gone', { ref, to: caCmdDaySaid(end), from: caCmdDaySaid(was[1]) }) });
+    if (was[0] !== st && st) out.push({ g: 'stage', id: c.id, ref, line: _caT('ca_chg_stage_moved', { ref, to: st }) });
+  }
+  return out;
+}
+function caCmdDaySaid(day){
+  const t = Date.parse(String(day || '').slice(0, 10) + 'T12:00:00Z'); if (!isFinite(t)) return String(day || '');
+  return new Date(t).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+function caCmdWhenSaid(iso){
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const hm = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+  const k = x => x.getFullYear() + '-' + x.getMonth() + '-' + x.getDate(), t = new Date(), y = new Date(t); y.setDate(t.getDate() - 1);
+  if (k(d) === k(t)) return _caT('ca_chg_today_at', { hm });
+  if (k(d) === k(y)) return _caT('ca_chg_yesterday_at', { hm });
+  return d.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) + ', ' + hm;
+}
+/* the card: the lead, one row a group that has something (count, its newest lines, Open), Mark all seen, the source */
+function caCmdChangedHtml(items, mark, sinceIso){
+  const cnt = L => L.reduce((t, x) => t + (x.n || 1), 0), n = cnt(items);
+  const lead = mark ? _caT(n === 1 ? 'ca_chg_lead_1' : 'ca_chg_lead', { n, since: caCmdWhenSaid(sinceIso) })
+    : _caT(n === 1 ? 'ca_chg_lead_week_1' : 'ca_chg_lead_week', { n, d: CA_CHANGED_DAYS });
+  const rows = CA_CHANGED_GROUPS.map(g => {
+    const G = items.filter(x => x.g === g); if (!G.length) return '';
+    const ids = Array.from(new Set(G.map(x => x.id)));
+    const sub = G.slice(0, 2).map(x => x.line).join(' · ') + (G.length > 2 ? ' · ' + _caT('ca_chg_and_more', { n: G.length - 2 }) : '');
+    return `<div class="ca-cmd-row"><span class="ca-cmd-g"><b>${_caE(_caT('ca_chg_g_' + g))} <span class="ca-cmd-n">${cnt(G)}</span></b><small>${_caE(sub)}</small></span>`
+      + `<button type="button" class="ca-cmd-go" data-ca-cmd-go="open" data-cid="${_caE(ids[0])}">${_caE(_caT('ca_cmd_go_open'))}</button></div>`;
+  }).join('');
+  const start = mark ? '' : `<p class="ca-cmd-more">${_caE(_caT('ca_chg_first_mark'))}</p>`;
+  return `<div class="ca-cmd-turn is-changed"><p><b>${_caE(n ? lead : (mark ? _caT('ca_chg_none', { since: caCmdWhenSaid(sinceIso) }) : _caT('ca_chg_none_week', { d: CA_CHANGED_DAYS })))}</b></p>`
+    + (rows ? `<div class="ca-cmd-rows">${rows}</div>` : '') + start
+    + `<div class="ca-cmd-bar"><button type="button" class="ca-cmd-seen" data-ca-cmd-seen>${_caE(_caT('ca_chg_mark_seen'))}</button></div>`
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_chg_from'))}</p></div>`;
+}
+async function caCmdChanged(host){
+  const mark = caCmdMark();
+  const sinceIso = mark ? mark.at : new Date(Date.now() - CA_CHANGED_DAYS * 864e5).toISOString();
+  let feed = null;
+  if (typeof API_MODE === 'function' && API_MODE() && typeof api === 'function'){
+    try { const r = await api('activity?limit=200'); feed = (r && Array.isArray(r.events) ? r.events : []).map(e => (typeof window.activityRow === 'function')
+      ? window.activityRow(e.id, e.action, e.detail, e.at, e.contractNo, e.user, e.name) : Object.assign({ ref: e.contractNo || e.id }, e)); } catch (_){ feed = null; }
+  }
+  if (!feed && typeof window.buildActivityFeed === 'function') try { feed = window.buildActivityFeed(200); } catch (_){ feed = []; }
+  const items = caCmdTrailSince(feed || [], Date.parse(sinceIso)).concat(caCmdBookMoves(mark));
+  return caCmdSay(host, _caT('ca_chg_asked'), caCmdChangedHtml(items, mark, sinceIso));
 }
 function caCmdWord(k){ return '/' + String(_caT('ca_cmd_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caCmdNbDocs(){
@@ -2116,7 +2209,6 @@ function caCmdRows(w){
     if (q && !bare.startsWith(q)) continue;
     const r = { kind: 'cmd', k: m.k, word, sub: _caT('ca_cmd_g_' + m.k), ct: CA_CMD_CT.has(m.k), act: !!m.act };
     if (m.lead && !r.ct) r.q = _caT('ca_cmd_lead_' + m.k) + ' ';
-    if (m.k === 'changed'){ const since = caCmdSince(); r.q = _caT(since ? 'ca_cmd_q_changed' : 'ca_cmd_q_changed_week', { since: since || '' }); }
     out.push(r);
   }
   return out;
@@ -2198,14 +2290,17 @@ function caCmdHostOf(inp){
   if (typeof document !== 'undefined' && document.getElementById('jl-q')) return 'jl';
   return 'ai';
 }
+/* a command's card says its own source inside it (what it read), so the turn carries no "Read from <contract>" line:
+   the contract on screen is not what a command over the book read (`read` with no words draws none) */
+const CA_CMD_READ = { cid: null, text: '' };
 function caCmdSay(host, q, html){
   if (host === 'ig' && typeof window !== 'undefined' && window.intel && typeof window.renderIntelDock === 'function'){
-    window.intel.history.push({ role: 'user', text: _caE(q) }, { role: 'assistant', host: 'ai', text: html });
+    window.intel.history.push({ role: 'user', text: q }, { role: 'assistant', host: 'ai', text: html, read: CA_CMD_READ });   /* the dock escapes a person's words itself (intelAsk pushes them raw) */
     window.renderIntelDock(); return true;
   }
   if (host === 'jl' && typeof window.jlTalkOpen === 'function') try { window.jlTalkOpen(); } catch (_){}
   if (typeof window.aiPush === 'function' && typeof window.renderAIFeed === 'function'){
-    window.aiPush('user', { text: _caE(q), raw: q }); window.aiPush('assistant', { text: html, free: true }); window.renderAIFeed(); return true;
+    window.aiPush('user', { text: _caE(q), raw: q }); window.aiPush('assistant', { text: html, free: true, read: CA_CMD_READ }); window.renderAIFeed(); return true;
   }
   return false;
 }
@@ -2258,6 +2353,7 @@ function caCmdAmendRows(c0){
 }
 async function caCmdAct(k, host, said, chosen){
   const c0 = chosen || caOpenContract(), ref = c => caRef(c), word = _caT('ca_cmd_t_' + k);
+  if (k === 'changed') return caCmdChanged(host);
   if (k === 'chase'){
     const R = caCmdChaseRows(null);
     const rows = R.slice(0, CA_CMD_ROWS_MAX).map(({ c, o, d }) => ({ title: String(c.counterparty || ref(c)), sub: `${String(o.desc || o.title || '')} · ${ref(c)}`,
@@ -2316,6 +2412,11 @@ function caCmdTyped(text, host){
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caCmdWired){
   document._caCmdWired = true;
   document.addEventListener('click', async e => {
+    const seen = e.target && e.target.closest ? e.target.closest('[data-ca-cmd-seen]') : null;
+    if (seen){ e.preventDefault(); if (seen.disabled) return;
+      if (caCmdMarkSeen()){ seen.disabled = true; seen.textContent = _caT('ca_chg_marked'); }
+      else if (typeof toast === 'function') toast(_caT('ca_chg_mark_failed'), 'err');
+      return; }
     const b = e.target && e.target.closest ? e.target.closest('[data-ca-cmd-go]') : null; if (!b) return;
     e.preventDefault();
     const go = b.getAttribute('data-ca-cmd-go'), cid = b.getAttribute('data-cid');
@@ -3730,7 +3831,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdSince, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
