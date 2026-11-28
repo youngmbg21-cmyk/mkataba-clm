@@ -68,11 +68,12 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { const s = hbS(); s.screen = 'light'; s.scrPick = 1; s.face = 'board'; s.panels = []; s.path = []; hbSave(); setView('dashboard'); });
     await until(() => !!document.getElementById('igd-input') || !!document.getElementById('igd-expand'));
 
-    /* 1. "/" opens the moves */
-    await page.mouse.click(700, 300);
-    await page.keyboard.press('/');
-    const moves = await pop();
-    check('1. A10/A1 "/" on the board opens the moves', !!moves && moves.length >= 8 && moves.some(m => /trend/i.test(m)), moves && moves.slice(0, 5).join(' | '));
+    /* 1. RE-POINTED 28 Nov 2026 (owner: "The only list that should be there including in the board page are the 8 panel
+       commands"): "/" in the Board's box lists Jambo's eight commands, and no Board moves */
+    await page.fill('#igd-input', ''); await page.type('#igd-input', '/');
+    const moves = await until(() => { const p = document.getElementById('ca-slash'); return p ? [...p.querySelectorAll('[data-ca-sl] b')].map(o => o.textContent.trim()) : null; });
+    const hbPop = await page.evaluate(() => !!document.querySelector('#hb-askpop [data-hb-pop]'));
+    check('1. "/" on the board lists the eight commands only', !!moves && moves.length === 8 && moves[0] === '/prepare' && !moves.some(m => /trend/i.test(m)) && !hbPop, moves && moves.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-slash.png') });
     await page.keyboard.press('Escape');
 

@@ -103,11 +103,14 @@ const CONTRACTS = [
     const list = await until(() => { const el = document.getElementById('ca-slash'); if (!el) return null;
       const r = el.getBoundingClientRect(), b = document.getElementById('cal-plan-in').getBoundingClientRect();
       return { rows: [...el.querySelectorAll('[data-ca-sl]')].map(x => x.textContent.trim().slice(0, 30)), above: r.bottom <= b.top + 1, inView: r.top >= 0 && r.right <= innerWidth + 1 }; }, null, 4000);
-    check('2a "/" lists the places above the box', !!list && list.rows.length >= 1 && list.above && list.inView, JSON.stringify(list));
+    /* RE-POINTED 28 Nov 2026 (owner: "/" is Jambo's eight commands only): "/appr" lists /approve, and Enter takes it —
+       its rows are said in the conversation; no page is opened */
+    check('2a "/" lists the command above the box', !!list && list.rows.length === 1 && /\/approve/.test(list.rows[0]) && list.above && list.inView, JSON.stringify(list));
     await shot('2-slash-1440x780');
+    const view0 = await page.evaluate(() => state.view);
     await page.keyboard.press('Enter');
-    const v2 = await until(() => state.view === 'approvals' && !document.getElementById('ca-slash') ? true : null, null, 6000);
-    check('2b Enter on a row goes there, and the list is gone', !!v2, JSON.stringify(await page.evaluate(() => ({ view: state.view, list: !!document.getElementById('ca-slash') }))));
+    const v2 = await until(v => state.view === v && !document.getElementById('ca-slash') ? true : null, view0, 6000);
+    check('2b Enter takes the command, the list is gone, no page is opened', !!v2, JSON.stringify(await page.evaluate(() => ({ view: state.view, list: !!document.getElementById('ca-slash') }))));
 
     /* ===== 3 · SETTINGS' BOX ===== */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel,

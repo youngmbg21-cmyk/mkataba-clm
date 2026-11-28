@@ -17876,6 +17876,21 @@
      colour; Stop shows only once a step has stood long ("Still working on it"); one line that wraps neatly, never "…" */
   :is(#app-shell, #modal-root, body) .jl-bub.jb-thinking{flex:0 1 auto;display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:2px;min-height:0;max-width:100%;padding:4px 0;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--color-neutral-400);font-size:var(--t-body);line-height:1.35}
   .jb-thinking .jb-step{min-width:0}
+  /* JAMBO'S COMMANDS ANSWER IN ROWS (owner, 27 Nov 2026, round 2): what, its line, a soft badge, its door as a green link */
+  .ca-cmd-turn > p{margin:0 0 8px}
+  .ca-cmd-rows{display:flex;flex-direction:column}
+  .ca-cmd-row{display:flex;align-items:center;gap:8px;min-width:0;padding:8px 0;border-top:1px solid var(--color-divider)}
+  .ca-cmd-g{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .ca-cmd-g > b{font-weight:var(--w-label);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ca-cmd-g > small{font-size:var(--t-meta);color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ca-cmd-bd{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  .ca-cmd-bd.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .ca-cmd-bd.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .ca-cmd-bd.is-grey{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .ca-cmd-go{flex:none;border:0;background:transparent;padding:0 2px;color:var(--accent-ink);font:inherit;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  .ca-cmd-go:hover{text-decoration:underline}
+  .ca-cmd-go:disabled{color:var(--color-quiet);cursor:default;text-decoration:none}
+  .ca-cmd-more{margin:6px 0 0;font-size:var(--t-meta);color:var(--color-quiet)}
   .jb-thinking .jb-dots{display:inline-flex;align-items:center;gap:3px}
   .jb-thinking .jb-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.35;animation:jb-busy 1.2s infinite ease-in-out}
   .jb-thinking .jb-dot:nth-child(2){animation-delay:.2s} .jb-thinking .jb-dot:nth-child(3){animation-delay:.4s}

@@ -150,9 +150,11 @@ describe('f658 Copilot working with you', () => {
 describe('f658 the analyst', () => {
   test('A1 "/" lists the moves; each starter question is one the board reads', () => {
     const w = world();
-    const P = w.hbAskPopRows('/');
-    assert.equal(P.mode, 'slash'); assert.ok(P.rows.length >= 8);
-    assert.deepEqual(Array.from(w.hbAskPopRows('/tr').rows.map(r => r.k)), ['trend']);
+    /* RE-POINTED 28 Nov 2026 (owner: "The only list that should be there including in the board page are the 8 panel
+       commands"): the Board's "/" is the shared list (caSlRead), so its own reader gives nothing for it; the starter
+       questions still read */
+    assert.equal(w.hbAskPopRows('/'), null);
+    assert.equal(w.hbAskPopRows('/tr'), null);
     for (const k of ['compare', 'trend', 'top', 'growth', 'forecast']){
       const q = w.i18t('hb_sl_' + k + '_q'); const R = w.hbRecipeRead(q);
       assert.ok(R, k + ': "' + q + '" is read by the board');

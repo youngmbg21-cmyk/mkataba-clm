@@ -3346,6 +3346,7 @@ async function intelAsk(qRaw, opts){
   /* still answering: the question waits its turn (jamboAskLater), never dropped */
   if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelAsk(w, opts)); return; }
   /* "add … as the contact" opens the one contact sheet filled in from the words (cuContactAsk, owner 19 Nov 2026) */
+  if(typeof window.caCmdTyped==='function'&&caCmdTyped(q, 'ig')) return;
   if(typeof cuContactAsk==='function'){ let pc=false; try{ pc=cuContactAsk(q); }catch(_){ pc=false; } if(pc) return; }
   /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): the person says so, Jambo answers in HaTi's own words, free,
      with the first steps as chips — read before the brain and before any reader that takes "new" for a draft */
@@ -10872,7 +10873,7 @@ function renderIntelDock(){
         bin:msgs&&!(window.naSheetUp&&naSheetUp())&&typeof window.jamboBinHtml==='function'?jamboBinHtml(true,'igd-history-clear'):'' })
         /* …and its mirror on the landing, once something has been said: "Jambo ›" (owner's pick, 28 Oct 2026) */
         :(!solo&&intel.history.length&&typeof window.jamboFwdHtml==='function'?jamboFwdHtml({ on:true, host:'dock' }):'')}
-      ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
+      ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" data-ca-slash placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml(!talk&&!_sheet&&!!(window.pdSendShows&&pdSendShows())))||''}`;
   /* NOTHING CHANGED, NOTHING WRITTEN (igDockSame): the panel stands as it is; only what lies outside it follows */

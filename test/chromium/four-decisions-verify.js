@@ -93,10 +93,12 @@ const blocked = [];
       for (const [name, go, box, list, only] of [
         /* (Home's box went with Home, 10 Nov 2026: the Board's below is where you land) */
         /* the Board's list also carries its own moves (/compare, /trend…), which fill a question: no "Open" there */
-        ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#hb-askpop', '[data-hb-pop-kind="place"]'],
-        ['Approvals\' panel', () => setView('approvals'), '#jl-q', '[data-jl-pop]'],
+        /* RE-POINTED 28 Nov 2026 (owner: "/" is Jambo's eight commands only, one list in every box): each box's "/" is the
+           shared list (#ca-slash), every row a command ending in "Use ›" */
+        ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#ca-slash'],
+        ['Approvals\' panel', () => setView('approvals'), '#jl-q', '#ca-slash'],
         /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo box is the list panel's #jl-q, its "/" list the panel's own pop [data-jl-pop] */
-        ['Settings\' Jambo box', () => openSettingsAt('you'), '#jl-q', '[data-jl-pop]'],
+        ['Settings\' Jambo box', () => openSettingsAt('you'), '#jl-q', '#ca-slash'],
       ]){
         await clean(); await ev(go);
         const up = await until(sel => { const b = document.querySelector(sel); return !!(b && b.getBoundingClientRect().width); }, box);
@@ -105,13 +107,13 @@ const blocked = [];
         await page.keyboard.type('/');
         const open = await until(sel => document.querySelectorAll(sel + ' .ca-opt').length >= 2, list, 5000);
         await settle();
-        if (!open){ check(`${at} · Q1b — ${name}: "/" lists the places`, false); await page.keyboard.press('Backspace').catch(() => {}); continue; }
+        if (!open){ check(`${at} · Q1b — ${name}: "/" lists the commands`, false); await page.keyboard.press('Backspace').catch(() => {}); continue; }
         const rows = await ev(([sel, only]) => [...document.querySelectorAll(sel + ' .ca-opt' + (only || ''))].filter(r => r.getBoundingClientRect().width).map(r => {
           const g = r.querySelector('.ca-go'), rb = r.getBoundingClientRect();
           return { t: (r.querySelector('.who b') || r).textContent.trim(), go: g ? g.textContent.trim() : null, inside: !!g && g.getBoundingClientRect().right <= rb.right + 0.5, cut: !!g && g.scrollWidth > g.clientWidth + 0.5 }; }), [list, only]);
-        const bad = (rows || []).filter(x => x.go !== 'Open ›' || !x.inside || x.cut);
+        const bad = (rows || []).filter(x => x.go !== 'Use ›' || !x.inside || x.cut);
         if (S.k === 'laptop-a') await shot('q1b-' + name.replace(/\W+/g, '-').toLowerCase());
-        check(`${at} · Q1b — ${name}: every "/" place row ends in "Open ›", whole, inside its row`, rows && rows.length >= 2 && !bad.length, bad.length ? bad.map(x => `${x.t}: ${x.go || 'no act word'}`).join(' · ') : `${rows.length} rows`);
+        check(`${at} · Q1b — ${name}: every "/" row is a command ending in "Use ›", whole, inside its row`, rows && rows.length >= 4 && !bad.length, bad.length ? bad.map(x => `${x.t}: ${x.go || 'no act word'}`).join(' · ') : `${rows.length} rows`);
         await page.keyboard.press('Backspace').catch(() => {});
       }
 

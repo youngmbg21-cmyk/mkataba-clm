@@ -11686,6 +11686,9 @@ function hbAskPopRows(v){
   }
   /* ONE "/" LIST: Jambo's places first (most used first, caSlashRows), then
      on the Board its own moves. Off the Board, the places alone. */
+  /* "/" IS JAMBO'S EIGHT COMMANDS, ONE LIST IN EVERY BOX (owner, 28 Nov 2026: "The only list that should be there including
+     in the board page are the 8 panel commands"): the Board's box carries data-ca-slash, the shared list draws it */
+  if (/^\s*\//.test(t)) return null;
   let m = /^\s*\/([\w\-åäöÅÄÖ]*)$/.exec(t);
   if (m){ const w = m[1].toLowerCase();
     const places = (typeof window.caSlashRows === 'function') ? caSlashRows(w, { max: onBoard ? HB_SLASH_PLACES : HB_ASKPOP_MAX }) : [];
@@ -11742,7 +11745,7 @@ function hbAskPopChoose(inp, i){
   const P = _hbPop; const r = P && P.rows[i]; if (!r) return;
   hbAskPopClose();
   if (r.kind === 'word'){ const v = String(inp.value || ''); _hbAskSet(inp, v.slice(0, P.start) + r.word + ' '); return; }
-  if (r.kind === 'cmd'){ _hbAskSet(inp, r.q); return; }
+  if (r.kind === 'cmd'){ if (r.act && typeof window.caCmdFill === 'function'){ caCmdFill(inp, r); return; } _hbAskSet(inp, r.q); return; }
   if (r.kind === 'place'){
     if (r.k === 'draft'){ _hbAskSet(inp, r.word.slice(1) + ' '); return; }
     _hbAskSet(inp, '');
