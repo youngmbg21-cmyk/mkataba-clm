@@ -1293,3 +1293,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE SEND SCREEN
 - f1261 Before you send the Stripe way: ring, rows, badges, the tick in the paper's row, timeline, both books. f713 2b and f757 10b re-pointed.
 - f1262 Jambo's commands in every "/" list: the rows (run in a vm with the English book), the three lists, a choice writes and never asks, both books.
+- `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
