@@ -162,6 +162,10 @@ describe('f658 the analyst', () => {
     assert.equal(w.hbRecipeRead(w.i18t('hb_sl_growth_q')).show, 'growth');
     assert.equal(w.hbRecipeRead(w.i18t('hb_sl_forecast_q')).pic, 'forecast');
   });
+  test('A1b the chart list on an empty box only on the Board itself, never over a contract\'s paper (owner, 28 Nov 2026)', () => {
+    const HBS = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'homeboard.js'), 'utf8');
+    assert.match(HBS, /if \(!onBoard \|\| !\(typeof state !== 'undefined' && state && state\.view === 'dashboard'\)\s*\|\| \(typeof window\.igPaperInFront === 'function' && window\.igPaperInFront\(\)\)\) return null;/);
+  });
   test('A2 after "by" the groupings this book has; Tab takes one, Enter still asks', () => {
     const w = world();
     const P = w.hbAskPopRows('signed value by ');

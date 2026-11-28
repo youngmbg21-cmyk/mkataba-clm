@@ -2103,7 +2103,10 @@ function caCmdNbDocs(){
    writes the question; Email request ends in the reader's own words and Enter (caCmdTyped). Pages still open by their
    name and from the jump window; nothing here asks, sends or writes. */
 const CA_CMD_CT = new Set(['prepare', 'check', 'handover', 'request']);
-const CA_CMD_CT_MAX = 8;
+/* EVERY CONTRACT IS REACHABLE (owner, 28 Nov 2026: "How am i supposed to choose a different contract that is not on this
+   list?"): the list scrolls inside its card through up to CA_CMD_CT_MAX, the head says how many and that typing narrows
+   them, and anything past the cap is COUNTED in a closing line, never silently cut */
+const CA_CMD_CT_MAX = 100;
 function caCmdRows(w){
   const q = String(w || '').toLowerCase(), out = [];
   const mayWrite = !(typeof canEdit === 'function' && !canEdit());
@@ -2128,8 +2131,11 @@ function caCmdCtRows(k, rest, c0){
   const all = _caCmdBook().filter(c => !q || String(caRef(c)).toLowerCase().includes(q) || String(c.id).toLowerCase().includes(q)
     || String(c.name || '').toLowerCase().includes(q) || String(c.counterparty || '').toLowerCase().includes(q));
   if (c0){ const i = all.indexOf(c0); if (i > 0){ all.splice(i, 1); all.unshift(c0); } }
-  return all.slice(0, CA_CMD_CT_MAX).map(c => ({ kind: 'ct', k, c, word: `${caRef(c)} · ${String(c.name || '')}`, sub: String(c.counterparty || ''),
-    badge: c === c0 ? _caT('ca_cmd_open_now') : '', head: _caT('ca_cmd_which_ct', { cmd: _caT('ca_cmd_t_' + k) }) }));
+  const head = _caT(q ? 'ca_cmd_which_ct_n_q' : 'ca_cmd_which_ct_n', { cmd: _caT('ca_cmd_t_' + k), n: all.length, q: String(rest || '').trim() });
+  const rows = all.slice(0, CA_CMD_CT_MAX).map(c => ({ kind: 'ct', k, c, word: `${caRef(c)} · ${String(c.name || '')}`, sub: String(c.counterparty || ''),
+    badge: c === c0 ? _caT('ca_cmd_open_now') : '', head }));
+  if (all.length > CA_CMD_CT_MAX) rows.push({ kind: 'none', word: _caT('ca_cmd_ct_more', { n: all.length - CA_CMD_CT_MAX }), head });
+  return rows;
 }
 function caCmdDocRows(c, rest){
   const q = String(rest || '').trim().toLowerCase();

@@ -11680,7 +11680,10 @@ function hbAskPopRows(v){
   /* the charts in front, not a contract brought up on the Board face (hbBoardInFront) */
   const onBoard = hbBoardInFront();
   if (!t.trim()){
-    if (!onBoard) return null;
+    /* THE CHART LIST ONLY ON THE BOARD ITSELF (owner, 28 Nov 2026: "this list should only appear when i am on the board
+       page"): a contract's paper brought up over the Board keeps the Board's face, so the paper in front is asked too */
+    if (!onBoard || !(typeof state !== 'undefined' && state && state.view === 'dashboard')
+      || (typeof window.igPaperInFront === 'function' && window.igPaperInFront())) return null;
     const myq = (hbS().myq || []).map((q, i) => ({ kind: 'myq', i, word: q.name, sub: i18t('hb_myq_sub') }));
     return { mode: 'gallery', rows: myq.concat(HB_GALLERY.map(g => ({ kind: 'gal', k: g.k, word: i18t('hb_gal_' + g.k), sub: i18t('hb_gal_' + g.k + '_s') }))) };
   }
