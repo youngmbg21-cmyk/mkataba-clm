@@ -84,6 +84,9 @@ function startAiStub() {
         : toolName === 'propose_sections' ? { sections: [{ heading: 'Supply & Specification', intent: 'What is supplied, how much, to what standard.' },
             { heading: 'Quality & Rejection', intent: 'How goods are checked and what happens to goods that fail.' }], note: '' }
         /* FROM SCRATCH: one section's wording, naming the heading it was asked for */
+        /* EMAIL REQUEST: the email Jambo writes, asking for the first listed item */
+        : toolName === 'request_email' ? { subject: 'Two details we need before signing', used: [1, 2],
+            body: 'Hi Anna,\n\nBefore we can sign the supply agreement, could you send us:\n1. Ventura Capital\'s full company name, for Clause 1 (Parties).\n2. Your registered address, for Clause 1 (Parties).\n\nKind regards,\nYoung' }
         : toolName === 'write_section' ? (() => {
             const msg = String(((body.messages || [])[0] || {}).content || '');
             const head = (msg.match(/ONE section: "([^"]+)"/) || [])[1] || 'this section';
