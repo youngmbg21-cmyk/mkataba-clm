@@ -44,7 +44,7 @@ test('f1249 (1) 🎛️ stands first on the Board\'s line, one builder, pressed 
   const html = fn(CO, 'jamboWaysHtml');
   assert.match(html, /d === 'hbremote' \? jamboRemoteBtnHtml\(\)/);
   const btn = fn(CO, 'jamboRemoteBtnHtml');
-  assert.match(btn, /data-hb-remote/); assert.match(btn, /aria-pressed="\$\{on\}"/); assert.match(btn, /\\u\{1F39B\}/);
+  assert.match(btn, /data-hb-remote/); assert.match(btn, /aria-pressed="\$\{on\}"/); assert.match(btn, /_jbT\('hb_rm_word'\)/); assert.doesNotMatch(btn, /\\u\{1F39B\}/, 'a word on a pill, not the knobs (owner, 28 Nov 2026)');
   assert.match(CO, /Object\.assign\(window,\{[^}]*jamboRemoteBtnHtml/);
 });
 
@@ -102,7 +102,7 @@ test('f1249 (6) "/" lists the same charts, after the places and the moves; a cho
 test('f1249 (7) no money, no spend; every word in both books; the Handbook says it', () => {
   const panel = ['hbRemoteRows', 'hbRemoteHtml', 'hbRemoteRowHtml', 'hbRemoteSay', 'hbRemoteThumb', 'hbRemotePress'].map(n => fn(HB, n)).join('\n');
   assert.doesNotMatch(panel, /fmtMoney|hbValueSay|copilotAsk|intelAsk|\/api\/ai/, 'nothing priced, nothing asked of Jambo');
-  const keys = ['hb_rm_btn', 'hb_rm_title', 'hb_rm_count', 'hb_rm_lead', 'hb_rm_g_see', 'hb_rm_g_ready', 'hb_rm_g_asked', 'hb_rm_g_quiet', 'hb_rm_g_saved', 'hb_rm_g_saved_s', 'hb_rm_on', 'hb_rm_bring', 'hb_rm_foot', 'hb_rm_clear', 'hb_rm_cleared', 'hb_rm_ph', 'hb_rm_slash_head'];
+  const keys = ['hb_rm_btn', 'hb_rm_word', 'hb_rm_title', 'hb_rm_count', 'hb_rm_lead', 'hb_rm_g_see', 'hb_rm_g_ready', 'hb_rm_g_asked', 'hb_rm_g_quiet', 'hb_rm_g_saved', 'hb_rm_g_saved_s', 'hb_rm_on', 'hb_rm_bring', 'hb_rm_foot', 'hb_rm_clear', 'hb_rm_cleared', 'hb_rm_ph', 'hb_rm_slash_head'];
   const sv = I18N.indexOf('\n  sv: {');
   assert.ok(sv > 0);
   keys.forEach(k => {
@@ -110,8 +110,8 @@ test('f1249 (7) no money, no spend; every word in both books; the Handbook says 
     assert.ok(re.test(I18N.slice(0, sv)), k + ' in English');
     assert.ok(re.test(I18N.slice(sv)), k + ' in Swedish');
   });
-  assert.match(HBK, /press 🎛️, first in the green links above Jambo\\'s box/);
-  assert.match(HBK, /trycker du på 🎛️, först bland de gröna länkarna/);
+  assert.match(HBK, /press \{ui:hb_rm_word\}, first in the green links above Jambo\\'s box/);
+  assert.match(HBK, /trycker du på \{ui:hb_rm_word\}, först bland de gröna länkarna/);
   assert.match(HBK, /'board remote'/);
 });
 

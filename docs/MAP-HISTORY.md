@@ -40960,3 +40960,9 @@ The owner, of MK-469's Dossier foot ("Jambo ›" then "fill in redline share his
 The owner, the same day as "always in the middle": "for image 1, actually push them the left like image 2" — image 2 was
 "Assistant ›  History  How this works". The centring (absolute middle, the fit counting the press twice, rows of their own
 centred) was taken out; the links now come straight after the press, a bin keeps the right end. Capitals stay. f1264 re-pointed.
+
+## HOME — THE BOARD AND THE MAP — THE REMOTE BECOMES A WORD (28 Nov 2026)
+The owner asked to see the remote's 🎛️ as a word on a pill; four words were photographed (Charts · + Add a chart ·
+Dashboard · Show charts), Charts recommended, and the owner said "build Charts and merge it". The button now reads
+"Charts" (Swedish "Diagram", `hb_rm_word`) on a grey pill, light green while the remote is up; its long title stays as
+the hover. Cost said to the owner: the pill is wider than the icon, so on the Board the last link (Calendar) is left off.

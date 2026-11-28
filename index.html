@@ -24545,9 +24545,10 @@
   html.lg-new .hbw2-wait{display:flex;align-items:center;gap:var(--s-3)}
   /* THE BOARD'S REMOTE (owner, 27 Nov 2026: 🎛️ first in the Board's links line turns Jambo's panel into the list of the
      Board's charts; hbRemoteHtml, jamboRemoteBtnHtml). The knobs are a mark, never underlined; pressed = the chosen green. */
-  .jb-way.jb-rm{text-decoration:none;font-size:15px;line-height:1;width:26px;height:22px;display:inline-grid;place-items:center;border-radius:var(--radius-sm);flex:none}
-  .jb-way.jb-rm.is-on{background:var(--color-accent-100);box-shadow:inset 0 0 0 1px var(--color-accent-500)}
-  @media (hover:hover){ .jb-way.jb-rm:hover{background:var(--row-hover)} .jb-way.jb-rm.is-on:hover{background:var(--color-accent-100)} }
+  /* the remote is a WORD ON A PILL (owner, 28 Nov 2026: "build Charts"): grey pill, light green while pressed */
+  .jb-way.jb-rm{text-decoration:none;line-height:1;height:var(--ctl-h-sm);padding:0 10px;display:inline-flex;align-items:center;white-space:nowrap;border-radius:999px;background:var(--surface-2);color:var(--color-text);flex:none}
+  .jb-way.jb-rm.is-on{background:var(--color-accent-100);color:var(--accent-ink);box-shadow:inset 0 0 0 1px var(--color-accent-500)}
+  @media (hover:hover){ .jb-way.jb-rm:hover{background:var(--color-neutral-200)} .jb-way.jb-rm.is-on:hover{background:var(--color-accent-100)} }
   .jl-words.hb-rm{display:flex;flex-direction:column;min-width:0}
   /* the remote is the Board's panel too: its head stands down as the welcome's does (the welcome's own rule, hb slot) */
   html.lg-new #ig-dock:has([data-hb-rm-panel]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}

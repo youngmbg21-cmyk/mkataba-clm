@@ -27956,6 +27956,7 @@ const STRINGS = {
     hb_gal_added: "Added to the board: {what}",
     /* THE BOARD'S REMOTE (owner, 27 Nov 2026) */
     hb_rm_btn: "Board remote: bring the Board's charts",
+    hb_rm_word: "Charts",
     hb_rm_title: "Board remote",
     hb_rm_count: "{n} of {max} on your Board",
     hb_rm_lead: "Press a chart to bring it under Needs you.",
@@ -56261,6 +56262,7 @@ const STRINGS = {
     hb_gal_fc_t: "Förnyelseprognos, 12 månader",
     hb_gal_added: "Lagt på tavlan: {what}",
     hb_rm_btn: "Tavlans fjärrkontroll: ta fram tavlans diagram",
+    hb_rm_word: "Diagram",
     hb_rm_title: "Tavlans fjärrkontroll",
     hb_rm_count: "{n} av {max} på din tavla",
     hb_rm_lead: "Tryck på ett diagram för att ta fram det under Behöver dig.",
