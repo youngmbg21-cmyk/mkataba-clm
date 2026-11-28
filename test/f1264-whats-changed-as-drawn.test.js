@@ -108,3 +108,27 @@ describe('f1264 (2) wired: acts at once, no Jambo call', () => {
       assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
   });
 });
+
+describe('f1264 (3) "Jambo · since yesterday 16:40" beside his name (owner\'s yes, 28 Nov 2026)', () => {
+  const CO = strip(R('js/components.js'));
+  const grabC = n => { const i = CO.indexOf(n); assert.ok(i >= 0, n); return CO.slice(i, CO.indexOf('\n}\n', i) + 3); };
+  function heads(H){
+    const ctx = { window: { ai: { history: H } }, document: undefined };
+    vm.createContext(ctx);
+    vm.runInContext(['function jamboConvo', 'function jamboHeadCtxOf', 'function jamboHeadCtxHtml'].map(grabC).join('\n') + '\nthis.f = jamboHeadCtxHtml;', ctx);
+    return ctx.f();
+  }
+  test('the newest turn\'s context is said after his name; any later turn clears it', () => {
+    assert.equal(heads([{ role: 'user', text: 'q' }, { role: 'assistant', text: 'a', ctx: 'since yesterday 16:40' }]),
+      '<span class="jb-head-ctx" title="since yesterday 16:40">· since yesterday 16:40</span>');
+    assert.match(heads([{ role: 'assistant', text: 'a', ctx: 'since yesterday 16:40' }, { role: 'user', text: 'more?' }]), /<span class="jb-head-ctx" hidden><\/span>/);
+    assert.match(heads([]), / hidden>/);
+  });
+  test('drawn with the one label over the conversation, kept in step where the head is painted once, said by What\'s changed', () => {
+    assert.match(grabC('function jamboTalkLabelHtml'), /\$\{jamboHeadCtxHtml\(\)\}`;/);
+    assert.match(grabC('function jamboReadStamp'), /jamboHeadCtxSync\(\);/);
+    assert.match(CA, /mark \? _caT\('ca_chg_ctx', \{ since: caCmdWhenSaid\(sinceIso\)/);
+    assert.match(R('index.html'), /\.jb-talk-label\[hidden\] \+ \.jb-head-ctx\{display:none\}/);
+    for (const k of ['ca_chg_ctx', 'ca_chg_ctx_week']) assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
+  });
+});

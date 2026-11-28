@@ -1628,7 +1628,25 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 }
 /* the head while the conversation shows: his name, lit, a label — never a second way back */
 function jamboTalkLabelHtml(cls){
-  return `<span class="pd-tab pd-tab-talk on jb-talk-label${cls ? ' ' + cls : ''}" role="tab" aria-selected="true" aria-current="true">${jamboTalkTabInner()}</span>`;
+  return `<span class="pd-tab pd-tab-talk on jb-talk-label${cls ? ' ' + cls : ''}" role="tab" aria-selected="true" aria-current="true">${jamboTalkTabInner()}</span>${jamboHeadCtxHtml()}`;
+}
+/* WHAT THE NEWEST ANSWER IS ABOUT, BESIDE HIS NAME (owner, 28 Nov 2026: yes to the drawn "Jambo · since yesterday
+   16:40"): a "/" command's turn carries its context (`ctx`: since when, which contract); while it is the newest turn
+   in the conversation, the head over the conversation says it in grey after his name. Any later turn clears it.
+   Drawn with the label, and kept in step on every host that paints the head once (jamboHeadCtxSync). */
+function jamboHeadCtxOf(){
+  const H = jamboConvo(), m = H.length ? H[H.length - 1] : null;
+  return (m && m.role === 'assistant' && typeof m.ctx === 'string') ? m.ctx.trim() : '';
+}
+function jamboHeadCtxHtml(){
+  const t = jamboHeadCtxOf();
+  const e = String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return `<span class="jb-head-ctx"${t ? ` title="${e}"` : ' hidden'}>${t ? '· ' + e : ''}</span>`;
+}
+function jamboHeadCtxSync(root){
+  const R = root || (typeof document !== 'undefined' ? document : null); if (!R || !R.querySelectorAll) return;
+  const t = jamboHeadCtxOf();
+  R.querySelectorAll('.jb-head-ctx').forEach(n => { const w = t ? '· ' + t : ''; if (n.textContent !== w) n.textContent = w; n.hidden = !t; if (t) n.title = t; else n.removeAttribute('title'); });
 }
 /* shown or hidden in place by a host painted once (the list panel, Settings) */
 function jamboDoorSync(root, on){
@@ -1683,6 +1701,7 @@ function jamboReadStamp(){
     if (m && !m.read && (m.role === 'assistant' || m.role === 'st') && !m.err && typeof window.aiReadFrom === 'function'){ try { m.read = window.aiReadFrom(); } catch (_){} }
   }
   jamboReadStamp._n = H.length;
+  jamboHeadCtxSync();
 }
 function jamboTurnHtml(m, i, H, host){
   const born = jamboBornOf(m);
@@ -1998,7 +2017,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,JB_STATUS,JB_STILL_MS,JB_STEP_KEYS,jamboStatusWords,jamboStatusStill,jamboStatusBegin,jamboStatusSet,jamboStepSay,jamboStopOn,jamboStopGone,jamboStop,jamboStatusPatch,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,JB_STATUS,JB_STILL_MS,JB_STEP_KEYS,jamboStatusWords,jamboStatusStill,jamboStatusBegin,jamboStatusSet,jamboStepSay,jamboStopOn,jamboStopGone,jamboStop,jamboStatusPatch,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml, jamboHeadCtxOf, jamboHeadCtxHtml, jamboHeadCtxSync,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain
