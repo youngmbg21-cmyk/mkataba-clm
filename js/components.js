@@ -687,11 +687,14 @@ function jamboWayWord(k){
      in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
   try { if (window.CA_CHIP_WALL_WORD && window.CA_CHIP_WALL_WORD[k] && typeof window.regPlaceUp === 'function' && window.regPlaceUp()) return _jbT(window.CA_CHIP_WALL_WORD[k]); } catch (_){ /* the short word stands */ }
   const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
+/* THE LINKS LINE'S WORDS START WITH A CAPITAL (owner, 28 Nov 2026: "the first letter of the word should be big letter"):
+   "Fill in · Redline · Share · History", on every row the line draws, carries or shortens */
+const jbWayCap = s => { const t = String(s == null ? '' : s); return t ? t.charAt(0).toLocaleUpperCase() + t.slice(1) : t; };
 function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
   if (!here.doors.length) return '';
-  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" data-jb-shut="${esc(jamboWaysShutSig(here))}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'hbremote' ? jamboRemoteBtnHtml() : d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}"${jamboWayShutAttr(d)}>${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" data-jb-shut="${esc(jamboWaysShutSig(here))}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'hbremote' ? jamboRemoteBtnHtml() : d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}"${jamboWayShutAttr(d)}>${esc(jbWayCap(jamboWayWord(d)))}</button>`).join('')}</nav>`;
 }
 /* the Board's remote's button: the control knobs, pressed while the remote is up (the Board's one listener, hbOnClick) */
 function jamboRemoteBtnHtml(){
@@ -741,7 +744,7 @@ function jamboWaysSync(){
    the same words as presses that press the row's own button (its listeners stay where its builder bound them) */
 function jamboWaysCarry(door, row){
   const btns = [...row.querySelectorAll('button')].filter(b => !b.hidden);
-  const words = btns.map(b => String(b.getAttribute('data-jb-full') || b.textContent || '').trim());
+  const words = btns.map(b => jbWayCap(String(b.getAttribute('data-jb-full') || b.textContent || '').trim()));
   const sig = btns.map((b, i) => words[i] + (b.disabled ? '\u0002' : '')).join('\u0001');
   const cur = door.querySelector('.jb-ways');
   if (cur && cur.classList.contains('is-carried') && cur.getAttribute('data-jb-carry-sig') === sig) return;
@@ -770,7 +773,7 @@ function jamboShortOf(b){
   const full = String(b.getAttribute('data-jb-full') || b.textContent || '').trim();
   for (const key of ['jb_short_' + k, 'ca_w_' + k]){
     const w = _jbT(key);
-    if (w && w !== key && w.length < full.length) return w;
+    if (w && w !== key && w.length < full.length) return jbWayCap(w);
   }
   return '';
 }
@@ -788,7 +791,8 @@ function jamboWaysFitOne(row){
     const dc = getComputedStyle(door), dg = parseFloat(dc.columnGap) || 0;
     let others = 0, n = 0;
     [...door.children].forEach(ch => { if (ch === row || ch.classList.contains('jb-door-sp') || ch.hidden || getComputedStyle(ch).display === 'none') return; others += ch.getBoundingClientRect().width; n++; });
-    avail = door.clientWidth - (parseFloat(dc.paddingLeft) || 0) - (parseFloat(dc.paddingRight) || 0) - others - dg * (n + 1) - (parseFloat(cs.marginRight) || 0);
+    /* centred on the line (owner, 28 Nov 2026): the room is the middle, clear of the press on EITHER side */
+    avail = door.clientWidth - (parseFloat(dc.paddingLeft) || 0) - (parseFloat(dc.paddingRight) || 0) - 2 * (others + dg * n) - (parseFloat(cs.marginRight) || 0);
   } else avail = row.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
   if (!(avail > 0)) return;
   const fontOf = b => { const bf = getComputedStyle(b); return [bf.fontStyle, bf.fontWeight, bf.fontSize, bf.fontFamily].join(' '); };

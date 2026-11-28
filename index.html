@@ -15210,6 +15210,13 @@
      bin — one line, never wrapped, at most three shown so nothing is squeezed out of the panel. */
   .jb-ways.is-in-door{flex:0 1 auto;flex-wrap:nowrap;overflow:hidden;gap:12px;margin-right:4px;align-items:center}
   .jb-ways.is-in-door .jb-way{font-size:13px}
+  /* THE LINKS ALWAYS IN THE MIDDLE (owner, 28 Nov 2026: "put this green links always in the middle"): on the press's line
+     the links stand centred on the panel's width, whatever stands at the line's left; the fit keeps them clear of it */
+  .jb-door:has(> .jb-ways.is-in-door){position:relative}
+  .jb-door > .jb-ways.is-in-door{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;justify-content:center}
+  .jb-ways.is-above-foot{justify-content:center}
+  #ig-dock [data-ig-chips]{justify-content:center}
+  :is(.jb-ways .jb-way, [data-ig-chips] .jb-chip)::first-letter{text-transform:uppercase}
   /* P-18, ONE ROW (owner, 25 Nov 2026; replaces "at most three shown"): what does not fit is measured out, its short form
      first, then left out from the end (jamboWaysFit, js/components.js) — never wrapped, never a second line */
   html.lg-new .jb-ways > .is-fit-off, html.lg-new [data-ig-chips] > .is-fit-off{display:none}

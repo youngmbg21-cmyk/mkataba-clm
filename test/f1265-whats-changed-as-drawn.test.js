@@ -1,5 +1,5 @@
 'use strict';
-/* f1264 — WHAT'S CHANGED, AS DRAWN (owner, 28 Nov 2026: "why would you tell me you built something and not give me what
+/* f1265 — WHAT'S CHANGED, AS DRAWN (owner, 28 Nov 2026: "why would you tell me you built something and not give me what
    you stated?"). The drawing: "8 things since yesterday, 16:40." · Replies · Mentions · Decisions · Dates moved · Stage,
    each counted with Open, Mark all seen, and "Read from: History, notes, approvals and duties · no Jambo call".
    Read off HaTi's own records, no AI; only Mark all seen moves the mark. */
@@ -33,7 +33,7 @@ const SAYS = { 'negotiation|round': 'round', 'approved|': 'approved', 'negotiati
 function sayer(a){ const k = Object.keys(SAYS).find(x => { const [act, det] = x.split('|'); return a.action.toLowerCase() === act && (!det || a.detail.toLowerCase().includes(det)); });
   return { line: `${a.user} ${a.action} ${a.id}`, say: k ? SAYS[k] : '' }; }
 
-describe('f1264 (1) What\'s changed counts off the record, as drawn', () => {
+describe('f1265 (1) What\'s changed counts off the record, as drawn', () => {
   test('the trail since the mark, others\' entries only, in the drawing\'s groups', () => {
     const { ctx } = load(); ctx.window.actSayOf = sayer;
     const since = Date.parse('2026-11-27T16:40:00Z');
@@ -88,7 +88,7 @@ describe('f1264 (1) What\'s changed counts off the record, as drawn', () => {
 });
 function grabRows(){ const i = CA.indexOf('function caCmdRows'); return CA.slice(i, CA.indexOf('\n}\n', i)); }
 
-describe('f1264 (2) wired: acts at once, no Jambo call', () => {
+describe('f1265 (2) wired: acts at once, no Jambo call', () => {
   test('choosing it draws the card in the box\'s conversation, read off the trail, never asking Jambo', () => {
     assert.match(CA, /\{ k: 'changed', act: true \}/);
     assert.match(CA, /if \(k === 'changed'\) return caCmdChanged\(host\);/);
@@ -109,7 +109,7 @@ describe('f1264 (2) wired: acts at once, no Jambo call', () => {
   });
 });
 
-describe('f1264 (3) "Jambo · since yesterday 16:40" beside his name (owner\'s yes, 28 Nov 2026)', () => {
+describe('f1265 (3) "Jambo · since yesterday 16:40" beside his name (owner\'s yes, 28 Nov 2026)', () => {
   const CO = strip(R('js/components.js'));
   const grabC = n => { const i = CO.indexOf(n); assert.ok(i >= 0, n); return CO.slice(i, CO.indexOf('\n}\n', i) + 3); };
   function heads(H){
