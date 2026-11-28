@@ -40958,3 +40958,13 @@ The owner, of MK-469's Dossier foot ("Jambo ›" then "fill in redline share his
 
 ## THE SHELL — RAIL, BAR, PANELS (28 Nov 2026: Prepare my call rebuilt as drawn)
 Asked before building (two parts could not be drawn from the record), the owner said "go with your recommendations on both": the call's day and time only from the reader's own calendar event on that contract, else left out; Trades to offer asked of Jambo only on a press. Before: choosing a contract wrote a question for Jambo's chat. Now the brief is drawn at once: "Call with Juno LLC · Sun, 29 Nov, 14:00. 3 points open; you have given ground twice.", Still open (their pending asks, each judged by the one judge redlinePlan — escalate Hold, push back Room, accept Can give, nothing to measure Read it — and said by pdAskSay, their reason and the judge's reason in the grey line), Given so far (their asks accepted, any round, "90 → 60 days notice · Clause 8 · round 1"), Trades to offer (Suggest trades), Share with a colleague (the Send screen to a colleague, the brief as the note), Print brief, and the source line. NOT AS DRAWN, said to the owner: the badge is the judge's, so a clause the drawing called Room can read Hold or Read it; "§ 3" reads "Clause 3" or the clause's name (HaTi's one reader); "notes with Juno" is not in the source line (notes are not read); trades come as Jambo's answer under the card, not as Give ⇄ Get rows; after Share the panel returns to its overview, the brief one press away under "Jambo ›".
+## THE SHELL — RAIL, BAR, PANELS — THE LINKS GO BACK TO THE LEFT (28 Nov 2026)
+The owner, the same day as "always in the middle": "for image 1, actually push them the left like image 2" — image 2 was
+"Assistant ›  History  How this works". The centring (absolute middle, the fit counting the press twice, rows of their own
+centred) was taken out; the links now come straight after the press, a bin keeps the right end. Capitals stay. f1264 re-pointed.
+
+## HOME — THE BOARD AND THE MAP — THE REMOTE BECOMES A WORD (28 Nov 2026)
+The owner asked to see the remote's 🎛️ as a word on a pill; four words were photographed (Charts · + Add a chart ·
+Dashboard · Show charts), Charts recommended, and the owner said "build Charts and merge it". The button now reads
+"Charts" (Swedish "Diagram", `hb_rm_word`) on a grey pill, light green while the remote is up; its long title stays as
+the hover. Cost said to the owner: the pill is wider than the icon, so on the Board the last link (Calendar) is left off.

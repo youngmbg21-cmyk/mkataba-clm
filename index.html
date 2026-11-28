@@ -15210,12 +15210,12 @@
      bin — one line, never wrapped, at most three shown so nothing is squeezed out of the panel. */
   .jb-ways.is-in-door{flex:0 1 auto;flex-wrap:nowrap;overflow:hidden;gap:12px;margin-right:4px;align-items:center}
   .jb-ways.is-in-door .jb-way{font-size:13px}
-  /* THE LINKS ALWAYS IN THE MIDDLE (owner, 28 Nov 2026: "put this green links always in the middle"): on the press's line
-     the links stand centred on the panel's width, whatever stands at the line's left; the fit keeps them clear of it */
-  .jb-door:has(> .jb-ways.is-in-door){position:relative}
-  .jb-door > .jb-ways.is-in-door{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;justify-content:center}
-  .jb-ways.is-above-foot{justify-content:center}
-  #ig-dock [data-ig-chips]{justify-content:center}
+  /* THE LINKS STAND RIGHT AFTER THE PRESS, AT THE LEFT (owner, 28 Nov 2026: "actually push them the left", the picture:
+     "Assistant ›  History  How this works"; reverses the same day's "always in the middle"): on the press's line the links
+     come next after the press, the line's other marks (a bin) keep its right end; a row of its own starts at the left */
+  .jb-door > *{order:3}
+  .jb-door > :first-child{order:1}
+  .jb-door > .jb-ways.is-in-door{order:2;margin-left:4px}
   :is(.jb-ways .jb-way, [data-ig-chips] .jb-chip)::first-letter{text-transform:uppercase}
   /* P-18, ONE ROW (owner, 25 Nov 2026; replaces "at most three shown"): what does not fit is measured out, its short form
      first, then left out from the end (jamboWaysFit, js/components.js) — never wrapped, never a second line */
@@ -24555,9 +24555,10 @@
   html.lg-new .hbw2-wait{display:flex;align-items:center;gap:var(--s-3)}
   /* THE BOARD'S REMOTE (owner, 27 Nov 2026: 🎛️ first in the Board's links line turns Jambo's panel into the list of the
      Board's charts; hbRemoteHtml, jamboRemoteBtnHtml). The knobs are a mark, never underlined; pressed = the chosen green. */
-  .jb-way.jb-rm{text-decoration:none;font-size:15px;line-height:1;width:26px;height:22px;display:inline-grid;place-items:center;border-radius:var(--radius-sm);flex:none}
-  .jb-way.jb-rm.is-on{background:var(--color-accent-100);box-shadow:inset 0 0 0 1px var(--color-accent-500)}
-  @media (hover:hover){ .jb-way.jb-rm:hover{background:var(--row-hover)} .jb-way.jb-rm.is-on:hover{background:var(--color-accent-100)} }
+  /* the remote is a WORD ON A PILL (owner, 28 Nov 2026: "build Charts"): grey pill, light green while pressed */
+  .jb-way.jb-rm{text-decoration:none;line-height:1;height:var(--ctl-h-sm);padding:0 10px;display:inline-flex;align-items:center;white-space:nowrap;border-radius:999px;background:var(--surface-2);color:var(--color-text);flex:none}
+  .jb-way.jb-rm.is-on{background:var(--color-accent-100);color:var(--accent-ink);box-shadow:inset 0 0 0 1px var(--color-accent-500)}
+  @media (hover:hover){ .jb-way.jb-rm:hover{background:var(--color-neutral-200)} .jb-way.jb-rm.is-on:hover{background:var(--color-accent-100)} }
   .jl-words.hb-rm{display:flex;flex-direction:column;min-width:0}
   /* the remote is the Board's panel too: its head stands down as the welcome's does (the welcome's own rule, hb slot) */
   html.lg-new #ig-dock:has([data-hb-rm-panel]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
