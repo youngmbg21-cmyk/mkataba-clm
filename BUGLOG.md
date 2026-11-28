@@ -23052,3 +23052,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f148 "every plural key comes as a complete _one/_other pair" is red on main: en.ca_cmd_q_changed_one has no _other.
 - f977 (6, 7) "every HARMONY rule waits on the switch" is red on main: a rule in the HARMONY block carries !important.
 - CLAUDE.md is now about 112 KB on main (rule: under about 80 KB); a trim needs the owner's yes.
+
+### Changed on the owner's word (28 Nov 2026, the form keeps the deal's details)
+- The "Fill in the contract" form no longer lists the paper's spaces (placeholders, company-standard fields); they are filled on the paper only. blanks-panel-verify types into those spaces through the form (typeInto → pdFormRows) and may go red on GitHub; re-point it to Fill in on the paper if so.
