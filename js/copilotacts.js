@@ -2086,7 +2086,8 @@ const CA_SINCE_KEY = 'hati.v1.jamboSince';
    (actSayOf reads each); Dates moved and Stage compare today's book with the mark's snapshot, so they are only said once
    a mark is kept (none kept: the trail's last CA_CHANGED_DAYS days, and those two say they start from the first mark). */
 const CA_CHANGED_DAYS = 7;
-const CA_CHANGED_GROUPS = ['replies', 'mentions', 'decisions', 'dates', 'stage'];
+const CA_CHANGED_GROUPS = ['replies', 'mentions', 'notes', 'decisions', 'sent', 'added', 'edited', 'dates', 'stage', 'byyou'];
+const CA_CHANGED_READ = 200;
 function caCmdMarkAll(){ let all = {}; try { all = JSON.parse(localStorage.getItem(CA_SINCE_KEY) || '{}') || {}; } catch (_){ all = {}; } return (all && typeof all === 'object') ? all : {}; }
 function caCmdMark(){
   const m = caCmdMarkAll()[caUsesWho()];
@@ -2100,25 +2101,29 @@ function caCmdMarkSeen(now){
   try { localStorage.setItem(CA_SINCE_KEY, JSON.stringify(all)); } catch (_){ return false; }
   return true;
 }
-/* the trail since a moment, others' entries only, said in one short line each (actSayOf) */
+/* the trail since a moment, said in one short line each (actSayOf). MORE KINDS, AND YOURS TOO (owner, 28 Nov 2026: "go" to
+   "count more kinds", "By you", "the starting point recorded on first use"): others' entries in their kind's group —
+   replies, mentions, other notes, decisions, sent, added, edited — and the reader's own in one group "By you", last */
+const CA_CHG_KIND = { round: ['replies', 'round'], proposed: ['replies', 'proposed'], signed: ['replies', 'signed'], opened: ['replies', 'opened'],
+  approved: ['decisions', 'approved'], declined: ['decisions', 'declined'], decided: ['decisions', 'decided'], asked_changes: ['decisions', 'asked_changes'],
+  asked_yes: ['decisions', 'asked_yes'], sent: ['sent', 'sent'], filed: ['added', 'filed'], edited: ['edited', 'edited'], redlines: ['edited', 'redlines'] };
 function caCmdTrailSince(feed, sinceMs){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const mine = [me && me.name, me && me.email].filter(Boolean).map(x => String(x).trim().toLowerCase());
   const first = me && me.name ? String(me.name).trim().split(/\s+/)[0].toLowerCase() : '';
   const named = d => first && (d.includes('@' + first) || new RegExp('\\b' + first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b').test(d));
-  const KIND = { round: ['replies', 'round'], proposed: ['replies', 'proposed'], signed: ['replies', 'signed'], opened: ['replies', 'opened'],
-    approved: ['decisions', 'approved'], declined: ['decisions', 'declined'], decided: ['decisions', 'decided'], asked_changes: ['decisions', 'asked_changes'] };
   const by = new Map();
   for (const a of (Array.isArray(feed) ? feed : [])){
     const t = Date.parse(a && a.at || ''); if (!isFinite(t) || t <= sinceMs) continue;
-    const who = String(a.user || '').trim(); if (who && mine.includes(who.toLowerCase())) continue;
+    const who = String(a.user || '').trim(), own = !!(who && mine.includes(who.toLowerCase()));
     const S = (typeof window.actSayOf === 'function') ? window.actSayOf(a) : { say: '' };
     const d = String(a.detail || '').toLowerCase();
-    let gk = KIND[S.say] || null;
-    if (S.say === 'note' && named(d)) gk = ['mentions', 'mention'];
-    if (S.say === 'duty' && /^completed\b/.test(d)) gk = ['decisions', 'duty_done'];
+    let gk = CA_CHG_KIND[S.say] || null;
+    if (S.say === 'note') gk = (!own && named(d)) ? ['mentions', 'mention'] : ['notes', 'note'];
+    if (S.say === 'duty') gk = /^completed\b/.test(d) ? ['decisions', 'duty_done'] : /^(added|updated)\b/.test(d) ? ['added', 'duty_added'] : null;
     if (!gk) continue;
-    const ref = String(a.ref || a.id || ''), name = who ? who.split(/\s+/)[0] : 'HaTi', key = gk.join('|') + '|' + name + '|' + ref;
+    if (own) gk = ['byyou', gk[1]];
+    const ref = String(a.ref || a.id || ''), name = own ? _caT('ca_chg_you') : (who && !/^(system|hati)$/i.test(who) ? who.split(/\s+/)[0] : 'HaTi'), key = gk.join('|') + '|' + name + '|' + ref;
     const hit = by.get(key);
     if (hit){ hit.n++; continue; }
     by.set(key, { g: gk[0], k: gk[1], id: a.id, ref, who: name, n: 1, t });
@@ -2151,7 +2156,7 @@ function caCmdWhenSaid(iso){
   return d.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) + ', ' + hm;
 }
 /* the card: the lead, one row a group that has something (count, its newest lines, Open), Mark all seen, the source */
-function caCmdChangedHtml(items, mark, sinceIso){
+function caCmdChangedHtml(items, mark, sinceIso, capped){
   const cnt = L => L.reduce((t, x) => t + (x.n || 1), 0), n = cnt(items);
   const lead = mark ? _caT(n === 1 ? 'ca_chg_lead_1' : 'ca_chg_lead', { n, since: caCmdWhenSaid(sinceIso) })
     : _caT(n === 1 ? 'ca_chg_lead_week_1' : 'ca_chg_lead_week', { n, d: CA_CHANGED_DAYS });
@@ -2162,7 +2167,8 @@ function caCmdChangedHtml(items, mark, sinceIso){
     return `<div class="ca-cmd-row"><span class="ca-cmd-g"><b>${_caE(_caT('ca_chg_g_' + g))} <span class="ca-cmd-n">${cnt(G)}</span></b><small>${_caE(sub)}</small></span>`
       + `<button type="button" class="ca-cmd-go" data-ca-cmd-go="open" data-cid="${_caE(ids[0])}">${_caE(_caT('ca_cmd_go_open'))}</button></div>`;
   }).join('');
-  const start = mark ? '' : `<p class="ca-cmd-more">${_caE(_caT('ca_chg_first_mark'))}</p>`;
+  const start = (mark ? '' : `<p class="ca-cmd-more">${_caE(_caT('ca_chg_first_mark'))}</p>`)
+    + (capped ? `<p class="ca-cmd-more">${_caE(_caT('ca_chg_capped', { n: CA_CHANGED_READ }))}</p>` : '');
   return `<div class="ca-cmd-turn is-changed"><p><b>${_caE(n ? lead : (mark ? _caT('ca_chg_none', { since: caCmdWhenSaid(sinceIso) }) : _caT('ca_chg_none_week', { d: CA_CHANGED_DAYS })))}</b></p>`
     + (rows ? `<div class="ca-cmd-rows">${rows}</div>` : '') + start
     + `<div class="ca-cmd-bar"><button type="button" class="ca-cmd-seen" data-ca-cmd-seen>${_caE(_caT('ca_chg_mark_seen'))}</button></div>`
@@ -2173,12 +2179,19 @@ async function caCmdChanged(host){
   const sinceIso = mark ? mark.at : new Date(Date.now() - CA_CHANGED_DAYS * 864e5).toISOString();
   let feed = null;
   if (typeof API_MODE === 'function' && API_MODE() && typeof api === 'function'){
-    try { const r = await api('activity?limit=200'); feed = (r && Array.isArray(r.events) ? r.events : []).map(e => (typeof window.activityRow === 'function')
+    try { const r = await api('activity?limit=' + CA_CHANGED_READ); feed = (r && Array.isArray(r.events) ? r.events : []).map(e => (typeof window.activityRow === 'function')
       ? window.activityRow(e.id, e.action, e.detail, e.at, e.contractNo, e.user, e.name) : Object.assign({ ref: e.contractNo || e.id }, e)); } catch (_){ feed = null; }
   }
-  if (!feed && typeof window.buildActivityFeed === 'function') try { feed = window.buildActivityFeed(200); } catch (_){ feed = []; }
+  if (!feed && typeof window.buildActivityFeed === 'function') try { feed = window.buildActivityFeed(CA_CHANGED_READ); } catch (_){ feed = []; }
   const items = caCmdTrailSince(feed || [], Date.parse(sinceIso)).concat(caCmdBookMoves(mark));
-  return caCmdSay(host, _caT('ca_chg_asked'), caCmdChangedHtml(items, mark, sinceIso),
+  /* A CAP IS A FACT: the latest CA_CHANGED_READ entries are read; if all of them are newer than the start, older ones
+     may be left out, and the card says so */
+  const F = feed || [], oldest = F.length ? Math.min(...F.map(a => Date.parse(a && a.at || '') || Infinity)) : Infinity;
+  const capped = F.length >= CA_CHANGED_READ && oldest > Date.parse(sinceIso);
+  /* THE STARTING POINT ON FIRST USE: with no mark kept, the book as it stands now is kept, so Dates moved and Stage
+     count from here next time (Mark all seen moves it on later) */
+  if (!mark) caCmdMarkSeen();
+  return caCmdSay(host, _caT('ca_chg_asked'), caCmdChangedHtml(items, mark, sinceIso, capped),
     mark ? _caT('ca_chg_ctx', { since: caCmdWhenSaid(sinceIso).replace(/,\s*/, ' ') }) : _caT('ca_chg_ctx_week', { d: CA_CHANGED_DAYS }));
 }
 function caCmdWord(k){ return '/' + String(_caT('ca_cmd_w_' + k)).trim().replace(/\s+/g, '-'); }
@@ -4178,7 +4191,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
