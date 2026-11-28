@@ -2370,17 +2370,10 @@ function caCmdAmendRows(c0){
   return same.concat(all.filter(c => !same.includes(c)));   /* the whole book; the open one's party first */
 }
 async function caCmdAct(k, host, said, chosen){
-  const c0 = chosen || caOpenContract(), ref = c => caRef(c), word = _caT('ca_cmd_t_' + k);
+  const c0 = chosen || caOpenContract(), ref = c => caRef(c);
   if (k === 'changed') return caCmdChanged(host);
   if (k === 'prepare') return caCmdPrepare(host, chosen || null);
-  if (k === 'chase'){
-    const R = caCmdChaseRows(null);
-    const rows = R.slice(0, CA_CMD_ROWS_MAX).map(({ c, o, d }) => ({ title: String(c.counterparty || ref(c)), sub: `${String(o.desc || o.title || '')} · ${ref(c)}`,
-      badge: d < 0 ? _caT('ca_cmd_late', { n: -d }) : _caT('ca_cmd_due', { n: d }), tone: d < 0 ? 'amber' : 'grey',
-      go: 'chase', label: _caT('ca_cmd_go_chase'), data: { cid: c.id, oid: o.id } }));
-    return caCmdSay(host, word, caCmdTurnHtml(R.length ? _caT('ca_cmd_chase_lead', { n: R.length }) : _caT('ca_cmd_chase_none', { n: CA_CHASE_DAYS }), rows,
-      R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
-  }
+  if (k === 'chase') return caCmdChase(host);
   if (k === 'approve') return caCmdApprove(host);
   if (k === 'amend'){
     const R = caCmdAmendRows(c0);
@@ -2661,6 +2654,99 @@ async function caCmdRequest(host, said, c){
   else if (typeof window.renderAIFeed === 'function') window.renderAIFeed();
   return true;
 }
+/* ---- CHASE EVERYONE, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"; bulk allowed) ----
+   Everyone who owes the reader something, four kinds, each read off HaTi's own record: the other side's answer to a
+   round we handed them (negWhoseMove 'them', since the hand-over), their signature (out with them for signing), a
+   colleague's approval the reader is waiting on (a rule step someone else decides, since it was asked), a duty they
+   owe late or due soon (caCmdChaseRows). A reminder for each, HaTi's own words from a short pattern; a duty's words go
+   with it (POST …/chase note) and are edited in place; the others travel as HaTi's own reminder (the link sent again,
+   reshareToLastRecipient; the approver reminded, POST …/rule-remind), said so on the row. Late ones start ticked.
+   "Send N reminders" sends the ticked, each by its own door and recorded on its contract, and says per row what went. */
+const CA_CHASE_LATE = 7;
+function caCmdChaseAll(){
+  const out = [];
+  const may = !(typeof canEdit === 'function' && !canEdit());
+  if (!may) return out;
+  const days = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null; };
+  const first = n => String(n || '').trim().split(/\s+/)[0] || '';
+  const contact = c => { const p = (Array.isArray(c.participants) ? c.participants : []).find(x => x && x.side === 'counterparty' && x.name); return String((p && p.name) || c.counterpartyName || '').trim(); };
+  for (const c of _caCmdBook()){
+    if (!c || c.status === 'Signed' || c.status === 'Declined' || c.status === 'Executed') continue;
+    let move = null; try { move = (typeof window.negWhoseMove === 'function') ? window.negWhoseMove(c) : null; } catch (_){ move = null; }
+    if (move && move.k === 'them'){
+      const sign = move.why === 'handover';
+      const d = days(c.negotiation && c.negotiation.turnAt);
+      out.push({ c, kind: sign ? 'sign' : 'round', who: String(c.counterparty || '').trim(), d, late: d != null && d >= CA_CHASE_LATE,
+        what: sign ? _caT('ca_ch_w_sign') : _caT('ca_ch_w_round'), words: '', fixed: true });
+    }
+    let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+    const next = ap && ap.required && !ap.ok ? ap.next : null;
+    let mine = false; try { mine = !!(typeof window.approvalDecidableNow === 'function' && window.approvalDecidableNow(c)); } catch (_){ mine = false; }
+    if (next && !next.sa && !mine){
+      let ask = null; try { ask = (typeof window.askOpenFor === 'function') ? window.askOpenFor(c, 'rule', next.ruleId) : null; } catch (_){ ask = null; }
+      const d = days(ask && ask.at);
+      const who = (typeof window.approverLabelOf === 'function') ? String(window.approverLabelOf(next.approver) || '') : '';
+      out.push({ c, kind: 'approval', who, d, late: d != null && d >= CA_CHASE_LATE, what: _caT('ca_ch_w_approval'),
+        words: '', fixed: true });
+    }
+  }
+  for (const { c, o, d } of caCmdChaseRows(null)){
+    const where = String(o.clauseLabel || o.clause || '').trim(), desc = String(o.desc || o.title || '').trim();
+    out.push({ c, o, kind: 'duty', who: String(c.counterparty || '').trim(), d: d < 0 ? -d : d, overdue: d < 0, late: d < 0,
+      what: [desc, where].filter(Boolean).join(', '),
+      words: _caT(d < 0 ? 'ca_ch_say_duty_late' : 'ca_ch_say_duty', { name: first(contact(c)) || _caT('ca_ch_there'), what: desc ? desc.charAt(0).toLowerCase() + desc.slice(1) : '',
+        where: where ? ' (' + where + ')' : '', due: caCmdDaySaid(String(o.due || '').slice(0, 10)) }) });
+  }
+  return out.sort((a, b) => (b.late - a.late) || ((b.d || 0) - (a.d || 0)));
+}
+function caCmdChaseWhen(r){
+  if (r.d == null) return '';
+  if (r.kind === 'duty') return r.overdue ? _caT('ca_ch_late', { n: r.d }) : _caT('ca_ch_due', { n: r.d });
+  return _caT(r.d === 1 ? 'ca_ch_waits_1' : 'ca_ch_waits', { n: r.d });
+}
+function caCmdChaseHtml(R){
+  const max = CA_CMD_ROWS_MAX * 2, shown = R.slice(0, max), late = R.filter(r => r.late).length;
+  const lead = R.length ? `<p><b>${_caE(_caT(R.length === 1 ? (late ? 'ca_ch_lead_1_late' : 'ca_ch_lead_1') : late === 1 ? 'ca_ch_lead_l1' : late ? 'ca_ch_lead' : 'ca_ch_lead_l0', { n: R.length, l: late }))}</b> ${_caE(_caT('ca_ch_lead_tail'))}</p>`
+    : `<p><b>${_caE(_caT('ca_ch_none'))}</b></p>`;
+  const row = (r, i) => `<label class="ca-cmd-row is-tick is-chase"><input type="checkbox" class="ca-cmd-tick" data-ca-ch="${i}"${r.late ? ' checked' : ''}>`
+    + `<span class="ca-cmd-g"><b>${_caE([r.who, caRef(r.c)].filter(Boolean).join(' · '))}</b><small>${_caE(r.what)}</small>`
+    + (r.fixed ? `<small class="ca-ch-how">${_caE(_caT('ca_ch_fixed_' + r.kind, { who: r.who || _caT('ca_cmd_them') }))}</small>`
+      : `<textarea class="ca-ch-say" rows="4" data-ca-ch-say="${i}" aria-label="${_caE(_caT('ca_ch_words'))}">${_caE(r.words)}</textarea>`)
+    + `</span><span class="ca-cmd-bd is-${r.late ? 'amber' : 'grey'}" data-ca-ch-bd="${i}">${_caE(caCmdChaseWhen(r))}</span></label>`;
+  return `<div class="ca-cmd-turn is-chase">${lead}`
+    + (shown.length ? `<div class="ca-cmd-rows">${shown.map(row).join('')}</div>` : '')
+    + (R.length > max ? `<p class="ca-cmd-more">${_caE(_caT('ca_cmd_more', { n: R.length - max }))}</p>` : '')
+    + (shown.length ? `<div class="ca-cmd-bar" data-ca-ch-bar><button type="button" class="ca-cmd-seen is-ink" data-ca-ch-go${late ? '' : ' disabled'}>${_caE(_caT(late === 1 ? 'ca_ch_go_1' : 'ca_ch_go', { n: late }))}</button></div>` : '')
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_ch_from'))}</p></div>`;
+}
+async function caCmdChase(host){
+  const R = caCmdChaseAll();
+  const said = caCmdSay(host, _caT('ca_cmd_t_chase'), caCmdChaseHtml(R), _caT('ca_ch_ctx'));
+  const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  const m = H.length ? H[H.length - 1] : null; if (m) m._chase = R;
+  return said;
+}
+/* one reminder, by its own door; what came back, in words */
+async function caCmdChaseOne(r, words){
+  const c = r.c;
+  try {
+    if (r.kind === 'duty'){
+      if (typeof api !== 'function') return { ok: false, why: _caT('ca_ch_no_server') };
+      const out = await api('contracts/' + encodeURIComponent(c.id) + '/chase', 'POST', { obligationId: r.o.id, note: String(words || '').trim() });
+      if (out && out.ok === false && out.reason === 'no-address') return { ok: false, why: _caT('ca_ch_no_address') };
+      return (out && (out.emailSent || out.outbox)) ? { ok: true } : { ok: false, why: _caT('ca_ch_not_sent') };
+    }
+    if (r.kind === 'approval'){
+      if (typeof api !== 'function') return { ok: false, why: _caT('ca_ch_no_server') };
+      await api('contracts/' + encodeURIComponent(c.id) + '/rule-remind', 'POST', {});
+      return { ok: true };
+    }
+    if (typeof window.reshareToLastRecipient !== 'function') return { ok: false, why: _caT('ca_ch_not_sent') };
+    if (c._light && typeof window.ensureFull === 'function') await window.ensureFull(c);
+    const out = await window.reshareToLastRecipient(c);
+    return (out && (out.delivered || out.quiet)) ? { ok: true } : { ok: false, why: _caT('ca_ch_not_sent') };
+  } catch (e){ return { ok: false, why: String((e && e.message) || _caT('ca_ch_not_sent')) }; }
+}
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
@@ -2688,7 +2774,14 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   document._caCmdWired = true;
   /* A REDRAW KEEPS YOUR WORDS: the email edited in place is kept on its turn, so a repaint draws it as typed */
   document.addEventListener('input', e => {
-    const t = e.target; if (!t || !t.classList || !(t.classList.contains('ca-req-subj') || t.classList.contains('ca-req-body'))) return;
+    const t = e.target;
+    if (t && t.classList && t.classList.contains('ca-ch-say')){
+      const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+      const m = H.slice().reverse().find(x => x && Array.isArray(x._chase)); const r = m && m._chase[Number(t.getAttribute('data-ca-ch-say'))];
+      if (r){ r.words = t.value; m.text = caCmdChaseHtml(m._chase); }
+      return;
+    }
+    if (!t || !t.classList || !(t.classList.contains('ca-req-subj') || t.classList.contains('ca-req-body'))) return;
     const turn = t.closest('.ca-cmd-turn'), cid = turn && turn.getAttribute('data-cid');
     const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
     const m = H.slice().reverse().find(x => x && x._req && String(x.text || '').includes(`data-cid="${cid}"`));
@@ -2699,11 +2792,35 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   /* the button's number follows the ticks; none ticked, nothing to approve */
   document.addEventListener('change', e => {
     const t = e.target; if (!t || !t.classList || !t.classList.contains('ca-cmd-tick')) return;
-    const turn = t.closest('.ca-cmd-turn'), go = turn && turn.querySelector('[data-ca-ap-go]'); if (!go) return;
+    const turn = t.closest('.ca-cmd-turn');
+    const ch = turn && turn.querySelector('[data-ca-ch-go]');
+    if (ch){ const n = turn.querySelectorAll('[data-ca-ch]:checked:not(:disabled)').length; ch.textContent = _caT(n === 1 ? 'ca_ch_go_1' : 'ca_ch_go', { n }); ch.disabled = !n; return; }
+    const go = turn && turn.querySelector('[data-ca-ap-go]'); if (!go) return;
     const n = turn.querySelectorAll('.ca-cmd-tick:checked').length;
     go.textContent = _caT('ca_ap_go', { n }); go.disabled = !n;
   });
   document.addEventListener('click', async e => {
+    /* Send N reminders: the ticked, each by its own door; each row then says what went */
+    const chGo = e.target && e.target.closest ? e.target.closest('[data-ca-ch-go]') : null;
+    if (chGo){ e.preventDefault(); if (chGo.disabled) return;
+      const turn = chGo.closest('.ca-cmd-turn'), bar = chGo.closest('[data-ca-ch-bar]');
+      const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+      const m = H.slice().reverse().find(x => x && Array.isArray(x._chase)); const R = (m && m._chase) || [];
+      const picks = turn ? [...turn.querySelectorAll('[data-ca-ch]:checked:not(:disabled)')].map(n => Number(n.getAttribute('data-ca-ch'))) : [];
+      if (!picks.length) return;
+      chGo.disabled = true; chGo.innerHTML = typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_ch_sending', { n: picks.length })) : _caE(_caT('ca_ch_sending', { n: picks.length }));
+      let sent = 0, failed = 0;
+      for (const i of picks){
+        const r = R[i]; if (!r) continue;
+        const box = turn.querySelector(`[data-ca-ch-say="${i}"]`);
+        const res = await caCmdChaseOne(r, box ? box.value : r.words);
+        const bd = turn.querySelector(`[data-ca-ch-bd="${i}"]`), tick = turn.querySelector(`[data-ca-ch="${i}"]`);
+        if (bd){ bd.textContent = res.ok ? _caT('ca_ch_sent') : _caT('ca_ch_failed'); bd.className = 'ca-cmd-bd is-' + (res.ok ? 'green' : 'red'); if (!res.ok) bd.title = res.why || ''; }
+        if (tick) tick.disabled = true; if (box) box.readOnly = true;
+        res.ok ? sent++ : failed++;
+      }
+      bar.innerHTML = `<span class="ca-cmd-said">${_caE(_caT(failed ? 'ca_ch_done_some' : 'ca_ch_done', { n: sent, f: failed }))}</span>`;
+      return; }
     /* Approve these N: the ticked ones, each its own yes; then the bar says what was done, with Undo */
     const apGo = e.target && e.target.closest ? e.target.closest('[data-ca-ap-go]') : null;
     if (apGo){ e.preventDefault(); if (apGo.disabled) return;
@@ -2792,7 +2909,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       const done = () => { window.removeEventListener('afterprint', done); if (typeof window.clearPrintRoot === 'function') window.clearPrintRoot(); else root.innerHTML = ''; };
       window.addEventListener('afterprint', done); window.print(); return;
     }
-    if (go === 'chase' && typeof window.obligationChase === 'function'){ window.obligationChase(cid, b.getAttribute('data-oid')); return; }
     if (go === 'open' && c && typeof window.roomHomeLand === 'function'){ window.roomHomeLand(c.id, { open: true }); return; }
     if (go === 'amend' && c && typeof window.pd2AmAskOpen === 'function'){ window.pd2AmAskOpen(c.id, b.getAttribute('data-say') || ''); return; }
   });
@@ -4191,7 +4307,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });

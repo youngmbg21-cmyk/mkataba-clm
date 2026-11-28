@@ -1302,6 +1302,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1266 (1) You ask of them: our pending asks only (never withdrawn), in our voice, Sent · waiting on them or Not sent yet off turnAt and the held lists; in the lead and the shared note.
 - f1267 Approve the ones that meet our standards: meets vs needs-your-look with reasons, the card, each its own yes by the one writer of its kind with no note asked, Undo for rule steps and the rest said, the button follows the ticks, both books. f1262 (3) re-pointed.
 - f1268 Email request as drawn: the route (the person's words and what is owed go in, the governance rule, no invented deadline, walled, nothing kept; Make it shorter), the owed reading, the card's parts, words kept on a redraw, Create request to the Send screen, both books.
+- f1270 Chase everyone as drawn: the four kinds off the record (never signed, yours or ours), late ticked, a duty's words typed and sent with it, the others HaTi's own said so, each by its own door, a refusal said, both books. f1262 (3) re-pointed.
 - `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
 - f658 A1b (28 Nov 2026): no chart list on an empty box. f1249 (remote on the Overview only).
 
