@@ -1,5 +1,5 @@
 'use strict';
-/* f1269 — CHASE EVERYONE, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"; bulk allowed). Everyone who
+/* f1270 — CHASE EVERYONE, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"; bulk allowed). Everyone who
    owes the reader something, four kinds off HaTi's own record — their answer to a round (negWhoseMove 'them'), their
    signature (out for signing), a colleague's approval waited on (a rule step someone else decides), a duty they owe —
    each with its reminder: a duty's words drafted by HaTi and edited in place, travelling with it; the others HaTi's own
@@ -41,7 +41,7 @@ const WIN = () => ({ negWhoseMove: c => c.move || { k: 'clear' }, approvalState:
   askOpenFor: c => c.askedAt ? { at: c.askedAt } : null, approverLabelOf: a => a, obligationIsTheirs: o => o.party === 'theirs', obligationBlocked: () => false,
   daysUntil: d => Math.round((Date.parse(d + 'T00:00:00Z') - Date.parse(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')) / 864e5), dateOnly: d => d });
 
-describe('f1269 (1) who owes you something, off the record', () => {
+describe('f1270 (1) who owes you something, off the record', () => {
   test('their round, their signature, a colleague\'s approval, their duty — never a signed one, never yours, never ours', () => {
     const ctx = load(WIN(), BOOK);
     const all = Array.from(ctx.caCmdChaseAll());
@@ -64,7 +64,7 @@ describe('f1269 (1) who owes you something, off the record', () => {
   });
 });
 
-describe('f1269 (2) each by its own door', () => {
+describe('f1270 (2) each by its own door', () => {
   test('a duty with its words; an approval reminded; a round or signature sent again; a refusal said', async () => {
     const calls = [];
     const W = Object.assign(WIN(), { reshareToLastRecipient: async c => { calls.push('reshare:' + c.id); return { delivered: true }; } });
