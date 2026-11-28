@@ -1337,3 +1337,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE SHELL — RAIL, BAR, PANELS (fading hairline, Charts green, 28 Nov 2026)
 - f1276 (1) foot rows draw the fading hairline; (2) give-way rows width 0; (3) Charts pale green; (4) remote Board-only.
+
+## WHERE THE DEAL STANDS (With them; command bar room, 28 Nov 2026)
+- f1277 (1) Still open badge With them / With you, both books; (2) the command bar's spacing.

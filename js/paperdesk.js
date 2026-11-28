@@ -10476,6 +10476,12 @@ function pd2DlSides(c){
   const us = (typeof contractParty === 'function' ? contractParty(c) : '') || c.party || (typeof FIRST_PARTY === 'string' ? FIRST_PARTY : '') || _pdT('pd2_dl_us');
   return { us: pd2DlShort(us), them: pd2DlShort(c.counterparty || _pdT('pd2_dl_them')) };
 }
+/* the point waits on the other side when its holder is not our own party (the counterparty or any outside party) */
+function pd2DlHeldByThem(who, c){
+  const n = x => String(x || '').trim().toLowerCase();
+  const ours = n(c && ((typeof contractParty === 'function' && contractParty(c)) || c.party || (typeof FIRST_PARTY === 'string' ? FIRST_PARTY : '')));
+  return !ours || n(who) !== ours;
+}
 function pd2DlRead(c){ return (typeof dutyReading === 'function') ? dutyReading(c) : { read: false, rows: [], total: 0, cut: 0, counts: {}, executed: false }; }
 function pd2DlMay(c){ return (typeof window.mayActOn !== 'function') || window.mayActOn(c); }
 function pd2DlDay(iso){ if (!iso) return ''; return (typeof regDotDate === 'function') ? regDotDate(String(iso).slice(0, 10)) : String(iso).slice(0, 10); }
@@ -10716,11 +10722,13 @@ function pd2DealDutiesHtml(c, R, S){
     <table class="pd2-dl-t"><thead><tr><th>${E(_pdT('pd2_dl_h_duty'))}</th><th>${E(_pdT('pd2_dl_h_whose'))}</th><th>${E(_pdT('pd2_dl_h_status'))}</th><th class="pd2-dl-ans">${E(_pdT('pd2_dl_h_answer'))}</th></tr></thead><tbody>${rows}</tbody></table>
     ${R.cut ? `<p class="pd2-q pd2-dl-cut">${E(_pdTn('pd2_dl_cut', R.cut, { n: R.cut }))}</p>` : ''}`;
 }
-function pd2DealOpenHtml(D, settled){
+function pd2DealOpenHtml(D, settled, c){
   const E = _pdE, L = settled ? D.settledPoints : D.points;
   if (!L.length) return `<div class="pd2-dl-none"><p>${E(_pdT(settled ? 'ds_settled_none' : 'ds_none_open'))}</p></div>`;
   const rows = L.map(p => { const st = settled ? (p.settled ? { tone: 'green', w: _pdT('pd2_dl_st_taken') } : { tone: 'ruby', w: _pdT('ds_not_taken') })
-      : { tone: 'amber', w: p.with ? _pdT('pd2_dl_st_with', { who: pd2DlShort(p.with) }) : _pdT('pd2_dl_st_open') };
+      /* WHO HOLDS IT, IN TWO WORDS (owner, 28 Nov 2026: "the name is cut off so just add 'With them'"): never the
+         party's long name in the badge — "With them" when it waits on the other side, "With you" when on ours */
+      : { tone: 'amber', w: !p.with ? _pdT('pd2_dl_st_open') : _pdT(pd2DlHeldByThem(p.with, c) ? 'pd2_dl_st_with_them' : 'pd2_dl_st_with_you') };
     return `<tr><td class="pd2-dl-duty"><b>${E(p.clause || _pdT('ds_a_clause'))}</b>${p.what ? `<span class="pd2-dl-q">${E(p.what)}</span>` : ''}</td><td>${E(pd2DlShort(p.by || ''))}</td><td><span class="pd2-badge is-${st.tone}"><i aria-hidden="true"></i>${E(st.w)}</span></td><td class="pd2-dl-ans">${p.at ? E(pd2DlDay(p.at)) : ''}</td></tr>`; }).join('');
   const more = (settled ? D.settled : D.open) - L.length;
   return `<table class="pd2-dl-t"><thead><tr><th>${E(_pdT('ds_col_clause'))}</th><th>${E(_pdT('ds_col_by'))}</th><th>${E(_pdT('pd2_dl_h_status'))}</th><th class="pd2-dl-ans"></th></tr></thead><tbody>${rows}</tbody></table>
@@ -10736,7 +10744,7 @@ function pd2DealPageHtml(c){
   const road = `<ol class="pd2-dl-road">${D.steps.map(s => `<li class="${s.done ? 'is-done' : ''}${s.now ? ' is-now' : ''}"${s.now ? ' aria-current="step"' : ''}><i aria-hidden="true"></i><b>${E(_pdT('ds_step_' + s.key))}</b><small>${E(sub(s))}</small></li>`).join('')}</ol>`;
   if (!['open', 'settled', 'duties'].includes(_pdDl.tab)) _pdDl.tab = 'duties';
   const tab = (k, w, n) => `<button type="button" role="tab" class="pd2-dl-tab${_pdDl.tab === k ? ' is-on' : ''}" aria-selected="${_pdDl.tab === k}" data-pd2-dl-tab="${k}">${E(w)}<i>${n}</i></button>`;
-  const body = _pdDl.tab === 'duties' ? pd2DealDutiesHtml(c, R, S) : pd2DealOpenHtml(D, _pdDl.tab === 'settled');
+  const body = _pdDl.tab === 'duties' ? pd2DealDutiesHtml(c, R, S) : pd2DealOpenHtml(D, _pdDl.tab === 'settled', c);
   /* the page's name is the middle page's own head (pdMidPage); the sheet opens on who reads it */
   return `<div class="pd2-dl-head"><span class="pd2-dl-tag">${E(_pdT('ds_seen_by_all'))}</span></div>
     ${road}

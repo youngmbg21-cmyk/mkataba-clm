@@ -41040,3 +41040,11 @@ panel if you are not in the board page." The foot rows' top borders now draw one
 that gave way by a clear colour now give way by width 0 (a border-image ignores colour). Charts: a pale green pill. A
 walk from the Board to nine pages and into the conversation found Charts only on the Board overview. Also confirmed:
 every Jambo panel's waiting turn is the grey words and dots (jamboThinkingHtml), none the old grey bubble. f1276.
+
+## WHERE THE DEAL STANDS — "WITH THEM", AND ROOM ROUND THE COMMAND BAR (28 Nov 2026)
+Owner, three pictures: a chart coming back after its ×; Still open's badges "With AIT Worldwid…" cut off ("just add
+'With them'"); Prepare my call's pills touching its lines. Badge: "With them" when the point waits on the other side,
+"With you" when on ours (`pd2DlHeldByThem`, keys `pd2_dl_st_with_them`/`_you`, both books). Every command card's bar
+(`.ca-cmd-bar`) now has 14px above its line and 12px under it; the source line 12px under the pills. The chart ×:
+six ways of adding a chart (the Charts remote's 14 rows, "show me", a typed show-me, with "How this is drawn" or the
+⋯ menu open) all removed it for good — not reproduced; asked the owner how that chart was added. f1277.
