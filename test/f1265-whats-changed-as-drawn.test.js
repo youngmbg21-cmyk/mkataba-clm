@@ -24,12 +24,13 @@ function load(){
   const at = n => { const i = CA.indexOf(n); assert.ok(i >= 0, n); return i; };
   const grab = n => CA.slice(at(n), CA.indexOf('\n}\n', at(n)) + 3);
   const line = n => CA.slice(at(n), CA.indexOf('\n', at(n)) + 1);
-  const src = ['const CA_SINCE_KEY', 'const CA_CHANGED_DAYS', 'const CA_CHANGED_GROUPS', 'const _caCmdBook', 'function caUsesWho', 'function caRef', 'function caCmdMarkAll', 'function caCmdEndOf'].map(line).join('')
+  const src = ['const CA_SINCE_KEY', 'const CA_CHANGED_DAYS', 'const CA_CHANGED_GROUPS', 'const CA_CHANGED_READ', 'const _caCmdBook', 'function caUsesWho', 'function caRef', 'function caCmdMarkAll', 'function caCmdEndOf'].map(line).join('')
+    + CA.slice(CA.indexOf('const CA_CHG_KIND'), CA.indexOf('};', CA.indexOf('const CA_CHG_KIND')) + 3)
     + ['function caCmdMark(', 'function caCmdMarkSeen', 'function caCmdTrailSince', 'function caCmdBookMoves', 'function caCmdDaySaid', 'function caCmdWhenSaid', 'function caCmdChangedHtml'].map(grab).join('\n');
   vm.runInContext(src + '\nObject.assign(this, { caCmdMark, caCmdMarkSeen, caCmdTrailSince, caCmdBookMoves, caCmdChangedHtml });', ctx);
   return { ctx, store };
 }
-const SAYS = { 'negotiation|round': 'round', 'approved|': 'approved', 'negotiation|note': 'note', 'obligation|': 'duty', 'edited|': 'edited' };
+const SAYS = { 'negotiation|round': 'round', 'approved|': 'approved', 'negotiation|note': 'note', 'obligation|': 'duty', 'edited|': 'edited', 'created|': 'filed' };
 function sayer(a){ const k = Object.keys(SAYS).find(x => { const [act, det] = x.split('|'); return a.action.toLowerCase() === act && (!det || a.detail.toLowerCase().includes(det)); });
   return { line: `${a.user} ${a.action} ${a.id}`, say: k ? SAYS[k] : '' }; }
 
@@ -47,9 +48,9 @@ describe('f1265 (1) What\'s changed counts off the record, as drawn', () => {
       { id: 'MK-402', action: 'Approved', detail: '', user: 'Young M', at: '2026-11-28T07:00:00Z' },
       { id: 'MK-403', action: 'Approved', detail: '', user: 'Maria', at: '2026-11-27T10:00:00Z' }];
     const T = Array.from(ctx.caCmdTrailSince(feed, since));
-    assert.deepEqual(T.map(x => x.g + ':' + x.line), ['replies:Juno answered on MK-398', 'mentions:Erik mentioned you on MK-399',
-      'decisions:Maria marked a duty done on MK-401', 'decisions:Maria approved MK-401'],
-      'a note naming me is a mention, one that does not is not; my own and before the mark are not counted');
+    assert.deepEqual(T.map(x => x.g + ':' + x.line), ['replies:Juno answered on MK-398', 'notes:Erik wrote a note on MK-399', 'mentions:Erik mentioned you on MK-399',
+      'added:Maria added a duty on MK-401', 'decisions:Maria marked a duty done on MK-401', 'decisions:Maria approved MK-401', 'byyou:You approved MK-402'],
+      'a note naming me is a mention, one that does not is a note; my own in By you; before the mark not counted');
     const two = Array.from(ctx.caCmdTrailSince(feed.concat([{ id: 'MK-401', action: 'Obligation', detail: 'Completed: Pay', user: 'Maria', at: '2026-11-28T07:40:00Z' }]), since));
     assert.ok(two.some(x => x.line === 'Maria marked 2 duties done on MK-401'), 'the same act by one person on one agreement is one line, counted');
   });
@@ -83,7 +84,8 @@ describe('f1265 (1) What\'s changed counts off the record, as drawn', () => {
     assert.match(h, /data-ca-cmd-seen>Mark all seen</);
     assert.match(h, /Read from: History, notes, approvals and duties · no Jambo call/);
     const w = ctx.caCmdChangedHtml([], null, '2026-01-01T00:00:00Z');
-    assert.match(w, /Nothing has changed in the last 7 days\./); assert.match(w, /counted from your first Mark all seen/);
+    assert.match(w, /Nothing has changed in the last 7 days\./); assert.match(w, /counted from now on/);
+    assert.match(ctx.caCmdChangedHtml([], null, '2026-01-01T00:00:00Z', true), /Only the latest 200 events were read/, 'a cap is said');
   });
 });
 function grabRows(){ const i = CA.indexOf('function caCmdRows'); return CA.slice(i, CA.indexOf('\n}\n', i)); }
@@ -93,7 +95,9 @@ describe('f1265 (2) wired: acts at once, no Jambo call', () => {
     assert.match(CA, /\{ k: 'changed', act: true \}/);
     assert.match(CA, /if \(k === 'changed'\) return caCmdChanged\(host\);/);
     const f = CA.slice(CA.indexOf('async function caCmdChanged'), CA.indexOf('\n}\n', CA.indexOf('async function caCmdChanged')));
-    assert.match(f, /api\('activity\?limit=200'\)/);
+    assert.match(f, /api\('activity\?limit=' \+ CA_CHANGED_READ\)/);
+    assert.match(f, /if \(!mark\) caCmdMarkSeen\(\);/, 'the starting point is kept on first use');
+    assert.match(CA, /const CA_CHANGED_GROUPS = \['replies', 'mentions', 'notes', 'decisions', 'sent', 'added', 'edited', 'dates', 'stage', 'byyou'\];/);
     assert.match(f, /caCmdSay\(host, _caT\('ca_chg_asked'\)/, 'the question in words, as drawn');
     assert.doesNotMatch(f, /ai\/|caAskAnywhere|aiAskWords|intelAsk/);
     assert.match(CA, /closest\('\[data-ca-cmd-seen\]'\)/);

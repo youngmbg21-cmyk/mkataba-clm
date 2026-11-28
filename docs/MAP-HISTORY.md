@@ -40992,3 +40992,6 @@ The owner, on the merged brief: "for prepare my call needs to also show what you
 ## THE SHELL — RAIL, BAR, PANELS — NO MONEY IN THE JUMP WINDOW (28 Nov 2026)
 After the seven panels lost their money, the owner: "remove the money from the jump window too". The "/" window's
 approvals line (lpQuoteOf) now names the agreement and the party only; f1097 re-pointed (it pinned "· KES 78M").
+
+## THE SHELL — RAIL, BAR, PANELS (28 Nov 2026: What's changed counts more, and yours)
+The owner, with two empty cards: "why what has changed seems to show nothing has changed when i look in hati? What is considered change?" Measured: the card counted only OTHER people's entries and only five kinds (their replies, mentions, approvals and refusals, duties done, dates and stage), and Dates moved and Stage waited for a first Mark all seen — a workspace where the owner did the work showed nothing. Asked, the owner said "go" to all three: more kinds (other notes, sent, new contracts and uploads, duties added, edits and redline work), the reader's own in their own group "By you" (last), and the starting point kept on first use (caCmdMarkSeen when no mark). The latest 200 entries are read and a card that may have missed older ones says so. An entry by the system reads "HaTi", never "System".
