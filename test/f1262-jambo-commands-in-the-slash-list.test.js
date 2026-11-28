@@ -83,6 +83,9 @@ describe('f1262 (2) one list in every box; a choice writes, never asks', () => {
     assert.match(HB, /if \(\/\^\\s\*\\\/\/\.test\(t\)\) return null;/);
     assert.match(strip(R('js/views/intelligence.js')), /<textarea id="igd-input" rows="1" data-ca-slash /);
   });
+  test('the list is as wide as Jambo\'s whole box (owner, 28 Nov 2026), measured off its card', () => {
+    assert.match(CA, /const r = \(\(_caSl\.inp\.closest && _caSl\.inp\.closest\('\.jb-card'\)\) \|\| _caSl\.inp\)\.getBoundingClientRect\(\);/);
+  });
   test('a choice writes the next step or the question, and nothing else', () => {
     const f = CA.slice(CA.indexOf('function caSlashTake'), CA.indexOf('\n}\n', CA.indexOf('function caSlashTake')));
     assert.doesNotMatch(f, /requestSubmit|\.click\(\)|caAskAnywhere|aiAskWords|intelAsk|api\(/);
