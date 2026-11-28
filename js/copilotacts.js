@@ -2156,10 +2156,10 @@ function caCmdWhenSaid(iso){
   return d.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) + ', ' + hm;
 }
 /* the card: the lead, one row a group that has something (count, its newest lines, Open), Mark all seen, the source */
-function caCmdChangedHtml(items, mark, sinceIso, capped){
+function caCmdChangedHtml(items, mark, sinceIso, capped, chips, ownLead, movesNote){
   const cnt = L => L.reduce((t, x) => t + (x.n || 1), 0), n = cnt(items);
-  const lead = mark ? _caT(n === 1 ? 'ca_chg_lead_1' : 'ca_chg_lead', { n, since: caCmdWhenSaid(sinceIso) })
-    : _caT(n === 1 ? 'ca_chg_lead_week_1' : 'ca_chg_lead_week', { n, d: CA_CHANGED_DAYS });
+  const lead = ownLead || (mark ? _caT(n === 1 ? 'ca_chg_lead_1' : 'ca_chg_lead', { n, since: caCmdWhenSaid(sinceIso) })
+    : _caT(n === 1 ? 'ca_chg_lead_week_1' : 'ca_chg_lead_week', { n, d: CA_CHANGED_DAYS }));
   const rows = CA_CHANGED_GROUPS.map(g => {
     const G = items.filter(x => x.g === g); if (!G.length) return '';
     const ids = Array.from(new Set(G.map(x => x.id)));
@@ -2168,32 +2168,118 @@ function caCmdChangedHtml(items, mark, sinceIso, capped){
       + `<button type="button" class="ca-cmd-go" data-ca-cmd-go="open" data-cid="${_caE(ids[0])}">${_caE(_caT('ca_cmd_go_open'))}</button></div>`;
   }).join('');
   const start = (mark ? '' : `<p class="ca-cmd-more">${_caE(_caT('ca_chg_first_mark'))}</p>`)
+    + (movesNote ? `<p class="ca-cmd-more">${_caE(movesNote)}</p>` : '')
     + (capped ? `<p class="ca-cmd-more">${_caE(_caT('ca_chg_capped', { n: CA_CHANGED_READ }))}</p>` : '');
-  return `<div class="ca-cmd-turn is-changed"><p><b>${_caE(n ? lead : (mark ? _caT('ca_chg_none', { since: caCmdWhenSaid(sinceIso) }) : _caT('ca_chg_none_week', { d: CA_CHANGED_DAYS })))}</b></p>`
-    + (rows ? `<div class="ca-cmd-rows">${rows}</div>` : '') + start
+  return `<div class="ca-cmd-turn is-changed"><p><b>${_caE(ownLead || (n ? lead : (mark ? _caT('ca_chg_none', { since: caCmdWhenSaid(sinceIso) }) : _caT('ca_chg_none_week', { d: CA_CHANGED_DAYS }))))}</b></p>`
+    + (chips || '') + (rows ? `<div class="ca-cmd-rows">${rows}</div>` : '') + start
     + `<div class="ca-cmd-bar"><button type="button" class="ca-cmd-seen" data-ca-cmd-seen>${_caE(_caT('ca_chg_mark_seen'))}</button></div>`
     + `<p class="ca-cmd-from">${_caE(_caT('ca_chg_from'))}</p></div>`;
 }
-async function caCmdChanged(host){
+/* HOW FAR BACK, THE LEGORA + STRIPE WAY (owner's pick, 28 Nov 2026): a row of chips under the lead — Since last seen ·
+   7 days · 30 days · 90 days · Pick a date — each with its count off the ONE trail read; a press redraws the same card
+   (caCmdChgRepaint), the head beside Jambo's name says the period; a period typed in any box ("what's changed since
+   Monday", "in the last 30 days") is read by caCmdChgPeriodOf. Choosing a period never moves the mark: only Mark all
+   seen does. Dates moved and Stage are compared with the mark's snapshot, so they are counted on Since last seen only;
+   another period says so in one line (History does not record them). A count over the read cap is said "N+". */
+const CA_CHG_PERIODS = ['seen', 7, 30, 90];
+function caCmdChgStart(S, p){
+  if (p === 'seen') return Date.parse(S.mark ? S.mark.at : new Date(Date.now() - CA_CHANGED_DAYS * 864e5).toISOString());
+  if (typeof p === 'number') return Date.now() - p * 864e5;
+  const t = Date.parse(String(p) + 'T00:00:00'); return isFinite(t) ? t : Date.now() - CA_CHANGED_DAYS * 864e5;
+}
+function caCmdChgRead(S, p){
+  const start = caCmdChgStart(S, p), F = S.feed || [];
+  const items = caCmdTrailSince(F, start).concat(p === 'seen' ? caCmdBookMoves(S.mark) : []);
+  const oldest = F.length ? Math.min(...F.map(a => Date.parse(a && a.at || '') || Infinity)) : Infinity;
+  return { items, start, sinceIso: new Date(start).toISOString(), capped: F.length >= CA_CHANGED_READ && oldest > start };
+}
+function caCmdChgCount(L){ return L.reduce((t, x) => t + (x.n || 1), 0); }
+/* a day on a chip or the head: no year when it is this year's */
+function caCmdChgDay(day){
+  const t = Date.parse(String(day || '').slice(0, 10) + 'T12:00:00Z'); if (!isFinite(t)) return String(day || '');
+  const same = new Date(t).getUTCFullYear() === new Date().getFullYear();
+  return new Date(t).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, Object.assign({ day: 'numeric', month: 'short', timeZone: 'UTC' }, same ? {} : { year: 'numeric' }));
+}
+function caCmdChgCtx(S, p){
+  if (p === 'seen') return S.mark ? _caT('ca_chg_ctx', { since: caCmdWhenSaid(S.mark.at).replace(/,\s*/, ' ') }) : _caT('ca_chg_ctx_week', { d: CA_CHANGED_DAYS });
+  if (typeof p === 'number') return _caT('ca_chg_ctx_week', { d: p });
+  return _caT('ca_chg_ctx', { since: caCmdChgDay(p) });
+}
+function caCmdChgChipsHtml(S){
+  const on = S.period;
+  const chip = (p, label) => {
+    const R = caCmdChgRead(S, p), n = caCmdChgCount(R.items);
+    return `<button type="button" class="ca-chg-chip${String(on) === String(p) ? ' is-on' : ''}" data-ca-chg-p="${_caE(String(p))}" aria-pressed="${String(on) === String(p)}">${_caE(label)} <span class="ca-cmd-n">${n}${R.capped ? '+' : ''}</span></button>`;
+  };
+  const list = (S.mark ? ['seen'] : []).concat([7, 30, 90]);
+  const day = typeof on === 'string' && on !== 'seen' ? on : '';
+  return `<div class="ca-chg-chips" role="group" aria-label="${_caE(_caT('ca_chg_range'))}">`
+    + list.map(p => chip(p, p === 'seen' ? _caT('ca_chg_p_seen') : _caT('ca_chg_p_days', { d: p }))).join('')
+    + (day ? chip(day, _caT('ca_chg_p_since', { day: caCmdChgDay(day) })) : '')
+    + (S.picking ? `<input type="date" class="ca-chg-day" data-ca-chg-day max="${_caE(new Date().toISOString().slice(0, 10))}" aria-label="${_caE(_caT('ca_chg_p_pick'))}">`
+      : `<button type="button" class="ca-chg-chip" data-ca-chg-pick>${_caE(_caT('ca_chg_p_pick'))}</button>`)
+    + `</div>`;
+}
+/* the card for one period: the lead, the chips, the rows */
+function caCmdChgHtml(S){
+  const p = S.period, R = caCmdChgRead(S, p), n = caCmdChgCount(R.items);
+  let lead;
+  if (p === 'seen') return caCmdChangedHtml(R.items, S.mark, R.sinceIso, R.capped, caCmdChgChipsHtml(S), '');
+  if (typeof p === 'number') lead = n ? _caT(n === 1 ? 'ca_chg_lead_week_1' : 'ca_chg_lead_week', { n, d: p }) : _caT('ca_chg_none_week', { d: p });
+  else lead = n ? _caT(n === 1 ? 'ca_chg_lead_1' : 'ca_chg_lead', { n, since: caCmdChgDay(p) }) : _caT('ca_chg_none', { since: caCmdChgDay(p) });
+  return caCmdChangedHtml(R.items, S.mark, R.sinceIso, R.capped, caCmdChgChipsHtml(S), lead, S.mark ? _caT('ca_chg_moves_seen_only') : '');
+}
+/* a period in words, both books: "since Monday", "in the last 30 days", "since 3 Nov", "this week", "today", "yesterday" */
+function caCmdChgPeriodOf(text){
+  const t = String(text || '').toLowerCase().replace(/[’']/g, '\'').trim();
+  if (!/\b(what'?s|what has|what have|vad har)\s.*(changed|happened|ändrats|hänt)|^\/(changed|ändrat)(\s|$)/.test(t)) return null;   /* no \b round å, ä, ö: JS's \b is ASCII */
+  if (/\b[a-zåäö]{1,5}-\d+\b|\bversion\b|\bv\d+\b/.test(t)) return null;   /* one contract's changes, or a version: not the book's */
+  let m;
+  if ((m = /\b(?:last|past|senaste)\s+(\d{1,3})\s*(day|days|dagar|dagarna|week|weeks|veckor|veckorna|month|months|månader|månaderna)\b/.exec(t))){
+    const k = m[2][0] === 'd' ? 1 : (m[2][0] === 'w' || m[2][0] === 'v') ? 7 : 30; return Math.max(1, Math.min(366, Number(m[1]) * k)); }
+  if ((m = /^\/(?:changed|ändrat)\s+(\d{1,3})\b/.exec(t))) return Math.max(1, Math.min(366, Number(m[1])));
+  if (/\b(today|idag|i dag)\b/.test(t)) return new Date().toISOString().slice(0, 10);
+  if (/\b(yesterday|igår|i går)\b/.test(t)){ const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
+  if (/\b(this week|denna vecka|den här veckan)\b/.test(t)){ const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10); }
+  const WD = [['monday', 'måndag'], ['tuesday', 'tisdag'], ['wednesday', 'onsdag'], ['thursday', 'torsdag'], ['friday', 'fredag'], ['saturday', 'lördag'], ['sunday', 'söndag']];
+  for (let i = 0; i < 7; i++) if (new RegExp('\\b(?:since|sedan|sen)\\s+(?:last\\s+|i\\s+)?(' + WD[i].join('|') + ')s?\\b').test(t)){
+    const d = new Date(), back = ((d.getDay() + 6) % 7 - i + 7) % 7 || 7; d.setDate(d.getDate() - back); return d.toISOString().slice(0, 10); }
+  const MO = ['jan', 'feb', 'mar', 'apr', 'ma[jy]', 'jun', 'jul', 'aug', 'sep', 'o[ck]t', 'nov', 'dec'];
+  const mo = s => MO.findIndex(x => new RegExp('^' + x).test(s));
+  const day = (dd, mi) => { if (mi < 0 || !(dd >= 1 && dd <= 31)) return null; const n = new Date(); let y = n.getFullYear(); if (new Date(y, mi, dd) > n) y--; return new Date(Date.UTC(y, mi, dd)).toISOString().slice(0, 10); };
+  if ((m = /\b(?:since|sedan|sen)\s+(\d{4}-\d{2}-\d{2})\b/.exec(t))) return m[1];
+  if ((m = /\b(?:since|sedan|sen)\s+(\d{1,2})(?:st|nd|rd|th|:e|:a)?\s+([a-zåäö]{3,})/.exec(t))) return day(Number(m[1]), mo(m[2]));
+  if ((m = /\b(?:since|sedan|sen)\s+([a-zåäö]{3,})\s+(\d{1,2})\b/.exec(t))) return day(Number(m[2]), mo(m[1]));
+  return null;
+}
+async function caCmdChanged(host, period, asked){
   const mark = caCmdMark();
-  const sinceIso = mark ? mark.at : new Date(Date.now() - CA_CHANGED_DAYS * 864e5).toISOString();
   let feed = null;
   if (typeof API_MODE === 'function' && API_MODE() && typeof api === 'function'){
     try { const r = await api('activity?limit=' + CA_CHANGED_READ); feed = (r && Array.isArray(r.events) ? r.events : []).map(e => (typeof window.activityRow === 'function')
       ? window.activityRow(e.id, e.action, e.detail, e.at, e.contractNo, e.user, e.name) : Object.assign({ ref: e.contractNo || e.id }, e)); } catch (_){ feed = null; }
   }
   if (!feed && typeof window.buildActivityFeed === 'function') try { feed = window.buildActivityFeed(CA_CHANGED_READ); } catch (_){ feed = []; }
-  const items = caCmdTrailSince(feed || [], Date.parse(sinceIso)).concat(caCmdBookMoves(mark));
-  /* A CAP IS A FACT: the latest CA_CHANGED_READ entries are read; if all of them are newer than the start, older ones
-     may be left out, and the card says so */
-  const F = feed || [], oldest = F.length ? Math.min(...F.map(a => Date.parse(a && a.at || '') || Infinity)) : Infinity;
-  const capped = F.length >= CA_CHANGED_READ && oldest > Date.parse(sinceIso);
+  const p = period != null ? period : (mark ? 'seen' : CA_CHANGED_DAYS);
+  const S = { feed: feed || [], mark, period: p, picking: false };
   /* THE STARTING POINT ON FIRST USE: with no mark kept, the book as it stands now is kept, so Dates moved and Stage
      count from here next time (Mark all seen moves it on later) */
   if (!mark) caCmdMarkSeen();
-  return caCmdSay(host, _caT('ca_chg_asked'), caCmdChangedHtml(items, mark, sinceIso, capped),
-    mark ? _caT('ca_chg_ctx', { since: caCmdWhenSaid(sinceIso).replace(/,\s*/, ' ') }) : _caT('ca_chg_ctx_week', { d: CA_CHANGED_DAYS }));
+  /* the person's own words stand as their question when they typed one */
+  const said = caCmdSay(host, asked ? String(asked) : period != null ? _caT('ca_chg_asked_p', { p: caCmdChgCtx(S, p) }) : _caT('ca_chg_asked'), caCmdChgHtml(S), caCmdChgCtx(S, p));
+  const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  const m = H.length ? H[H.length - 1] : null; if (m){ m._chg = S; S.host = host; }
+  return said;
 }
+/* a chip pressed or a day picked: the same card redrawn in place, the head's period with it */
+function caCmdChgRepaint(m){
+  const S = m._chg; m.text = caCmdChgHtml(S); m.ctx = caCmdChgCtx(S, S.period);
+  if (S.host === 'ig' && typeof window.renderIntelDock === 'function') window.renderIntelDock();
+  else if (typeof window.renderAIFeed === 'function') window.renderAIFeed();
+  if (typeof window.jamboHeadCtxSync === 'function') try { window.jamboHeadCtxSync(); } catch (_){}
+  if (S.picking && typeof document !== 'undefined'){ const d = document.querySelector('[data-ca-chg-day]'); if (d){ if (typeof window.datePickDress === 'function') try { window.datePickDress(d.parentNode); } catch (_){} } }
+}
+function caCmdChgTurn(){ const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : []; return H.slice().reverse().find(x => x && x._chg) || null; }
 function caCmdWord(k){ return '/' + String(_caT('ca_cmd_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caCmdNbDocs(){
   const N = (typeof window !== 'undefined' && window.nbFilters) || null;
@@ -2375,7 +2461,7 @@ function caCmdAmendRows(c0){
 }
 async function caCmdAct(k, host, said, chosen){
   const c0 = chosen || caOpenContract();
-  if (k === 'changed') return caCmdChanged(host);
+  if (k === 'changed') return caCmdChanged(host, said && (typeof said === 'number' || /^\d{4}-\d{2}-\d{2}$/.test(said)) ? said : undefined);
   if (k === 'prepare') return caCmdPrepare(host, chosen || null);
   if (k === 'handover') return caCmdHandover(host, chosen || null);
   if (k === 'check') return caCmdCheck(host, chosen || null, said && typeof said === 'object' ? said : null);
@@ -3092,6 +3178,8 @@ function caCmdAmnCreate(A, idxs){
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
+  /* "what's changed since Monday" / "in the last 30 days" / "/changed 30": What's changed for that period, in any box */
+  { const p = caCmdChgPeriodOf(t); if (p != null){ caCmdChanged(host || caCmdHostOf(null), p, t); return true; } }
   /* while the Amend many card is the newest answer, the box tells Jambo how to change its wording ("/" stays a command) */
   if (t && t[0] !== '/'){ const m = caCmdAmnAskable(); if (m){ caCmdAmnReword(m, t, host); return true; } }
   /* "/prepare MK-402" typed whole and Enter: the brief, as chosen from the list */
@@ -3135,7 +3223,10 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
   /* the button's number follows the ticks; none ticked, nothing to approve */
   document.addEventListener('change', e => {
-    const t = e.target; if (!t || !t.classList || !t.classList.contains('ca-cmd-tick')) return;
+    const t = e.target;
+    if (t && t.hasAttribute && t.hasAttribute('data-ca-chg-day')){
+      const v = String(t.value || ''); const m = caCmdChgTurn(); if (!m || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+      m._chg.period = v; m._chg.picking = false; caCmdChgRepaint(m); return; } if (!t || !t.classList || !t.classList.contains('ca-cmd-tick')) return;
     const turn = t.closest('.ca-cmd-turn');
     const ch = turn && turn.querySelector('[data-ca-ch-go]');
     if (ch){ const n = turn.querySelectorAll('[data-ca-ch]:checked:not(:disabled)').length; ch.textContent = _caT(n === 1 ? 'ca_ch_go_1' : 'ca_ch_go', { n }); ch.disabled = !n; return; }
@@ -3302,6 +3393,11 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       if (subj) subj.value = R.subject || subj.value; if (body) body.value = R.body;
       if (m){ Object.assign(m._req, { subject: R.subject || m._req.subject, body: R.body, used: R.used || [] }); m.text = caCmdReqHtml(c, m._req, owed); }
       return; }
+    const cp = e.target && e.target.closest ? e.target.closest('[data-ca-chg-p], [data-ca-chg-pick]') : null;
+    if (cp){ e.preventDefault();
+      const m = caCmdChgTurn(); if (!m) return; const S = m._chg;
+      if (cp.hasAttribute('data-ca-chg-pick')){ S.picking = true; caCmdChgRepaint(m); const d = document.querySelector('[data-ca-chg-day]'); if (d){ try { d.focus(); if (typeof d.showPicker === 'function') d.showPicker(); } catch (_){} } return; }
+      const v = cp.getAttribute('data-ca-chg-p'); S.period = /^\d+$/.test(v) ? Number(v) : v; S.picking = false; caCmdChgRepaint(m); return; }
     const seen = e.target && e.target.closest ? e.target.closest('[data-ca-cmd-seen]') : null;
     if (seen){ e.preventDefault(); if (seen.disabled) return;
       if (caCmdMarkSeen()){ seen.disabled = true; seen.textContent = _caT('ca_chg_marked'); }
@@ -4745,7 +4841,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_AMN_MAX, CA_AMN_BATCH, caCmdAmnTurn, caCmdAmnHtml, caCmdAmnPaint, caCmdAmnAskable, CA_AMN_PH_IDS, caCmdAmnPhSync, caCmdAmnReword, caCmdAmendMany, caCmdAmnCreate, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_AMN_MAX, CA_AMN_BATCH, caCmdAmnTurn, caCmdAmnHtml, caCmdAmnPaint, caCmdAmnAskable, CA_AMN_PH_IDS, caCmdAmnPhSync, caCmdAmnReword, caCmdAmendMany, caCmdAmnCreate, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, CA_CHG_PERIODS, caCmdChgStart, caCmdChgDay, caCmdChgRead, caCmdChgCount, caCmdChgCtx, caCmdChgChipsHtml, caCmdChgHtml, caCmdChgPeriodOf, caCmdChgRepaint, caCmdChgTurn, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
