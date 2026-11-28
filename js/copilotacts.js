@@ -2817,6 +2817,12 @@ async function caCmdHandover(host, c){
   const m = A.length ? A[A.length - 1] : null; if (m) m._hand = { cid: c.id, to: [] };
   return said;
 }
+/* the floated colleague list closes on a press outside it or Esc (a list is never left standing over the page) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  const caHoPickShut = () => document.querySelectorAll('[data-ca-ho-pick]:not([hidden])').forEach(x => { x.hidden = true; });
+  document.addEventListener('pointerdown', e => { if (!(e.target && e.target.closest && e.target.closest('[data-ca-ho-pick], [data-ca-ho-add]'))) caHoPickShut(); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') caHoPickShut(); });
+}
 /* ---- CHECK AGAINST, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations") ----
    Choosing the Notebook document asks Jambo ONCE (POST /api/ai/check: the stored contract against the document, behind
    their walls); the answer is kept in this browser for that contract and document (CA_CHECK_KEY) and drawn again for
@@ -2999,7 +3005,11 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
         const P = (typeof window.caPeopleFor === 'function' ? window.caPeopleFor(c) : []).filter(p => p.kind === 'colleague' && !m._hand.to.some(t => t.id === p.id));
         pick.innerHTML = P.length ? P.map(p => `<button type="button" class="ca-cmd-row is-press" data-ca-ho-pick-id="${_caE(p.id)}"${p.why ? ` disabled title="${_caE(p.why)}"` : ''}><span class="ca-cmd-g"><b>${_caE(p.name)}</b><small>${_caE(p.why || p.sub || '')}</small></span></button>`).join('')
           : `<p class="ca-cmd-more">${_caE(_caT('ca_ho_nobody'))}</p>`;
-        pick.hidden = false; return;
+        pick.hidden = false;
+        /* THE LIST STANDS OVER EVERYTHING (owner, 28 Nov 2026: "the drop down of contacts scrolls behind the main
+           message"): floated at the To row's width by the one helper, never cut by the card or the panel's scroller */
+        if (typeof window.popListFloat === 'function') window.popListFloat(pick, turn.querySelector('.ca-ho-tos') || ho);
+        return;
       }
       if (ho.hasAttribute('data-ca-ho-pick-id')){
         const p = (typeof window.caPeopleFor === 'function' ? window.caPeopleFor(c) : []).find(x => x.id === ho.getAttribute('data-ca-ho-pick-id'));
