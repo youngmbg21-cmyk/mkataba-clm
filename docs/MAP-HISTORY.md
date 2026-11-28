@@ -41035,3 +41035,12 @@ Owner: "chase everyone states no one owes me nothing which i suspect is not true
 
 ## THE SHELL — RAIL, BAR, PANELS — WHAT'S CHANGED: HOW FAR BACK (28 Nov 2026)
 Owner: "Change it so you can state how far back." Four ways drawn on the real screen (SAP: a "Since ▾" list; Legora: typed only; Stripe: chips with counts; Legora + Stripe: the chips and typing). Owner: "go with the Legora + Stripe way". Built: the chips under the lead, each counted off the ONE trail read (the read cap, 200 events, said as "200+" on a chip it cuts), a press redraws the same card and the head beside Jambo's name; "Pick a date" turns into a date field; a period typed in any box ("since Monday", "in the last 30 days", "sedan måndag") — but not one naming a contract or a version, which stays the compare's. A period never moves the mark. NOT AS DRAWN: Dates moved and Stage are compared with the mark's snapshot and History does not record them, so on any period but Since last seen they are left out and the card says so in one line (the drawing showed them on every period).
+
+## THE SHELL — RAIL, BAR, PANELS — ONE FADING HAIRLINE, A LIGHTER GREEN CHARTS (28 Nov 2026)
+Owner: "some jambo panels have a line above the entry space that goes end to end and some have no line. I want line
+but that does not go end to end." Four options drawn on every panel (inset, fading, centre rule, soft bar); owner: "Build
+the fading hairline. Then the charts button should be a lighter green shade. Also, make sure it never appears on the
+panel if you are not in the board page." The foot rows' top borders now draw one border-image (16px in, fading); rows
+that gave way by a clear colour now give way by width 0 (a border-image ignores colour). Charts: a pale green pill. A
+walk from the Board to nine pages and into the conversation found Charts only on the Board overview. Also confirmed:
+every Jambo panel's waiting turn is the grey words and dots (jamboThinkingHtml), none the old grey bubble. f1276.
