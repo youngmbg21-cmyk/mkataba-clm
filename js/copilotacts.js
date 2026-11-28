@@ -2278,7 +2278,7 @@ function caSlashTake(inp, r){
   }
   if (r.kind === 'ct'){
     const ref = caRef(r.c);
-    if (r.k === 'prepare'){ put(''); caCmdAct('prepare', caCmdHostOf(inp), '', r.c); return true; }
+    if (r.k === 'prepare' || r.k === 'handover'){ put(''); caCmdAct(r.k, caCmdHostOf(inp), '', r.c); return true; }
     if (r.k === 'check' || r.k === 'request') return put(`${caCmdWord(r.k)} ${ref} `);
     return put(_caT('ca_cmd_q_' + r.k, { ref }));
   }
@@ -2373,6 +2373,7 @@ async function caCmdAct(k, host, said, chosen){
   const c0 = chosen || caOpenContract(), ref = c => caRef(c);
   if (k === 'changed') return caCmdChanged(host);
   if (k === 'prepare') return caCmdPrepare(host, chosen || null);
+  if (k === 'handover') return caCmdHandover(host, chosen || null);
   if (k === 'chase') return caCmdChase(host);
   if (k === 'approve') return caCmdApprove(host);
   if (k === 'amend'){
@@ -2747,13 +2748,81 @@ async function caCmdChaseOne(r, words){
     return (out && (out.delivered || out.quiet)) ? { ok: true } : { ok: false, why: _caT('ca_ch_not_sent') };
   } catch (e){ return { ok: false, why: String((e && e.message) || _caT('ca_ch_not_sent')) }; }
 }
+/* ---- HANDOVER PACK, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations": no team name, the browser's print
+   for the PDF, the duties already on the contract) ----
+   For the team that will run an agreement: Who does what (the contract's own duties, We or They, when, its clause;
+   none recorded = said, with a door to its Duties page), Key dates (start, end, the notice day off the end and its
+   notice days), Contacts (theirs on the agreement, ours = its owner), To (colleagues the reader chooses, each greyed
+   with the reason if they cannot open it), Print or save as PDF, Send to N colleagues — each through the one hand-off
+   (caPassSend: their bell, tracked until answered, recorded on the contract). No AI call. */
+function caCmdHandRead(c){
+  const theirs = o => (typeof window.obligationIsTheirs === 'function') ? !!window.obligationIsTheirs(o) : String(o.party) === 'theirs';
+  const duties = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done' && String(o.desc || o.title || '').trim())
+    .map(o => ({ we: !theirs(o), what: String(o.desc || o.title || '').trim(), due: String(o.due || '').slice(0, 10), every: String(o.recurrence || o.every || '').trim(), where: String(o.clauseLabel || o.clause || '').trim() }))
+    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  const F = c.fields || {};
+  let end = ''; try { end = String(((typeof window.effectiveExpiry === 'function') ? window.effectiveExpiry(c) : '') || c.expiry || '').slice(0, 10); } catch (_){ end = String(c.expiry || '').slice(0, 10); }
+  const start = String(c.effectiveDate || F.effDate || '').slice(0, 10);
+  const nd = Number(F.noticeDays) || 0;
+  let notice = '';
+  if (end && nd > 0){ const t = Date.parse(end + 'T12:00:00Z'); if (isFinite(t)) notice = new Date(t - nd * 864e5).toISOString().slice(0, 10); }
+  const P = Array.isArray(c.participants) ? c.participants : [];
+  const theirC = P.filter(p => p && p.side === 'counterparty' && p.name).map(p => String(p.name));
+  if (!theirC.length && c.counterpartyName) theirC.push(String(c.counterpartyName));
+  const ours = [c.owner && c.owner.name].concat(P.filter(p => p && p.side !== 'counterparty' && p.name).map(p => String(p.name))).filter(Boolean);
+  return { duties, start, end, notice, nd, theirC, ours: Array.from(new Set(ours)) };
+}
+function caCmdHandHtml(c, H, to){
+  const who = String(c.counterparty || '').trim() || _caT('ca_cmd_them'), ref = caRef(c);
+  const signed = c.status === 'Signed' || c.status === 'Executed';
+  const head = _caT('ca_ho_head', { ref }) + (signed && c.signedAt ? ' · ' + _caT('ca_ho_signed', { when: String(c.signedAt) }) : ' · ' + String(c.status || ''));
+  const duty = d => `<div class="ca-cmd-row"><span class="ca-cmd-bd is-${d.we ? 'steel' : 'violet'} ca-ho-side">${_caE(_caT(d.we ? 'ca_ho_we' : 'ca_ho_they'))}</span>`
+    + `<span class="ca-cmd-g"><b>${_caE(d.what)}</b><small>${_caE([d.every, d.due ? _caT('ca_ho_by', { when: caCmdDaySaid(d.due) }) : '', d.where].filter(Boolean).join(' · '))}</small></span></div>`;
+  const dates = [H.start ? _caT('ca_ho_starts', { when: caCmdDaySaid(H.start) }) : '', H.end ? _caT('ca_ho_ends', { when: caCmdDaySaid(H.end) }) : '',
+    H.notice ? _caT('ca_ho_notice', { when: caCmdDaySaid(H.notice), n: H.nd }) : ''].filter(Boolean);
+  const chosen = (to || []).map((p, i) => `<span class="ca-ho-to">${_caE(p.name)}<button type="button" class="ca-ho-x" data-ca-ho-drop="${i}" aria-label="${_caE(_caT('ca_ho_drop', { who: p.name }))}">×</button></span>`).join('');
+  return `<div class="ca-cmd-turn is-hand" data-cid="${_caE(c.id)}"><p><b>${_caE(head)}</b> · ${_caE(who)}</p>`
+    + `<h4 class="ca-cmd-h">${_caE(_caT('ca_ho_duties'))}</h4>`
+    + (H.duties.length ? `<div class="ca-cmd-rows">${H.duties.map(duty).join('')}</div>`
+      : `<p class="ca-cmd-more">${_caE(_caT('ca_ho_duties_none'))} <button type="button" class="ca-cmd-go" data-ca-cmd-go="duties" data-cid="${_caE(c.id)}">${_caE(_caT('ca_ho_duties_go'))}</button></p>`)
+    + `<div class="ca-cmd-two"><div><h4 class="ca-cmd-h">${_caE(_caT('ca_ho_dates'))}</h4><p class="ca-cmd-more">${_caE(dates.length ? dates.join(' · ') : _caT('ca_ho_dates_none'))}</p></div>`
+    + `<div><h4 class="ca-cmd-h">${_caE(_caT('ca_ho_contacts'))}</h4><p class="ca-cmd-more">${_caE([H.theirC.length ? who + ': ' + H.theirC.join(', ') : '', H.ours.length ? _caT('ca_ho_ours') + ': ' + H.ours.join(', ') : ''].filter(Boolean).join(' · ') || _caT('ca_ho_contacts_none'))}</p></div></div>`
+    + `<h4 class="ca-cmd-h">${_caE(_caT('ca_ho_to'))}</h4><div class="ca-ho-tos">${chosen}<button type="button" class="ca-cmd-go" data-ca-ho-add>${_caE(_caT('ca_ho_add'))}</button></div>`
+    + `<div class="ca-ho-pick" data-ca-ho-pick hidden></div>`
+    + `<div class="ca-cmd-bar" data-ca-ho-bar><button type="button" class="ca-cmd-seen" data-ca-cmd-go="ho-print" data-cid="${_caE(c.id)}">${_caE(_caT('ca_ho_print'))}</button>`
+    + `<button type="button" class="ca-cmd-seen is-ink" data-ca-ho-go${(to || []).length ? '' : ` disabled title="${_caE(_caT('ca_ho_to_first'))}"`}>${_caE(_caT((to || []).length === 1 ? 'ca_ho_send_1' : 'ca_ho_send', { n: (to || []).length }))}</button></div>`
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_ho_from', { ref }))}</p></div>`;
+}
+/* the pack in plain words: what each colleague receives with the hand-off */
+function caCmdHandText(c, H){
+  const L = [_caT('ca_ho_head', { ref: caRef(c) }) + ' · ' + String(c.name || '') + ' · ' + String(c.counterparty || ''), '', _caT('ca_ho_duties') + ':'];
+  H.duties.forEach(d => L.push(`- ${_caT(d.we ? 'ca_ho_we' : 'ca_ho_they')}: ${d.what}${d.due ? ' (' + _caT('ca_ho_by', { when: caCmdDaySaid(d.due) }) + ')' : ''}${d.where ? ' · ' + d.where : ''}`));
+  if (!H.duties.length) L.push('- ' + _caT('ca_ho_duties_none'));
+  const dates = [H.start ? _caT('ca_ho_starts', { when: caCmdDaySaid(H.start) }) : '', H.end ? _caT('ca_ho_ends', { when: caCmdDaySaid(H.end) }) : '', H.notice ? _caT('ca_ho_notice', { when: caCmdDaySaid(H.notice), n: H.nd }) : ''].filter(Boolean);
+  L.push('', _caT('ca_ho_dates') + ': ' + (dates.join(' · ') || _caT('ca_ho_dates_none')));
+  if (H.theirC.length || H.ours.length) L.push(_caT('ca_ho_contacts') + ': ' + [H.theirC.join(', '), H.ours.join(', ')].filter(Boolean).join(' · '));
+  return L.join('\n').slice(0, 1800);
+}
+function caCmdHandTurn(cid){
+  const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  return H.slice().reverse().find(x => x && x._hand && String(x._hand.cid) === String(cid)) || null;
+}
+async function caCmdHandover(host, c){
+  if (!c) return false;
+  if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){}
+  const H = caCmdHandRead(c);
+  const said = caCmdSay(host, _caT('ca_ho_asked', { ref: caRef(c) }), caCmdHandHtml(c, H, []), `${caRef(c)} · ${String(c.counterparty || '').trim()}`.replace(/ · $/, ''));
+  const A = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  const m = A.length ? A[A.length - 1] : null; if (m) m._hand = { cid: c.id, to: [] };
+  return said;
+}
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
   /* "/prepare MK-402" typed whole and Enter: the brief, as chosen from the list */
   { const m = /^\/(\S+)\s+(\S+)\s*$/.exec(t);
-    if (m && m[1].toLowerCase() === caCmdWord('prepare').slice(1).toLowerCase()){
-      const c = caCmdRefOf(m[2]); if (c){ caCmdAct('prepare', host || caCmdHostOf(null), '', c); return true; } } }
+    for (const k of ['prepare', 'handover']) if (m && m[1].toLowerCase() === caCmdWord(k).slice(1).toLowerCase()){
+      const c = caCmdRefOf(m[2]); if (c){ caCmdAct(k, host || caCmdHostOf(null), '', c); return true; } } }
   /* "/request MK-402 what we need" (the one "/" list's Email request, finished in words) */
   { const m = /^\/(\S+)\s+(\S+)\s+([\s\S]+)$/.exec(t);
     if (m && m[1].toLowerCase() === caCmdWord('request').slice(1).toLowerCase()){
@@ -2800,6 +2869,31 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     go.textContent = _caT('ca_ap_go', { n }); go.disabled = !n;
   });
   document.addEventListener('click', async e => {
+    /* Handover pack: + add (colleagues who may open it), × drops one, Send to N colleagues (the one hand-off each) */
+    const ho = e.target && e.target.closest ? e.target.closest('[data-ca-ho-add], [data-ca-ho-pick-id], [data-ca-ho-drop], [data-ca-ho-go]') : null;
+    if (ho){ e.preventDefault(); if (ho.disabled) return;
+      const turn = ho.closest('.ca-cmd-turn'), cid = turn && turn.getAttribute('data-cid');
+      const c = cid && typeof getContract === 'function' ? getContract(cid) : null; const m = caCmdHandTurn(cid); if (!c || !m) return;
+      const redraw = () => { m.text = caCmdHandHtml(c, caCmdHandRead(c), m._hand.to); turn.outerHTML = m.text; };
+      if (ho.hasAttribute('data-ca-ho-add')){
+        const pick = turn.querySelector('[data-ca-ho-pick]'); if (!pick) return;
+        if (!pick.hidden){ pick.hidden = true; return; }
+        const P = (typeof window.caPeopleFor === 'function' ? window.caPeopleFor(c) : []).filter(p => p.kind === 'colleague' && !m._hand.to.some(t => t.id === p.id));
+        pick.innerHTML = P.length ? P.map(p => `<button type="button" class="ca-cmd-row is-press" data-ca-ho-pick-id="${_caE(p.id)}"${p.why ? ` disabled title="${_caE(p.why)}"` : ''}><span class="ca-cmd-g"><b>${_caE(p.name)}</b><small>${_caE(p.why || p.sub || '')}</small></span></button>`).join('')
+          : `<p class="ca-cmd-more">${_caE(_caT('ca_ho_nobody'))}</p>`;
+        pick.hidden = false; return;
+      }
+      if (ho.hasAttribute('data-ca-ho-pick-id')){
+        const p = (typeof window.caPeopleFor === 'function' ? window.caPeopleFor(c) : []).find(x => x.id === ho.getAttribute('data-ca-ho-pick-id'));
+        if (p && !p.why) m._hand.to.push({ id: p.id, name: p.name }); redraw(); return;
+      }
+      if (ho.hasAttribute('data-ca-ho-drop')){ m._hand.to.splice(Number(ho.getAttribute('data-ca-ho-drop')), 1); redraw(); return; }
+      const bar = ho.closest('[data-ca-ho-bar]'), to = m._hand.to.slice(); if (!to.length) return;
+      ho.disabled = true; ho.innerHTML = typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_ho_sending', { n: to.length })) : _caE(_caT('ca_ho_sending', { n: to.length }));
+      const note = caCmdHandText(c, caCmdHandRead(c)), lines = [];
+      for (const p of to){ const r = await caPassSend(c, p, note, { door: 'jambo', fromJambo: true }); lines.push(r.said || ''); }
+      bar.innerHTML = `<span class="ca-cmd-said">${_caE(lines.filter(Boolean).join(' '))}</span>`;
+      return; }
     /* Send N reminders: the ticked, each by its own door; each row then says what went */
     const chGo = e.target && e.target.closest ? e.target.closest('[data-ca-ch-go]') : null;
     if (chGo){ e.preventDefault(); if (chGo.disabled) return;
@@ -2900,6 +2994,15 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (go === 'prep-share' && c && typeof window.openShareModal === 'function'){
       if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){}
       window.openShareModal(c, { purpose: 'colleague', note: caCmdPrepText(c, caCmdPrepRead(c)) }); return;
+    }
+    if (go === 'duties' && c){ if (typeof window.dutiesOpen === 'function') window.dutiesOpen(c.id); else if (typeof window.roomHomeLand === 'function') window.roomHomeLand(c.id, { open: true }); return; }
+    if (go === 'ho-print' && c){
+      const turn = b.closest('.ca-cmd-turn'), root = document.getElementById('print-root');
+      if (!turn || !root) return;
+      const copy = turn.cloneNode(true); copy.querySelectorAll('.ca-cmd-bar, [data-ca-ho-add], [data-ca-ho-pick], .ca-ho-x, [data-ca-cmd-go]').forEach(n => n.remove());
+      root.innerHTML = `<div class="ca-prep-print"><h1>${_caE(caRef(c) + ' · ' + String(c.name || ''))}</h1>${copy.innerHTML}</div>`;
+      const done = () => { window.removeEventListener('afterprint', done); if (typeof window.clearPrintRoot === 'function') window.clearPrintRoot(); else root.innerHTML = ''; };
+      window.addEventListener('afterprint', done); window.print(); return;
     }
     if (go === 'prep-print' && c){
       const turn = b.closest('.ca-cmd-turn'), root = document.getElementById('print-root');
@@ -4307,7 +4410,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
