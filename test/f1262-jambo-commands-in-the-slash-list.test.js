@@ -146,7 +146,7 @@ describe('f1262 (3) round 2: the four that act', () => {
   test('every row ends in an existing door, one press each; the typed words are read first in every box', () => {
     for (const re of [/go === 'chase' && typeof window\.obligationChase === 'function'\)\{ window\.obligationChase\(cid, b\.getAttribute\('data-oid'\)\)/,
       /go === 'amend' && c && typeof window\.pd2AmAskOpen === 'function'\)\{ window\.pd2AmAskOpen\(c\.id, b\.getAttribute\('data-say'\) \|\| ''\)/,
-      /ok = await window\.approvalDecideAsk\(c, 'approved'\)/,
+      /if \(d && d\.kind === 'rule' && typeof window\.approveContract === 'function'\) ok = !!\(await window\.approveContract\(c\)\);/,
       /await window\.openShareModal\(c, \{ purpose: 'status' \}\)/]) assert.match(CA, re);
     assert.match(CA, /function caAskAnywhere\(text, opts = \{\}\)\{\s*const t = String\(text \|\| ''\)\.trim\(\); if \(!t\) return false;\s*if \(caCmdTyped\(t, opts\.win \? 'ai' : null\)\) return true;/);
     assert.match(INS, /if \(typeof caCmdTyped === 'function' && caCmdTyped\(t, 'jl'\)\) return 'said';/);

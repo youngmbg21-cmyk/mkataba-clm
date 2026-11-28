@@ -2368,18 +2368,7 @@ async function caCmdAct(k, host, said, chosen){
     return caCmdSay(host, word, caCmdTurnHtml(R.length ? _caT('ca_cmd_chase_lead', { n: R.length }) : _caT('ca_cmd_chase_none', { n: CA_CHASE_DAYS }), rows,
       R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
   }
-  if (k === 'approve'){
-    const R = caCmdApproveRows();
-    const shown = R.slice(0, CA_CMD_ROWS_MAX);
-    for (const c of shown){ if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){} }
-    const rows = shown.map(c => { const st = caCmdStdOf(c);
-      return st.k === 'meets' ? { title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`, badge: _caT('ca_cmd_meets'), tone: 'green', go: 'approve', label: _caT('ca_cmd_go_approve'), data: { cid: c.id } }
-        : { title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`, badge: st.k === 'none' ? _caT('ca_cmd_unchecked') : _caT('ca_cmd_departs', { n: st.n }),
-          tone: st.k === 'none' ? 'grey' : 'amber', go: 'open', label: _caT('ca_cmd_go_open'), data: { cid: c.id } }; });
-    const meets = rows.filter(r => r.go === 'approve').length;
-    return caCmdSay(host, word, caCmdTurnHtml(R.length ? _caT('ca_cmd_approve_lead', { n: R.length, m: meets }) : _caT('ca_cmd_approve_none'), rows,
-      R.length > CA_CMD_ROWS_MAX ? _caT('ca_cmd_more', { n: R.length - CA_CMD_ROWS_MAX }) : ''));
-  }
+  if (k === 'approve') return caCmdApprove(host);
   if (k === 'amend'){
     const R = caCmdAmendRows(c0);
     const rows = R.slice(0, CA_CMD_ROWS_MAX).map(c => ({ title: String(c.name || ref(c)), sub: `${ref(c)} · ${String(c.counterparty || '')}`,
@@ -2496,6 +2485,81 @@ async function caCmdPrepare(host, c){
   return caCmdSay(host, _caT('ca_prep_asked', { ref: caRef(c), who: String(c.counterparty || '').trim() || _caT('ca_cmd_them') }), caCmdPrepHtml(c, R, host),
     `${caRef(c)} · ${String(c.counterparty || '').trim()}`.replace(/ · $/, ''));
 }
+/* ---- APPROVE THE ONES THAT MEET OUR STANDARDS, AS DRAWN (owner, 28 Nov 2026: "go"; bulk sending allowed: "yes, allow
+   bulk sending") ----
+   Every agreement whose yes is the reader's to give now (approvalDecidableNow) is read whole and sorted in two: it MEETS
+   when its stored Playbook check met every position AND asked every one (deviationSummary ok + complete) and no risk
+   stands open on it (riskOpenOf); every other one "needs your own look", with the reason and Open. A yes the reader
+   gives in an admin's stead asks a reason, so it is never in the bulk. "Approve these N" (the ticked ones) gives each
+   its own yes through the one writer of that kind (approveContract / signApprovalDecide), each recorded separately;
+   then Undo takes back the rule steps (approvalUndo, within its own window) and says what it could not. */
+function caCmdApproveSort(R){
+  const meets = [], look = [];
+  for (const c of R){
+    const d = (typeof window.approvalDecidableNow === 'function') ? window.approvalDecidableNow(c) : null; if (!d) continue;
+    const s = (typeof window.deviationSummary === 'function') ? window.deviationSummary(c) : null;
+    let risks = []; try { risks = (typeof window.riskOpenOf === 'function') ? window.riskOpenOf(c) || [] : []; } catch (_){ risks = []; }
+    const V = (c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+    const of = V.filter(v => v && v.status !== 'na').length, met = V.filter(v => v && v.status === 'aligned').length;
+    let why = '';
+    if (!s) why = _caT('ca_ap_why_unchecked');
+    else if (!s.complete && s.ok) why = _caT('ca_ap_why_part');
+    else if (!s.ok){ const v = V.find(x => x && (x.status === 'deviation' || x.status === 'missing'));
+      why = _caT(v && v.status === 'missing' ? 'ca_ap_why_missing' : 'ca_ap_why_departs', { what: String((v && v.category) || '') }) + (s.dev + s.miss > 1 ? ' · ' + _caT('ca_ap_why_more', { n: s.dev + s.miss - 1 }) : ''); }
+    else if (risks.length) why = _caT('ca_ap_why_risk', { what: String(risks[0].title || risks[0].say || '') });
+    else if (d.kind === 'sa' && d.row && d.row.as === 'admin') why = _caT('ca_ap_why_admin', { who: String((d.row.req && d.row.req.approverName) || '') });
+    (why ? look : meets).push({ c, d, why, met, of });
+  }
+  return { meets, look };
+}
+function caCmdApproveHtml(S, total){
+  const ref = c => caRef(c), max = CA_CMD_ROWS_MAX;
+  const M = S.meets.slice(0, max), L = S.look.slice(0, max);
+  const lead = !total ? `<p><b>${_caE(_caT('ca_cmd_approve_none'))}</b></p>`
+    : S.meets.length ? `<p><b>${_caE(_caT(total === 1 ? 'ca_ap_lead_1' : 'ca_ap_lead', { n: S.meets.length, m: total }))}</b> ${_caE(_caT('ca_ap_lead_tail'))}</p>`
+    : `<p><b>${_caE(_caT('ca_ap_lead_none', { m: total }))}</b></p>`;
+  const meet = x => `<label class="ca-cmd-row is-tick"><input type="checkbox" class="ca-cmd-tick" data-ca-ap-cid="${_caE(x.c.id)}" checked>`
+    + `<span class="ca-cmd-g"><b>${_caE(ref(x.c) + ' · ' + String(x.c.counterparty || ''))}</b><small>${_caE([String(x.c.name || ''), _caT('ca_ap_met', { n: x.met, of: x.of }), _caT('ca_ap_nothing_flagged')].filter(Boolean).join(' · '))}</small></span>`
+    + `<span class="ca-cmd-bd is-green">${_caE(_caT('ca_ap_meets'))}</span></label>`;
+  const look = x => caCmdRowHtml({ title: ref(x.c) + ' · ' + String(x.c.counterparty || ''), sub: x.why, go: 'open', label: _caT('ca_ap_open'), data: { cid: x.c.id } }).replace(/ ›<\/button>/, '</button>');
+  return `<div class="ca-cmd-turn is-approve">${lead}`
+    + (M.length ? `<div class="ca-cmd-rows">${M.map(meet).join('')}</div>` : '')
+    + (S.meets.length > max ? `<p class="ca-cmd-more">${_caE(_caT('ca_cmd_more', { n: S.meets.length - max }))}</p>` : '')
+    + (L.length ? `<h4 class="ca-cmd-h">${_caE(_caT(S.look.length === 1 ? 'ca_ap_look_1' : 'ca_ap_look', { n: S.look.length }))}</h4><div class="ca-cmd-rows">${L.map(look).join('')}</div>` : '')
+    + (S.look.length > max ? `<p class="ca-cmd-more">${_caE(_caT('ca_cmd_more', { n: S.look.length - max }))}</p>` : '')
+    + (M.length ? `<div class="ca-cmd-bar" data-ca-ap-bar><button type="button" class="ca-cmd-seen is-ink" data-ca-ap-go>${_caE(_caT('ca_ap_go', { n: M.length }))}</button></div>` : '')
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_ap_from'))}</p></div>`;
+}
+async function caCmdApprove(host){
+  const R = caCmdApproveRows();
+  for (const c of R){ if (c._light && typeof window.ensureFull === 'function') try { await window.ensureFull(c); } catch (_){} }
+  return caCmdSay(host, _caT('ca_cmd_t_approve'), caCmdApproveHtml(caCmdApproveSort(R), R.length), _caT('ca_ap_ctx', { n: R.length }));
+}
+/* each its own yes, by the one writer of its kind; what came back recorded for Undo */
+async function caCmdApproveMany(ids){
+  const done = [], failed = [];
+  for (const id of ids){
+    const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c){ failed.push(id); continue; }
+    try { if (typeof window.ensureFull === 'function') await window.ensureFull(c); } catch (_){}
+    const d = (typeof window.approvalDecidableNow === 'function') ? window.approvalDecidableNow(c) : null;
+    let ok = false;
+    try {
+      if (d && d.kind === 'rule' && typeof window.approveContract === 'function') ok = !!(await window.approveContract(c));
+      else if (d && d.kind === 'sa' && d.row && d.row.as !== 'admin' && typeof window.signApprovalDecide === 'function') ok = !!(await window.signApprovalDecide(c, d.row.req.id, 'approved', ''));
+    } catch (_){ ok = false; }
+    (ok ? done : failed).push(ok ? { id, kind: d.kind, ruleId: d.kind === 'rule' && d.step ? d.step.ruleId : null } : id);
+  }
+  return { done, failed };
+}
+async function caCmdApproveUndo(done){
+  let back = 0, kept = 0;
+  for (const x of done){
+    const c = (typeof getContract === 'function') ? getContract(x.id) : null;
+    if (c && x.kind === 'rule' && x.ruleId != null && typeof window.approvalUndo === 'function'){ let ok = false; try { ok = !!(await window.approvalUndo(c, x.ruleId)); } catch (_){ ok = false; } if (ok){ back++; x.undone = true; } else kept++; }
+    else kept++;
+  }
+  return { back, kept };
+}
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
@@ -2521,7 +2585,41 @@ function caCmdTyped(text, host){
 /* each row's door, delegated once (the rows are drawn in moved turns) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caCmdWired){
   document._caCmdWired = true;
+  /* the button's number follows the ticks; none ticked, nothing to approve */
+  document.addEventListener('change', e => {
+    const t = e.target; if (!t || !t.classList || !t.classList.contains('ca-cmd-tick')) return;
+    const turn = t.closest('.ca-cmd-turn'), go = turn && turn.querySelector('[data-ca-ap-go]'); if (!go) return;
+    const n = turn.querySelectorAll('.ca-cmd-tick:checked').length;
+    go.textContent = _caT('ca_ap_go', { n }); go.disabled = !n;
+  });
   document.addEventListener('click', async e => {
+    /* Approve these N: the ticked ones, each its own yes; then the bar says what was done, with Undo */
+    const apGo = e.target && e.target.closest ? e.target.closest('[data-ca-ap-go]') : null;
+    if (apGo){ e.preventDefault(); if (apGo.disabled) return;
+      const turn = apGo.closest('.ca-cmd-turn'), bar = apGo.closest('[data-ca-ap-bar]');
+      const ids = turn ? [...turn.querySelectorAll('.ca-cmd-tick:checked:not(:disabled)')].map(n => n.getAttribute('data-ca-ap-cid')) : [];
+      if (!ids.length) return;
+      apGo.disabled = true; turn.querySelectorAll('.ca-cmd-tick').forEach(n => { n.disabled = true; });
+      const busy = typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_ap_going', { n: ids.length })) : _caE(_caT('ca_ap_going', { n: ids.length }));
+      apGo.innerHTML = busy;
+      const r = await caCmdApproveMany(ids);
+      turn._apDone = r.done;
+      r.done.forEach(x => { const row = turn.querySelector(`[data-ca-ap-cid="${CSS.escape(String(x.id))}"]`); const bd = row && row.closest('.ca-cmd-row') && row.closest('.ca-cmd-row').querySelector('.ca-cmd-bd'); if (bd) bd.textContent = _caT('ca_ap_approved'); });
+      bar.innerHTML = `<span class="ca-cmd-said">${_caE(_caT(r.failed.length ? 'ca_ap_done_some' : 'ca_ap_done', { n: r.done.length, f: r.failed.length }))}</span>`
+        + (r.done.some(x => x.kind === 'rule') ? `<button type="button" class="ca-cmd-seen" data-ca-ap-undo>${_caE(_caT('ca_ap_undo'))}</button>` : '');
+      return; }
+    const apUndo = e.target && e.target.closest ? e.target.closest('[data-ca-ap-undo]') : null;
+    if (apUndo){ e.preventDefault(); if (apUndo.disabled) return;
+      const turn = apUndo.closest('.ca-cmd-turn'), bar = apUndo.closest('[data-ca-ap-bar]');
+      apUndo.disabled = true;
+      const u = await caCmdApproveUndo((turn && turn._apDone) || []);
+      ((turn && turn._apDone) || []).filter(x => x.undone).forEach(x => { const t = turn.querySelector(`[data-ca-ap-cid="${CSS.escape(String(x.id))}"]`), row = t && t.closest('.ca-cmd-row');
+        const bd = row && row.querySelector('.ca-cmd-bd'); if (bd) bd.textContent = _caT('ca_ap_meets'); if (t){ t.disabled = false; } });
+      /* what was taken back may be approved again from the same card */
+      const again = turn ? turn.querySelectorAll('.ca-cmd-tick:not(:disabled):checked').length : 0;
+      bar.innerHTML = `<span class="ca-cmd-said">${_caE(_caT(u.kept ? 'ca_ap_undone_some' : 'ca_ap_undone', { n: u.back, k: u.kept }))}</span>`
+        + (again ? `<button type="button" class="ca-cmd-seen is-ink" data-ca-ap-go>${_caE(_caT('ca_ap_go', { n: again }))}</button>` : '');
+      return; }
     const seen = e.target && e.target.closest ? e.target.closest('[data-ca-cmd-seen]') : null;
     if (seen){ e.preventDefault(); if (seen.disabled) return;
       if (caCmdMarkSeen()){ seen.disabled = true; seen.textContent = _caT('ca_chg_marked'); }
@@ -2561,12 +2659,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (go === 'chase' && typeof window.obligationChase === 'function'){ window.obligationChase(cid, b.getAttribute('data-oid')); return; }
     if (go === 'open' && c && typeof window.roomHomeLand === 'function'){ window.roomHomeLand(c.id, { open: true }); return; }
     if (go === 'amend' && c && typeof window.pd2AmAskOpen === 'function'){ window.pd2AmAskOpen(c.id, b.getAttribute('data-say') || ''); return; }
-    if (go === 'approve' && c && typeof window.approvalDecideAsk === 'function'){
-      b.disabled = true;
-      let ok = false; try { ok = await window.approvalDecideAsk(c, 'approved'); } catch (_){ ok = false; }
-      if (ok){ b.textContent = _caT('ca_cmd_approved'); b.classList.add('is-done'); } else b.disabled = false;
-      return;
-    }
     if (go === 'request' && c && typeof window.openShareModal === 'function'){
       const say = b.getAttribute('data-say') || '';
       await window.openShareModal(c, { purpose: 'status' });
@@ -3968,7 +4060,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
