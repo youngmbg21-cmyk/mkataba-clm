@@ -108,7 +108,7 @@ test('f1097 (3) each waiting line is quoted from where it was read, never guesse
     approvals: [{ c: { name: 'Retail Supply — Coast', counterparty: 'Naivas Supermarkets', value: 78 } }, { c: { name: 'Raw Milk Collection', counterparty: 'Nandi Dairy', value: 36 } }],
     needs: [{ text: 'Email isn\'t set up — <b>review links</b>' }, { text: 'Quarterly access review' }, { text: 'Signing limits' }] });
   const A = w.__api;
-  assert.deepEqual(plain(A.lpQuoteOf('approvals')), { q: 'Retail Supply — Coast · Naivas Supermarkets · KES 78M', more: 'and Raw Milk Collection · Nandi Dairy · KES 36M' });
+  assert.deepEqual(plain(A.lpQuoteOf('approvals')), { q: 'Retail Supply — Coast · Naivas Supermarkets', more: 'and Raw Milk Collection · Nandi Dairy' }, 'no money in the jump window (owner, 28 Nov 2026)');
   assert.deepEqual(plain(A.lpQuoteOf('settings')), { q: 'Email isn\'t set up — review links', more: 'lp_and_n:2' }, 'Settings\' own first need, its markup read as words');
   assert.equal(A.lpQuoteOf('house').q, 'lp_house:2', 'the agents say their count in a sentence');
   assert.equal(A.lpQuoteOf('oblig'), null, 'a page with no reader quotes nothing');

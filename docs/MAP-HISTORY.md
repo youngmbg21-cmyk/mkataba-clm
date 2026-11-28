@@ -40986,3 +40986,7 @@ real pages (figures plain numbers with hairlines, lists on white, act and agents
 the money too, then merge". Negotiations' panel no longer shows a value beside its rows (regNegoSayFive). The "/" jump
 window's approvals line still names a value (lpQuoteOf) — not a side panel, left and said. Contract-room middle pages
 (Duties, Redlines, Where the deal stands) were not reached by the sweep. f1267.
+
+## THE SHELL — RAIL, BAR, PANELS — NO MONEY IN THE JUMP WINDOW (28 Nov 2026)
+After the seven panels lost their money, the owner: "remove the money from the jump window too". The "/" window's
+approvals line (lpQuoteOf) now names the agreement and the party only; f1097 re-pointed (it pinned "· KES 78M").
