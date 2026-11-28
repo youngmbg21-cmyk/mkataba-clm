@@ -1651,6 +1651,8 @@ function jamboHeadCtxSync(root){
   const R = root || (typeof document !== 'undefined' ? document : null); if (!R || !R.querySelectorAll) return;
   const t = jamboHeadCtxOf();
   R.querySelectorAll('.jb-head-ctx').forEach(n => { const w = t ? '· ' + t : ''; if (n.textContent !== w) n.textContent = w; n.hidden = !t; if (t) n.title = t; else n.removeAttribute('title'); });
+  /* the box's hint follows the Amend many card (caCmdAmnPhSync): "Tell Jambo how to change the wording…" */
+  if (typeof window.caCmdAmnPhSync === 'function') try { window.caCmdAmnPhSync(); } catch (_){}
 }
 /* shown or hidden in place by a host painted once (the list panel, Settings) */
 function jamboDoorSync(root, on){

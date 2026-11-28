@@ -82,3 +82,70 @@ describe('f1274 (2) the card and the making', () => {
       assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
   });
 });
+
+/* TOLD HOW TO CHANGE THE WORDING (owner's pick, 28 Nov 2026, the Legora + Stripe way): no new box — Jambo's own box,
+   while the card is the newest answer; the answer marked in the card, Keep · Undo, Create waits until kept */
+describe('f1274 (3) the reword route: the wording only, an ask about which agreements said back', () => {
+  let h, W;
+  before(async () => { h = await H.startHati({ HATI_AGENTS_AUTO: 'off' }); W = await H.seedWorkspace(h, { approvalRules: [] }); });
+  after(async () => { if (h) await h.stop(); });
+  test('the wording comes back changed; the rule and the ask are on the call; which-agreements = scope', async () => {
+    h.ai.reset();
+    const was = 'Where the Supplier processes personal data on behalf of the Customer, it does so only on the Customer\'s documented instructions and keeps it secure.';
+    const r = await W.admin.raw('/api/ai/amend-plan', { method: 'POST', body: { reword: { wording: was, ask: 'add that they must tell us of a breach within 30 days', heading: 'Data protection' } } });
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.match(r.json.wording, /breach within 30 days/); assert.equal(r.json.scope, undefined);
+    const sent = h.ai.lastPayloadText();
+    assert.ok(sent.includes('tell us of a breach within 30 days') && sent.includes('keeps it secure'));
+    assert.ok(sent.includes("THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND"));
+    const s = await W.admin.raw('/api/ai/amend-plan', { method: 'POST', body: { reword: { wording: was, ask: 'only the ones above 50,000' } } });
+    assert.equal(s.status, 200); assert.equal(s.json.scope, true); assert.equal(s.json.wording, undefined);
+    assert.equal((await W.admin.raw('/api/ai/amend-plan', { method: 'POST', body: { reword: { wording: '', ask: 'shorter' } } })).status, 400);
+  });
+});
+
+describe('f1274 (4) the card: marked change, badge, Keep · Undo, Create waits; the box takes the ask', () => {
+  function load(win){
+    const en = {};
+    for (const m of I.matchAll(/^ {4}(ca_(?:cmd|amn|ap)_[a-z_0-9]+): (['"])((?:(?!\2)[^\\]|\\.)*)\2,$/gm)) if (!(m[1] in en)) en[m[1]] = m[3].replace(/\\'/g, "'");
+    const ctx = { window: win || {}, contractRef: c => c.contractNo || c.id,
+      _caT: (k, v) => String(en[k] || k).replace(/\{(\w+)\}/g, (_, n) => (v && v[n] != null) ? v[n] : ''), _caE: s => String(s) };
+    vm.createContext(ctx);
+    const at = n => { const i = CA.indexOf(n); assert.ok(i >= 0, n); return i; };
+    const grab = n => CA.slice(at(n), CA.indexOf('\n}\n', at(n)) + 3);
+    const line = n => CA.slice(at(n), CA.indexOf('\n', at(n)) + 1);
+    vm.runInContext(['const CA_CMD_ROWS_MAX', 'const CA_AMN_MAX', 'function caRef'].map(line).join('') + ['function caCmdAmnHtml', 'function caCmdAmnAskable'].map(grab).join('\n')
+      + '\nObject.assign(this, { caCmdAmnHtml, caCmdAmnAskable });', ctx);
+    return ctx;
+  }
+  const A = o => Object.assign({ state: 'done', said: 'x', read: 3, of: 3,
+    plan: { found: 'have no data protection clause', wording: 'It keeps it secure.', heading: 'Data protection' },
+    rows: [{ c: { id: 'MK-401', counterparty: 'V', name: 'D' }, kind: 'draft' }] }, o || {});
+  test('a proposal: badge, the change marked, Undo · Keep, Create grey with its reason; kept = badge stays, plain wording', () => {
+    const ctx = load({ diffHtml: (a, b) => `<del>${a}</del><ins>${b}</ins>` });
+    const h = ctx.caCmdAmnHtml(A({ prop: { was: 'It keeps it secure.', now: 'It keeps it secure and tells us.', ask: 'tell us' } }));
+    assert.match(h, /The wording, the same in each <span class="ca-cmd-bd is-violet">Changed as you asked<\/span><\/h4><p class="ca-amn-q is-diff"><del>It keeps it secure\.<\/del><ins>It keeps it secure and tells us\.<\/ins><\/p>/);
+    assert.match(h, /data-ca-amn-rw-undo>Undo<\/button><button type="button" class="ca-cmd-seen" data-ca-amn-rw-keep>Keep</);
+    assert.match(h, /data-ca-amn-go disabled title="Keep or undo the new wording first">Create 1 amendment</);
+    const k = ctx.caCmdAmnHtml(A({ changed: true }));
+    assert.match(k, /is-violet">Changed as you asked<\/span><\/h4><p class="ca-amn-q">“It keeps it secure\.”/);
+    assert.doesNotMatch(k, /data-ca-amn-rw-keep|data-ca-amn-go disabled/);
+    assert.match(ctx.caCmdAmnHtml(A({ busy: true })), /Jambo is changing the wording…/);
+    assert.match(ctx.caCmdAmnHtml(A({ say: 'That changes which agreements' })), /<p class="ca-cmd-said">That changes which agreements<\/p>/);
+  });
+  test('the box takes the ask only while the card is the newest answer with something still to make', () => {
+    const card = { role: 'assistant', _amn: A() };
+    const ask = (H) => load({ ai: { history: H } }).caCmdAmnAskable();
+    assert.equal(ask([{ role: 'user' }, card]), card);
+    assert.equal(ask([card, { role: 'user', _amnAsk: true }]), card, 'its own asks do not end it');
+    assert.equal(ask([card, { role: 'user' }, { role: 'assistant', text: 'other' }]), null, 'a later answer ends it');
+    assert.equal(ask([{ role: 'assistant', _amn: A({ rows: [{ c: { id: 'a' }, kind: 'draft', made: 'K' }] }) }]), null, 'all made: nothing to change');
+    assert.equal(ask([{ role: 'assistant', _amn: A({ editing: true }) }]), null);
+    const typed = CA.slice(CA.indexOf('function caCmdTyped'), CA.indexOf('\n}\n', CA.indexOf('function caCmdTyped')));
+    assert.match(typed, /if \(t && t\[0\] !== '\/'\)\{ const m = caCmdAmnAskable\(\); if \(m\)\{ caCmdAmnReword\(m, t, host\); return true; \} \}/);
+    assert.match(CA, /api\('ai\/amend-plan', 'POST', \{ reword: \{ wording:/);
+    assert.match(strip(R('js/components.js')), /window\.caCmdAmnPhSync\(\)/);
+    for (const k of ['ca_amn_ph', 'ca_amn_rw_badge', 'ca_amn_rw_keep', 'ca_amn_rw_undo', 'ca_amn_rw_busy', 'ca_amn_rw_first', 'ca_amn_rw_scope', 'ca_amn_rw_same', 'ca_amn_rw_fail'])
+      assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
+  });
+});

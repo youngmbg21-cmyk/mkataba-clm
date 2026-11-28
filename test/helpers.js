@@ -87,6 +87,9 @@ function startAiStub() {
         /* AMEND MANY: the plan from one sentence */
         : toolName === 'amend_plan' ? { question: 'Does this contract contain a data protection clause?', needs: 'no', heading: 'Data protection', found: 'have no data protection clause',
             wording: 'Where the Supplier processes personal data on behalf of the Customer, it does so only on the Customer\'s documented instructions and keeps it secure.' }
+        /* AMEND MANY, TOLD HOW TO CHANGE THE WORDING: the breach line added; an ask about WHICH agreements is said so */
+        : toolName === 'amend_reword' ? (raw.includes('only the ones') ? { wording: 'x', changesWhich: true }
+          : { wording: 'Where the Supplier processes personal data on behalf of the Customer, it does so only on the Customer\'s documented instructions, keeps it secure, and tells the Customer of any breach within 30 days.', changesWhich: false })
         /* CHECK AGAINST: one met (quoting the paper), one partly, one missing with wording, one quote that is not the paper's */
         : toolName === 'check_against' ? { kind: 'policy requirements', rows: [
             { asks: 'The governing law is Swedish', ref: '§ 1', status: 'met', says: 'This Agreement is governed by the laws of Sweden.', clause: '4' },

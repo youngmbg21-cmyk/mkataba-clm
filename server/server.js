@@ -9879,6 +9879,11 @@ app.post('/api/ai/request', auth, editor, rlAiLight, aiFeature('draft'), aiBudge
    with its heading. Nothing is read, written or kept here; the person can change the wording before anything is made. */
 const AMPLAN_SAID_MAX = 600;
 app.post('/api/ai/amend-plan', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
+  /* TOLD HOW TO CHANGE THE WORDING (owner's pick, 28 Nov 2026, the Legora + Stripe way): the one wording, rewritten as
+     the person asks in Jambo's own box, nothing else read; an ask that changes WHICH agreements is said back (`scope`),
+     never guessed into the wording. The card shows the change marked, and nothing is used until the person keeps it. */
+  const rw = (req.body || {}).reword;
+  if (rw && typeof rw === 'object') return amendReword(req, res, rw);
   const said = clean((req.body || {}).said).slice(0, AMPLAN_SAID_MAX);
   if (said.length < 6) return res.status(400).json({ error: 'Say the change in a sentence: which agreements, and what changes.' });
   const key = aiKey();
@@ -9902,6 +9907,30 @@ app.post('/api/ai/amend-plan', auth, editor, rlAiLight, aiFeature('draft'), aiBu
     res.json({ question, needs: o.needs === 'yes' ? 'yes' : 'no', heading: clean(o.heading).slice(0, 80), wording, found: clean(o.found).slice(0, 120), ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
+
+async function amendReword(req, res, rw){
+  const was = String(rw.wording || '').trim().slice(0, 4000), ask = clean(rw.ask).slice(0, AMPLAN_SAID_MAX);
+  const heading = clean(rw.heading).slice(0, 80), said = clean(rw.said).slice(0, AMPLAN_SAID_MAX);
+  if (!was || ask.length < 2) return res.status(400).json({ error: 'Say how the wording should change.' });
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const tool = { name: 'amend_reword', description: 'The one wording, changed as the person asks.',
+    input_schema: { type: 'object', properties: {
+      wording: { type: 'string', description: 'The whole clause wording after the change, ready to sign. Keep every word the person did not ask to change.' },
+      changesWhich: { type: 'boolean', description: 'True when the ask is about WHICH agreements get the clause (e.g. only some of them), not about its words.' } },
+      required: ['wording', 'changesWhich'] } };
+  const prompt = `${AI_GOVERNANCE_RULE}\n\nThe same clause${heading ? ` ("${heading}")` : ''} will be added to many signed agreements${said ? `, found from the person's words "${said}"` : ''}. Its wording now:\n"""\n${was}\n"""\n\nThe person asks: "${ask}"\n\nRewrite the wording as they ask and keep everything they did not ask to change. Invent no figure, date or name the person did not give. If the ask is about which agreements get the clause rather than its words, set changesWhich and return the wording unchanged.\n\nReturn via the amend_reword tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'amend_reword' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const o = (block && block.input) || {};
+    if (o.changesWhich === true) return res.json({ scope: true, ...aiNotice(req, resp) });
+    const wording = String(o.wording || '').trim().slice(0, 4000);
+    if (!wording) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before answering. Try again.' : 'Jambo could not change the wording. Say it another way.', kind: resp.truncated ? 'cut' : 'empty' });
+    res.json({ wording, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+}
 
 /* ---------- CHECK A CONTRACT AGAINST A NOTEBOOK DOCUMENT (owner, 28 Nov 2026: "go with your recommendations") ----------
    The "/" command Check against: Jambo reads the STORED contract (money masked for a reader without the right) and the

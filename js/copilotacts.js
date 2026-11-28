@@ -2922,22 +2922,71 @@ function caCmdAmnHtml(A){
   };
   const ticked = drafted.filter(r => !r.made).length;
   return `<div class="ca-cmd-turn is-amn"><p><b>${_caE(lead)}</b></p>`
-    + (rows.length ? `<h4 class="ca-cmd-h">${_caE(_caT('ca_amn_wording'))}</h4>`
+    + (rows.length ? `<h4 class="ca-cmd-h">${_caE(_caT('ca_amn_wording'))}${(A.prop || A.changed) ? ` <span class="ca-cmd-bd is-violet">${_caE(_caT('ca_amn_rw_badge'))}</span>` : ''}</h4>`
       + (A.editing ? `<textarea class="ca-amn-words" rows="5" data-ca-amn-words aria-label="${_caE(_caT('ca_amn_wording'))}">${_caE(P.wording || '')}</textarea>`
+        : A.prop ? `<p class="ca-amn-q is-diff">${typeof window.diffHtml === 'function' ? window.diffHtml(A.prop.was, A.prop.now) : _caE(A.prop.now)}</p>`
+          + `<div class="ca-cmd-bar ca-amn-rw"><button type="button" class="ca-amn-undo" data-ca-amn-rw-undo>${_caE(_caT('ca_amn_rw_undo'))}</button><button type="button" class="ca-cmd-seen" data-ca-amn-rw-keep>${_caE(_caT('ca_amn_rw_keep'))}</button></div>`
         : `<p class="ca-amn-q">“${_caE(P.wording || '')}”</p>`)
+      + (A.busy ? `<p class="ca-cmd-more">${typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_amn_rw_busy')) : _caE(_caT('ca_amn_rw_busy'))}</p>` : '')
+      + (A.say ? `<p class="ca-cmd-said">${_caE(A.say)}</p>` : '')
       + `<h4 class="ca-cmd-h">${_caE(_caT('ca_amn_list'))}</h4><div class="ca-cmd-rows">${rows.slice(0, max * 2).map(row).join('')}</div>`
       + (rows.length > max * 2 ? `<p class="ca-cmd-more">${_caE(_caT('ca_cmd_more', { n: rows.length - max * 2 }))}</p>` : '') : '')
     + (A.capped ? `<p class="ca-cmd-more">${_caE(_caT('ca_amn_capped', { n: A.capped, max: CA_AMN_MAX }))}</p>` : '')
     + (A.stopped ? `<p class="ca-cmd-more">${_caE(_caT('ca_amn_stopped', { n: A.read || 0, of: A.of || 0 }))}</p>` : '')
     + (A.said2 ? `<p class="ca-cmd-said">${_caE(A.said2)}</p>` : '')
     + (rows.length ? `<div class="ca-cmd-bar" data-ca-amn-bar><button type="button" class="ca-cmd-seen" data-ca-amn-edit>${_caE(_caT(A.editing ? 'ca_amn_edit_done' : 'ca_amn_edit'))}</button>`
-      + `<button type="button" class="ca-cmd-seen is-ink" data-ca-amn-go${ticked ? '' : ' disabled'}>${_caE(_caT(ticked === 1 ? 'ca_amn_go_1' : 'ca_amn_go', { n: ticked }))}</button></div>` : '')
+      + `<button type="button" class="ca-cmd-seen is-ink" data-ca-amn-go${ticked && !A.prop && !A.busy ? '' : ' disabled'}${A.prop ? ` title="${_caE(_caT('ca_amn_rw_first'))}"` : ''}>${_caE(_caT(ticked === 1 ? 'ca_amn_go_1' : 'ca_amn_go', { n: ticked }))}</button></div>` : '')
     + `<p class="ca-cmd-from">${_caE(_caT('ca_amn_from', { n: A.read || 0 }))}</p></div>`;
 }
 function caCmdAmnPaint(m, host){
   m.text = caCmdAmnHtml(m._amn);
   if (host === 'ig' && typeof window.renderIntelDock === 'function') window.renderIntelDock();
   else if (typeof window.renderAIFeed === 'function') window.renderAIFeed();
+  caCmdAmnPhSync();
+}
+/* TOLD HOW TO CHANGE THE WORDING (owner's pick, 28 Nov 2026, "the Legora + Stripe way", as drawn): no new box. While
+   the Amend many card is the newest answer (and something on it is still to make), Jambo's own box says "Tell Jambo how
+   to change the wording…" (caCmdAmnPhSync) and what is typed there (caCmdTyped, every box) goes to ONE Jambo call
+   (POST /api/ai/amend-plan {reword}) — the wording only, the agreements not read again. The answer comes back into the
+   card as marked changes (diffHtml) with a soft badge, Keep and Undo; nothing is used until Keep, so Create waits
+   (grey, its reason on it). An ask about WHICH agreements is said back: start the command again. */
+function caCmdAmnAskable(){
+  const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  for (let i = H.length - 1; i >= 0; i--){
+    const m = H[i]; if (!m) continue;
+    if (m.role === 'user' && m._amnAsk) continue;
+    const A = m._amn;
+    if (!A || A.state !== 'done' || A.busy || A.editing || !Array.isArray(A.rows) || !A.rows.some(r => !r.made)) return null;
+    return m;
+  }
+  return null;
+}
+const CA_AMN_PH_IDS = ['igd-input', 'jl-q', 'ai-input', 'st-jb-q'];
+function caCmdAmnPhSync(){
+  if (typeof document === 'undefined') return;
+  const on = !!caCmdAmnAskable(), ph = _caT('ca_amn_ph');
+  for (const id of CA_AMN_PH_IDS){
+    const el = document.getElementById(id); if (!el) continue;
+    if (on){ if (el.placeholder !== ph){ if (el.dataset.amnPh == null) el.dataset.amnPh = el.placeholder || ''; el.placeholder = ph; } }
+    else if (el.dataset.amnPh != null){ if (el.placeholder === ph) el.placeholder = el.dataset.amnPh; delete el.dataset.amnPh; }
+  }
+}
+async function caCmdAmnReword(m, ask, host){
+  const A = m._amn, h = A.host || host || caCmdHostOf(null);
+  if (h === 'ig' && window.intel && Array.isArray(window.intel.history)) window.intel.history.push({ role: 'user', text: ask, _amnAsk: true });
+  else if (typeof window.aiPush === 'function'){ window.aiPush('user', { text: _caE(ask), raw: ask }); const H = window.ai.history; H[H.length - 1]._amnAsk = true; }
+  A.busy = true; A.say = ''; A.prop = null;
+  caCmdAmnPaint(m, h);
+  let r = null, err = '';
+  try { r = await api('ai/amend-plan', 'POST', { reword: { wording: (A.plan && A.plan.wording) || '', ask, heading: (A.plan && A.plan.heading) || '', said: A.said || '' } }); }
+  catch (e){ err = String((e && e.message) || ''); }
+  A.busy = false;
+  if (r && r.scope) A.say = _caT('ca_amn_rw_scope');
+  else if (r && r.wording && r.wording !== (A.plan && A.plan.wording)) A.prop = { was: A.plan.wording, now: r.wording, ask };
+  else if (r && r.wording) A.say = _caT('ca_amn_rw_same');
+  else A.say = /key|configured/i.test(err) ? _caT('ca_req_nokey') : (err || _caT('ca_amn_rw_fail'));
+  caCmdAmnPaint(m, h);
+  return true;
 }
 async function caCmdAmendMany(host, said){
   const q = _caT('ca_cmd_lead_amend') + ' ' + (said || '');
@@ -2987,6 +3036,8 @@ function caCmdAmnCreate(A, idxs){
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
+  /* while the Amend many card is the newest answer, the box tells Jambo how to change its wording ("/" stays a command) */
+  if (t && t[0] !== '/'){ const m = caCmdAmnAskable(); if (m){ caCmdAmnReword(m, t, host); return true; } }
   /* "/prepare MK-402" typed whole and Enter: the brief, as chosen from the list */
   { const m = /^\/(\S+)\s+(\S+)\s*$/.exec(t);
     for (const k of ['prepare', 'handover']) if (m && m[1].toLowerCase() === caCmdWord(k).slice(1).toLowerCase()){
@@ -3040,11 +3091,14 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
   document.addEventListener('click', async e => {
     /* Amend many: Stop, Change the wording, Create N amendments */
-    const am = e.target && e.target.closest ? e.target.closest('[data-ca-amn-stop], [data-ca-amn-edit], [data-ca-amn-go]') : null;
+    const am = e.target && e.target.closest ? e.target.closest('[data-ca-amn-stop], [data-ca-amn-edit], [data-ca-amn-go], [data-ca-amn-rw-keep], [data-ca-amn-rw-undo]') : null;
     if (am){ e.preventDefault(); if (am.disabled) return;
       const m = caCmdAmnTurn(); if (!m) return; const A = m._amn;
+      if (am.hasAttribute('data-ca-amn-rw-keep')){ if (A.prop){ A.plan.wording = A.prop.now; A.changed = true; A.prop = null; } caCmdAmnPaint(m, A.host); return; }
+      if (am.hasAttribute('data-ca-amn-rw-undo')){ A.prop = null; caCmdAmnPaint(m, A.host); return; }
       if (am.hasAttribute('data-ca-amn-stop')){ A.stop = true; am.disabled = true; return; }
       if (am.hasAttribute('data-ca-amn-edit')){
+        A.prop = null; A.say = '';
         if (A.editing){ const t = am.closest('.ca-cmd-turn').querySelector('[data-ca-amn-words]'); if (t && t.value.trim()) A.plan.wording = t.value.trim(); }
         A.editing = !A.editing; caCmdAmnPaint(m, A.host); return; }
       const turn = am.closest('.ca-cmd-turn');
@@ -4631,7 +4685,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_AMN_MAX, CA_AMN_BATCH, caCmdAmnTurn, caCmdAmnHtml, caCmdAmnPaint, caCmdAmendMany, caCmdAmnCreate, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_AMN_MAX, CA_AMN_BATCH, caCmdAmnTurn, caCmdAmnHtml, caCmdAmnPaint, caCmdAmnAskable, CA_AMN_PH_IDS, caCmdAmnPhSync, caCmdAmnReword, caCmdAmendMany, caCmdAmnCreate, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
