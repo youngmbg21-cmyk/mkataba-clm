@@ -41023,3 +41023,9 @@ Asked first (how to find the agreements, who writes the wording, one press or on
 
 ### JAMBO'S "/" COMMANDS — AMEND MANY, TOLD HOW TO CHANGE THE WORDING (28 Nov 2026)
 The owner asked: "what if you want jambo to change the wording with a prompt you have?" — the card only had a hand edit. Four ways drawn on the real screen (SAP: a labelled field + Rewrite, side by side; Legora: a quiet ask line + three ready asks; Stripe: an "Ask Jambo" pill, a Rewritten badge and a history; Legora + Stripe: no new box, Jambo's own box while the card is newest, the answer marked in the card with Keep · Undo). The owner picked "the Legora + Stripe way". Built as drawn: the box's hint changes on every Jambo box (`caCmdAmnPhSync`), the ask goes to ONE call on the same route (`reword`), a "which agreements" ask is said back rather than written into the wording, Create waits (grey, its reason) until Keep. Not drawn but added: the person's ask stands as their green bubble under the card (as drawn in the answer state) and later asks keep the card "newest".
+
+## THE SHELL — RAIL, BAR, PANELS — THE HANDOVER PACK'S COLLEAGUE LIST FLOATS (28 Nov 2026)
+Owner, a photo of the Handover pack card: "there is a bug where the drop down of contacts scrolls behind the main
+message". The "+ add" list was a strip inside the card (max-height 220, its own scroller) and was cut by the panel's
+scroller and foot. It now stands over everything through the one helper (popListFloat) at the To row's width, a white
+card with an edge; a press outside or Esc shuts it. Photographed at the three screens. f1274.

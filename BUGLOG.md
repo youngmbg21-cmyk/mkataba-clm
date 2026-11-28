@@ -23061,3 +23061,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ### Noticed, not fixed (28 Nov 2026)
 - f1006 (2a) is red on main before today's change: jamboThinkingNow is not defined in its world (jamboFwdHtml reads it). Left red.
 - The Negotiations list's side panel (nothing chosen) shows money under "Last agreed" (e.g. KES 85M beside each signed agreement), against "no side-panel money". Seen in the grey-box sweep; not fixed.
+- A colleague who opens a signed (Executed) contract passed to them (MK-B1, seeded) sees the Dossier's stage line lit on "Negotiate", with Read not done, though the contract is signed and live. Seen while photographing the handover pack; not fixed.

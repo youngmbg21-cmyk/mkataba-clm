@@ -1,5 +1,5 @@
 'use strict';
-/* f1274 — AMEND MANY, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"). One sentence becomes, in one Jambo
+/* f1275 — AMEND MANY, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations"). One sentence becomes, in one Jambo
    call (POST /api/ai/amend-plan), the yes-or-no question and ONE wording; the signed agreements are read with Discover's
    own engine (POST /api/ai/column), in batches with Stop, capped and the rest counted; needing it = Drafted, a concern or
    an unreadable answer = Your look (its own Amend question); Create N amendments makes each ticked one an ordinary draft
@@ -14,7 +14,7 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const CA = strip(R('js/copilotacts.js')), I = R('js/i18n.js'), SRV = strip(R('server/server.js'));
 
-describe('f1274 (1) the plan route: one call, the rule on it, nothing kept', () => {
+describe('f1275 (1) the plan route: one call, the rule on it, nothing kept', () => {
   let h, W;
   before(async () => { h = await H.startHati({ HATI_AGENTS_AUTO: 'off' }); W = await H.seedWorkspace(h, { approvalRules: [] }); });
   after(async () => { if (h) await h.stop(); });
@@ -32,7 +32,7 @@ describe('f1274 (1) the plan route: one call, the rule on it, nothing kept', () 
   });
 });
 
-describe('f1274 (2) the card and the making', () => {
+describe('f1275 (2) the card and the making', () => {
   function load(win){
     const en = {};
     for (const m of I.matchAll(/^ {4}(ca_(?:cmd|amn|ap)_[a-z_0-9]+): (['"])((?:(?!\2)[^\\]|\\.)*)\2,$/gm)) if (!(m[1] in en)) en[m[1]] = m[3].replace(/\\'/g, "'");
@@ -85,7 +85,7 @@ describe('f1274 (2) the card and the making', () => {
 
 /* TOLD HOW TO CHANGE THE WORDING (owner's pick, 28 Nov 2026, the Legora + Stripe way): no new box — Jambo's own box,
    while the card is the newest answer; the answer marked in the card, Keep · Undo, Create waits until kept */
-describe('f1274 (3) the reword route: the wording only, an ask about which agreements said back', () => {
+describe('f1275 (3) the reword route: the wording only, an ask about which agreements said back', () => {
   let h, W;
   before(async () => { h = await H.startHati({ HATI_AGENTS_AUTO: 'off' }); W = await H.seedWorkspace(h, { approvalRules: [] }); });
   after(async () => { if (h) await h.stop(); });
@@ -104,7 +104,7 @@ describe('f1274 (3) the reword route: the wording only, an ask about which agree
   });
 });
 
-describe('f1274 (4) the card: marked change, badge, Keep · Undo, Create waits; the box takes the ask', () => {
+describe('f1275 (4) the card: marked change, badge, Keep · Undo, Create waits; the box takes the ask', () => {
   function load(win){
     const en = {};
     for (const m of I.matchAll(/^ {4}(ca_(?:cmd|amn|ap)_[a-z_0-9]+): (['"])((?:(?!\2)[^\\]|\\.)*)\2,$/gm)) if (!(m[1] in en)) en[m[1]] = m[3].replace(/\\'/g, "'");
