@@ -712,6 +712,10 @@ function pdFillShowsRetired(){
    grid's row, its box in the hand — answered where it is asked */
 function pdFillOpen(id, opts){
   const o = opts || {};
+  /* WHO SIGNS HAS ONE DOOR, the signing route's window (owner, 28 Nov 2026: "isnt their signer on the side panel?"): the
+     form keeps no signers, so a door asking for them opens the route */
+  if (String(o.key || '') === 'signers' && typeof window.openSignerPlanEditor === 'function'){
+    const c = (typeof getContract === 'function' && getContract(id)) || null; if (c){ window.openSignerPlanEditor(c); return true; } }
   /* LAND ON IT, past Jambo's words: a fill-in door pressed while his conversation stands in the panel
      (his first words on a new paper) turns it back to the Dossier first, so the row is there to land on */
   if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
@@ -5477,8 +5481,13 @@ function pdOgHtml(c, o){
    here unchanged. Nothing new is stored: the writers are the product's own. */
 const _pdForm = new Map();      // contract id → the rows the form opened with, in order [{ k, g, label }]
 const PD_FORM_GROUPS = ['money', 'dates', 'parties', 'paper', 'terms'];
+/* THE FORM KEEPS THE DEAL'S DETAILS, THE PAPER KEEPS ITS SPACES (owner, 28 Nov 2026: "keep the page, but only for the
+   deal details (party, value, start date, signers). Remove the paper blanks from it. Every blank in the wording is then
+   filled only on the paper, after negotiation"): a space in the wording (a placeholder, a company standard's field) is
+   never a row here; it is still owed (detailsOf) and filled by Fill in on the paper */
+const PD_FORM_PAPER_KINDS = new Set(['blank', 'tplf']);
 function pdFormRows(c){
-  return pdOgFacts(c).filter(f => f && f.kind !== 'signer');
+  return pdOgFacts(c).filter(f => f && f.kind !== 'signer' && !PD_FORM_PAPER_KINDS.has(f.kind));
 }
 /* the one line in the Dossier: how many are owed, how many Jambo read, and the one door */
 function pdFormDoorRowHtml(c, rows){
@@ -5674,18 +5683,8 @@ function pd2FormRegroup(c){
   if (R.money) G.fill.push(known('value', _pdT('pd2_f_value'), txt(R.money), src(pd2QuoteOf(c, pd2Needles(c, 'value')))));
   if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     G.fill.push(known('ends', _pdT('pd2_f_ends'), txt(R.expiry) + (renews ? ' · ' + _pdT('pd2_renews') : ''), src(pd2QuoteOf(c, pd2Needles(c, 'expiry'))))); }
-  /* the signers: ours as the route has it; theirs the existing signer box while one is owed */
-  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.name);
-  const ours = plan.find(x => x.party !== 'counterparty'), theirs = plan.find(x => x.party === 'counterparty');
-  /* the route's own signer; none named yet, the reader the route would name (pdCkSignerSay's first), said in full */
-  let ourName = ours ? ours.name : ''; if (!ourName){ const me = (typeof currentUser === 'function' && currentUser()) || null; ourName = (me && me.name) || ''; }
-  if (ourName) G.sign.push(known('ours', _pdT('pd2_fm_ours'), ourName, E(_pdT('pd2_fm_route'))));
-  if (theirs) G.sign.push(known('theirs', _pdT('pd2_fm_theirs'), theirs.name, E(_pdT('pd2_fm_route'))));
-  else { const f = byKey.get('signers');
-    if (f && f.kind === 'signer' && ((typeof canEdit !== 'function') || canEdit())){ const tr = document.createElement('tr');
-      tr.className = 'pd-og-row pd-fm-row is-amb pd2-fm-sg'; tr.setAttribute('data-pd-og-row', 'signers'); tr.setAttribute('data-pd-og-kind', 'signer');
-      tr.innerHTML = `<td class="pd-og-f"><b>${E(_pdT('pd2_fm_theirs'))}</b></td><td class="pd-og-v">${pdOgBoxHtml(c, f)}</td><td class="pd-og-a"><span class="pd2-amb">${E(_pdT('pd2_ft_owed'))}</span> · ${E(_pdT('pd2_fm_theirs_w'))}</td>`;
-      G.sign.push(tr); } }
+  /* NO SIGNERS HERE (owner, 28 Nov 2026: "but isnt their signer on the side panel?"): who signs has its home in the
+     Dossier's Signers row and on the paper's signature lines; this form keeps the deal's other details only */
   /* THE LEGORA WAY (owner, 12 Nov 2026): ONE QUIET LIST, no group heads — what is owed first, each with its amber dot and
      answered in its own row, then what stands, each with where it was read. The chips over it only narrow what shows */
   const owed = tr => tr.classList.contains('pd-fm-row') && !tr.classList.contains('is-read') && !tr.classList.contains('is-saved');
@@ -8319,7 +8318,7 @@ function pdHeldOpen(c, w){
   if (w === 'history') return (typeof pd2HistOpen === 'function') ? pd2HistOpen(c.id) !== false : false;
   if (w === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
   if (w === 'redline' || w === 'red') return pdRedOpen(c.id);
-  if (w === 'fill') return pdFillOpen(c.id);
+  if (w === 'fill') return pdFillGo(c.id);
   if (w === 'sign') return pdSignOpen(c.id);
   if (w === 'pay') return (typeof payEditOpen === 'function') ? payEditOpen(c.id) : false;
   if (w === 'access'){ const P = (typeof bsPrivateOf === 'function') ? bsPrivateOf(c) : null;
@@ -8553,7 +8552,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault();
     const g = (ap || fk).closest('#pd-glance'), id = g && g.getAttribute('data-pd-glance-for'), c = id && typeof getContract === 'function' ? getContract(id) : null; if (!c) return;
     if (ap && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); } catch (_){} }, () => {});
-    if (fk){ const key = fk.getAttribute('data-pd-fill-key') || ''; if (!(key && pd2FillStart(c.id, key))) pdFillOpen(c.id, key ? { key } : {}); }
+    /* the ONE Fill in door (pdFillGo): its rules hold here too — after the negotiation, never their paper (owner, 28 Nov 2026) */
+    if (fk){ const key = fk.getAttribute('data-pd-fill-key') || ''; pdFillGo(c.id, key); }
   });
 }
 /* A FACT ROW, THE LEGORA + STRIPE WAY (Dossier L+S): label · value with where on the paper it was read under it · the
@@ -10162,7 +10162,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const h = b.closest('#pd2-notes'), id = h && h.getAttribute('data-pd2-for'), c = id && typeof getContract === 'function' ? getContract(id) : null; if (!c) return;
   const go = b.getAttribute('data-pd2-go'), key = b.getAttribute('data-pd2-key') || '';
   /* every press is an existing door: the one Fill in (pdFillOpen), the one decision (approvalDecideAsk), the risk's own Edit (riskEditStart) */
-  if (go === 'fill'){ if (!(key && pd2FillStart(c.id, key))) pdFillOpen(c.id, key ? { key } : {}); }
+  if (go === 'fill') pdFillGo(c.id, key);
   else if (go === 'approve' && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, () => {});
   else if (go === 'redline' && typeof riskEditStart === 'function') riskEditStart(c, key);
   else if (go === 'ask' && typeof openShareModal === 'function') openShareModal(c, { purpose: 'colleague', note: _pdT('pd2_n_ask_note', { rule: key }) });
@@ -11871,7 +11871,10 @@ function pdFillGo(id, key){
   if (_pdSign && String(_pdSign) === String(id)) try { pdSignClose(); } catch (_){}
   /* not yet, or not ours to fill: said with its way forward, never the form in its place (a detail with no place on the
      paper still opens the form) */
-  if (pd2On() && (!key || !pdFillGoFormOnly(id, key))){
+  /* a detail of our record (the other party, the value, the start day, the signers) is ours on any paper, at any time:
+     the form; every space on the paper waits for the rules below (owner, 28 Nov 2026: "why is it when i click fill on
+     contract 469 it takes me to the page" — a space's Fill in went to the form while the redlines were still open) */
+  if (pd2On() && (!key || !pd2FillKeyIsRecord(id, key))){
     const c0 = (typeof getContract === 'function' && getContract(id)) || null;
     try { if (c0 && !pd2FillOn(id) && pd2FillHeldWhy(c0) === 'open') pd2FillAdoptOld(c0); } catch (_){}
     const why = c0 && !pd2FillOn(id) ? pd2FillHeldWhy(c0) : '';
@@ -11884,6 +11887,13 @@ function pdFillGo(id, key){
   }
   if (pd2On() && (!key || !pdFillGoFormOnly(id, key)) && pd2FillStart(id, key || '')) return true;
   return pdFillOpen(id, key ? { key } : {});
+}
+function pd2FillKeyIsRecord(id, key){
+  const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !key) return false;
+  if (String(key) === 'signers') return true;
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  const it = d && Array.isArray(d.items) ? d.items.find(x => x && String(x.key) === String(key)) : null;
+  return !!(it && (it.kind === 'kt' || it.kind === 'nda'));
 }
 function pd2TheirsDetailsOwed(c){
   let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
@@ -12248,7 +12258,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
-Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoPaperOk, pd2FillHeldWhy, pd2FillHeldSay, pd2TheirsDetailsOwed, pd2FillAdoptOld, pd2NegoFillRead, pd2NegoFillOf, pd2NegoAnswersPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoPaperOk, pd2FillHeldWhy, pd2FillHeldSay, pd2TheirsDetailsOwed, pd2FillKeyIsRecord, pd2FillAdoptOld, pd2NegoFillRead, pd2NegoFillOf, pd2NegoAnswersPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* THE ARRIVAL VEIL: a page in the middle that opens only once its paper stands (History, pay, Key terms; pdMidArriving)
    has the page's own ground stand over the paper meanwhile, so the paper is never seen on the way; bounded (CV_LAND_MS).
    (The Cover page these were first built for was deleted, owner, 20 Nov 2026: "Delete it, open the Dossier instead".) */
