@@ -9872,6 +9872,66 @@ app.post('/api/ai/request', auth, editor, rlAiLight, aiFeature('draft'), aiBudge
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
+/* ---------- CHECK A CONTRACT AGAINST A NOTEBOOK DOCUMENT (owner, 28 Nov 2026: "go with your recommendations") ----------
+   The "/" command Check against: Jambo reads the STORED contract (money masked for a reader without the right) and the
+   Notebook document behind nbSees (nbLinkedRead: one the reader may not see is never read), once, on the reader's
+   choice of the document, and answers one row per requirement the document asks of an agreement like this: what it
+   asks (its own section number), what the contract says (a quote, checked here against the contract's own words —
+   a quote not found is dropped, never shown), Met · Partly · Missing, the clause it is in or belongs in, and the
+   wording that would meet it. Nothing is written or filed here; a long contract or document is CUT AND SAID. */
+const CHECK_TEXT_MAX = 80000, CHECK_ROWS_MAX = 20;
+app.post('/api/ai/check', auth, editor, rlAiDeep, aiFeature('check'), aiBudgetGuard, async (req, res) => {
+  const b = req.body || {};
+  const cid = String(b.contractId || ''), did = String(b.docId || '').slice(0, 64);
+  if (!cid || !idInScope(folderScopeFor(req.user), cid)) return res.status(404).json({ error: 'Contract not found' });
+  if (!did) return res.status(400).json({ error: 'Choose the Notebook document to check against.' });
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(cid);
+  let c = {}; try { c = JSON.parse((row && row.json) || '{}') || {}; } catch (_) { c = {}; }
+  const seen = canViewValues(req.user) ? c : maskContractValues(c, moneyFieldKeys());
+  const full = String(contractFullBody(seen) || '');
+  const ccut = full.length > CHECK_TEXT_MAX, ctext = full.slice(0, CHECK_TEXT_MAX);
+  const nb = nbLinkedRead(req.user, [{ id: did }]);
+  const d = nb.docs[0];
+  if (!d) return res.status(404).json({ error: 'That Notebook document could not be read.' });
+  const tool = { name: 'check_against', description: 'One row per requirement the document asks of an agreement like this one.',
+    input_schema: { type: 'object', properties: {
+      kind: { type: 'string', description: 'What the requirements are, in a few words, e.g. "processor requirements".' },
+      rows: { type: 'array', items: { type: 'object', properties: {
+        asks: { type: 'string', description: 'What the document asks, in one short plain line.' },
+        ref: { type: 'string', description: "The document's own section number for it, e.g. Art. 28(3)(a)." },
+        status: { type: 'string', enum: ['met', 'partly', 'missing'] },
+        says: { type: 'string', description: 'The contract\'s own words that meet it, quoted exactly; empty when nothing does.' },
+        clause: { type: 'string', description: 'The contract clause it is in, or where it belongs, by its number as printed (e.g. 9.2); empty if none fits.' },
+        fix: { type: 'string', description: 'For partly or missing: the wording that would meet it, ready to put in the contract; empty when met.' },
+        add: { type: 'boolean', description: 'True when fix is added to the clause; false when it replaces the clause\'s words.' } },
+        required: ['asks', 'status'] } } }, required: ['rows'] } };
+  const prompt = `${AI_GOVERNANCE_RULE}\n\nCheck this contract against the document "${d.name}". List each requirement the document places on an agreement like this one (at most ${CHECK_ROWS_MAX}), and for each say whether the contract meets it, partly meets it, or misses it. Quote the contract only with its exact words. Invent nothing the two texts do not say.\n`
+    + `\nThe document${d.cut ? ' (only its start is shown)' : ''}:\n"""\n${d.text}\n"""\n`
+    + `\nThe contract "${String(seen.name || '').slice(0, 200)}"${ccut ? ' (only its start is shown)' : ''}:\n"""\n${ctext}\n"""\n\nReturn via the check_against tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'check_against' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'check', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const out = (block && block.input) || {};
+    const flat = t => String(t || '').replace(/\s+/g, ' ').trim();
+    const hay = flat(full).toLowerCase();
+    const rows = (Array.isArray(out.rows) ? out.rows : []).slice(0, CHECK_ROWS_MAX).map(r => {
+      const st = ['met', 'partly', 'missing'].includes(r && r.status) ? r.status : 'missing';
+      let says = flat(r && r.says).slice(0, 400);
+      if (says && !hay.includes(says.toLowerCase())) says = '';   /* a quote that is not the contract's own words is not shown */
+      /* "met" stands only on the contract's own words: met with no quote found is a look for the reader, never a tick */
+      const status = (st === 'met' && !says) ? 'partly' : st;
+      return { asks: flat(r && r.asks).slice(0, 300), ref: flat(r && r.ref).slice(0, 60), status, says, clause: flat(r && r.clause).slice(0, 40),
+        fix: status === 'met' ? '' : String((r && r.fix) || '').trim().slice(0, 2000), add: r && r.add !== false };
+    }).filter(r => r.asks);
+    if (!rows.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before answering. Try again.' : 'Jambo found nothing to check. Try again.', kind: resp.truncated ? 'cut' : 'empty' });
+    res.json({ kind: flat(out.kind).slice(0, 80), rows, doc: { id: d.id, name: d.name }, ...(ccut ? { contractCut: true } : {}), ...(d.cut ? { docCut: true } : {}),
+      ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
 /* ---------- Copilot: the section list for a template being written ----------
    THE ONLY NEW QUESTION IN PROMPT & BUILD, and the cheapest half of it: what
    SECTIONS does this kind of agreement need? Nothing else in HaTi answers it —

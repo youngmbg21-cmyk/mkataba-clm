@@ -2282,7 +2282,7 @@ function caSlashTake(inp, r){
     if (r.k === 'check' || r.k === 'request') return put(`${caCmdWord(r.k)} ${ref} `);
     return put(_caT('ca_cmd_q_' + r.k, { ref }));
   }
-  if (r.kind === 'doc') return put(_caT('ca_cmd_q_check', { ref: caRef(r.c), doc: String(r.d.name || '') }));
+  if (r.kind === 'doc'){ put(''); caCmdAct('check', caCmdHostOf(inp), r.d, r.c); return true; }
   return false;
 }
 /* a command chosen: its question written into the box, the caret at its end; Enter asks it */
@@ -2374,6 +2374,7 @@ async function caCmdAct(k, host, said, chosen){
   if (k === 'changed') return caCmdChanged(host);
   if (k === 'prepare') return caCmdPrepare(host, chosen || null);
   if (k === 'handover') return caCmdHandover(host, chosen || null);
+  if (k === 'check') return caCmdCheck(host, chosen || null, said && typeof said === 'object' ? said : null);
   if (k === 'chase') return caCmdChase(host);
   if (k === 'approve') return caCmdApprove(host);
   if (k === 'amend'){
@@ -2816,6 +2817,88 @@ async function caCmdHandover(host, c){
   const m = A.length ? A[A.length - 1] : null; if (m) m._hand = { cid: c.id, to: [] };
   return said;
 }
+/* ---- CHECK AGAINST, AS DRAWN (owner, 28 Nov 2026: "go with your recommendations") ----
+   Choosing the Notebook document asks Jambo ONCE (POST /api/ai/check: the stored contract against the document, behind
+   their walls); the answer is kept in this browser for that contract and document (CA_CHECK_KEY) and drawn again for
+   free until the contract or the document changes, with Check again. The card: a ring "7 of 12 … met", the table
+   (what the document asks · what the contract says · Met / Partly / Missing), a Redline on a row that falls short (the
+   clause editor on that clause with the wording carried, Apply · Discard, nothing filed until File: ceOfferCarried),
+   Draft the N redlines (each filed through the one funnel as the reader's own UNSENT redline, nothing sent), Show on
+   the paper, the source line. */
+const CA_CHECK_KEY = 'hati.v1.jamboChecks';
+const CA_CHECK_TONE = { met: 'green', partly: 'amber', missing: 'red' };
+function caCmdCheckStampOf(c, d){ return [String((c && (c.version || c.updatedAt || c.lastAction)) || ''), String((d && (d.updatedAt || d.checkedAt || d.version)) || '')].join('|'); }
+function caCmdCheckKept(c, d){
+  let all = {}; try { all = JSON.parse(localStorage.getItem(CA_CHECK_KEY) || '{}') || {}; } catch (_){ all = {}; }
+  const k = String(c.id) + '|' + String(d.id), hit = all[k];
+  return (hit && hit.stamp === caCmdCheckStampOf(c, d) && hit.res) ? hit : null;
+}
+function caCmdCheckKeep(c, d, res){
+  let all = {}; try { all = JSON.parse(localStorage.getItem(CA_CHECK_KEY) || '{}') || {}; } catch (_){ all = {}; }
+  all[String(c.id) + '|' + String(d.id)] = { stamp: caCmdCheckStampOf(c, d), at: new Date().toISOString(), res };
+  const keys = Object.keys(all); if (keys.length > 40) keys.sort((a, b) => String(all[a].at).localeCompare(String(all[b].at))).slice(0, keys.length - 40).forEach(x => delete all[x]);
+  try { localStorage.setItem(CA_CHECK_KEY, JSON.stringify(all)); } catch (_){}
+}
+function caCmdCheckRing(met, of){
+  const r = 15, C = 2 * Math.PI * r, f = of ? met / of : 0;
+  return `<svg class="ca-ck-ring" width="44" height="44" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--color-divider)" stroke-width="5"/>`
+    + `<circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--st-green-fg)" stroke-width="5" stroke-dasharray="${(f * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 18 18)"/></svg>`;
+}
+function caCmdCheckHtml(c, d, K){
+  const R = (K && K.res) || {}, rows = Array.isArray(R.rows) ? R.rows : [];
+  const met = rows.filter(r => r.status === 'met').length, partly = rows.filter(r => r.status === 'partly').length, missing = rows.filter(r => r.status === 'missing').length;
+  const gaps = rows.filter(r => r.status !== 'met' && r.fix);
+  const row = (r, i) => `<tr><td><b>${_caE(r.asks)}</b>${r.ref ? `<small>${_caE(r.ref)}</small>` : ''}</td>`
+    + `<td>${r.says ? `<q>${_caE(r.says)}</q>` : `<span class="ca-ck-none">${_caE(_caT('ca_ck_says_none'))}</span>`}${r.clause ? `<small>${_caE(_caT('ca_ck_clause', { n: r.clause }))}</small>` : ''}</td>`
+    + `<td><span class="ca-cmd-bd is-${CA_CHECK_TONE[r.status] || 'grey'}">${_caE(_caT('ca_ck_st_' + r.status))}</span></td>`
+    + `<td>${r.status !== 'met' && r.fix ? `<button type="button" class="ca-cmd-go" data-ca-ck-red="${i}"${r.clause ? '' : ` disabled title="${_caE(_caT('ca_ck_no_clause'))}"`}>${_caE(_caT('ca_ck_redline'))}</button>` : ''}</td></tr>`;
+  const cut = [R.contractCut ? _caT('ca_ck_cut_contract') : '', R.docCut ? _caT('ca_ck_cut_doc') : ''].filter(Boolean).join(' ');
+  return `<div class="ca-cmd-turn is-check" data-cid="${_caE(c.id)}" data-doc="${_caE(d.id)}">`
+    + `<div class="ca-ck-head">${caCmdCheckRing(met, rows.length)}<div><b>${_caE(_caT('ca_ck_lead', { n: met, of: rows.length, kind: R.kind || _caT('ca_ck_kind') }))}</b>`
+    + `<small>${_caE([String(d.name || ''), partly ? _caT('ca_ck_partly_n', { n: partly }) : '', missing ? _caT('ca_ck_missing_n', { n: missing }) : ''].filter(Boolean).join(' · '))}</small></div></div>`
+    + `<div class="ca-ck-scroll"><table class="ca-ck-t"><thead><tr><th>${_caE(_caT('ca_ck_h_asks'))}</th><th>${_caE(_caT('ca_ck_h_says'))}</th><th>${_caE(_caT('ca_ck_h_status'))}</th><th></th></tr></thead>`
+    + `<tbody>${rows.map(row).join('')}</tbody></table></div>`
+    + (cut ? `<p class="ca-cmd-more">${_caE(cut)}</p>` : '')
+    + `<div class="ca-cmd-bar" data-ca-ck-bar><button type="button" class="ca-cmd-seen" data-ca-ck-show>${_caE(_caT('ca_ck_show'))}</button>`
+    + (gaps.length ? `<button type="button" class="ca-cmd-seen is-ink" data-ca-ck-draft>${_caE(_caT(gaps.length === 1 ? 'ca_ck_draft_1' : 'ca_ck_draft', { n: gaps.length }))}</button>` : '') + `</div>`
+    + `<p class="ca-cmd-from">${_caE(_caT('ca_ck_from', { ref: caRef(c), doc: String(d.name || ''), when: K && K.at ? caCmdWhenSaid(K.at) : '' }))} <button type="button" class="ca-cmd-go" data-ca-ck-again>${_caE(_caT('ca_ck_again'))}</button></p></div>`;
+}
+async function caCmdCheck(host, c, d, again){
+  if (!c || !d) return false;
+  const q = _caT('ca_cmd_q_check', { ref: caRef(c), doc: String(d.name || '') });
+  const kept = again ? null : caCmdCheckKept(c, d);
+  if (kept) return caCmdSay(host, q, caCmdCheckHtml(c, d, kept), `${caRef(c)} · ${String(d.name || '')}`);
+  caCmdSay(host, q, `<div class="ca-cmd-turn is-check is-busy"><p class="ca-cmd-more">${typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_ck_reading', { doc: String(d.name || '') })) : _caE(_caT('ca_ck_reading', { doc: String(d.name || '') }))}</p></div>`, `${caRef(c)} · ${String(d.name || '')}`);
+  const H = (window.ai && Array.isArray(window.ai.history)) ? window.ai.history : [];
+  const turn = H.length ? H[H.length - 1] : null;
+  let res = null, err = '';
+  try { res = (typeof api === 'function') ? await api('ai/check', 'POST', { contractId: c.id, docId: d.id }) : null; } catch (e){ err = String((e && e.message) || ''); }
+  let html;
+  if (res && Array.isArray(res.rows)){ caCmdCheckKeep(c, d, res); html = caCmdCheckHtml(c, d, { res, at: new Date().toISOString() }); if (turn) turn._check = { cid: c.id, doc: d.id, res }; }
+  else html = `<div class="ca-cmd-turn is-check"><p>${_caE(_caT(/key|configured/i.test(err) ? 'ca_req_nokey' : 'ca_ck_failed'))}</p>${err ? `<p class="ca-cmd-more">${_caE(err)}</p>` : ''}</div>`;
+  if (turn) turn.text = html;
+  if (host === 'ig' && typeof window.renderIntelDock === 'function') window.renderIntelDock();
+  else if (typeof window.renderAIFeed === 'function') window.renderAIFeed();
+  return true;
+}
+/* one gap as the reader's own unsent redline, through the one funnel; a clause the paper has not got is added */
+async function caCmdCheckFile(c, d, r){
+  const author = (typeof currentUser === 'function' && currentUser() && currentUser().name) || 'This workspace';
+  const note = _caT('ca_ck_note', { doc: String(d.name || ''), ref: r.ref || r.asks });
+  let cl = null; try { cl = (r.clause && typeof window.negoClauseByRef === 'function') ? window.negoClauseByRef(c, r.clause, { init: true }) : null; } catch (_){ cl = null; }
+  if (cl && typeof window.negoEditClause === 'function'){
+    let f = null; try { f = (typeof window.pbPlaceAt === 'function') ? window.pbPlaceAt(String(cl.bodyHtml || ''), r.clause, r.fix, r.add !== false) || window.pbPlaceAt(String(cl.bodyHtml || ''), r.clause, r.fix, true) : null; } catch (_){ f = null; }
+    if (!f || !f.html) return null;
+    return await window.negoEditClause(c, cl.clauseId, f.html, { side: 'owner', author, note });
+  }
+  if (typeof window.negoAddNamedClause !== 'function') return null;
+  const list = (typeof window.negoClauseList === 'function') ? window.negoClauseList(c) : [];
+  const boiler = x => /\b(signed for|in witness|witnesseth)\b|signature:\s/i.test(String((x && (x.text || x.headingText)) || ''));
+  let after = null; for (const x of list){ if (boiler(x)) break; after = x.clauseId; }
+  const body = (typeof window.textToRich === 'function') ? window.textToRich(r.fix) : `<p>${_caE(r.fix)}</p>`;
+  const bag = { side: 'owner', author, note, summary: note };
+  return await window.negoAddNamedClause(c, { headingText: String(r.asks || '').slice(0, 80), bodyHtml: body, afterClauseId: after }, bag);
+}
 /* the two LEAD commands, finished in words: read before anything else in every box (caAskAnywhere, jlAsk, intelAsk) */
 function caCmdTyped(text, host){
   const t = String(text || '').trim();
@@ -2869,6 +2952,41 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     go.textContent = _caT('ca_ap_go', { n }); go.disabled = !n;
   });
   document.addEventListener('click', async e => {
+    /* Check against: a row's Redline (the editor, wording carried), Draft the N redlines (unsent, each through the
+       funnel), Show on the paper, Check again */
+    const ck = e.target && e.target.closest ? e.target.closest('[data-ca-ck-red], [data-ca-ck-draft], [data-ca-ck-show], [data-ca-ck-again]') : null;
+    if (ck){ e.preventDefault(); if (ck.disabled) return;
+      const turn = ck.closest('.ca-cmd-turn'), cid = turn && turn.getAttribute('data-cid'), did = turn && turn.getAttribute('data-doc');
+      const c = cid && typeof getContract === 'function' ? getContract(cid) : null;
+      const d = caCmdNbDocs().find(x => String(x.id) === String(did)) || { id: did, name: '' };
+      if (!c) return;
+      const K = caCmdCheckKept(c, d) || (() => { const H = (window.ai && window.ai.history) || []; const m = H.slice().reverse().find(x => x && x._check && x._check.cid === cid && x._check.doc === did); return m ? { res: m._check.res } : null; })();
+      const rows = (K && K.res && K.res.rows) || [];
+      if (ck.hasAttribute('data-ca-ck-again')){ caCmdCheck(caCmdHostOf(null), c, d, true); return; }
+      if (ck.hasAttribute('data-ca-ck-show')){
+        const first = rows.find(r => r.status !== 'met' && r.clause);
+        const on = typeof window.pdContract === 'function' ? window.pdContract() : null;
+        if (!(on && String(on.id) === String(c.id)) && typeof window.roomHomeLand === 'function'){ window.roomHomeLand(c.id, { open: true }); await new Promise(r => setTimeout(r, 400)); }
+        if (first && typeof window.negoClauseByRef === 'function' && typeof window.pdGlGoTo === 'function'){ const cl = window.negoClauseByRef(c, first.clause); if (cl) try { window.pdGlGoTo(cl.clauseId); } catch (_){} }
+        return;
+      }
+      if (ck.hasAttribute('data-ca-ck-red')){
+        const r = rows[Number(ck.getAttribute('data-ca-ck-red'))]; if (!r || !r.clause) return;
+        if (c._light && typeof window.ensureFull === 'function') await window.ensureFull(c);
+        const cl = typeof window.negoClauseByRef === 'function' ? window.negoClauseByRef(c, r.clause, { init: true }) : null;
+        if (!cl){ if (typeof toast === 'function') toast(_caT('ca_ck_no_clause'), 'warn'); return; }
+        if (typeof window.rlWithEditorDoor === 'function') window.rlWithEditorDoor(c, door => door.open(cl.clauseId, { carry: { ref: r.clause, words: r.fix, add: r.add !== false, from: String(d.name || '') + (r.ref ? ' ' + r.ref : '') } }));
+        return;
+      }
+      const bar = ck.closest('[data-ca-ck-bar]'), gaps = rows.filter(r => r.status !== 'met' && r.fix);
+      if (c._light && typeof window.ensureFull === 'function') await window.ensureFull(c);
+      ck.disabled = true; ck.innerHTML = typeof window.busyHtml === 'function' ? window.busyHtml(_caT('ca_ck_drafting', { n: gaps.length })) : _caE(_caT('ca_ck_drafting', { n: gaps.length }));
+      let made = 0, held = 0;
+      for (const r of gaps){ let ch = null; try { ch = await caCmdCheckFile(c, d, r); } catch (_){ ch = null; } ch ? made++ : held++; }
+      if (made && typeof window.persist === 'function') try { await window.persist(c); } catch (_){}
+      bar.innerHTML = `<span class="ca-cmd-said">${_caE(_caT(held ? 'ca_ck_drafted_some' : 'ca_ck_drafted', { n: made, h: held }))}</span>`
+        + (made ? `<button type="button" class="ca-cmd-go" data-ca-cmd-go="open" data-cid="${_caE(c.id)}">${_caE(_caT('ca_ck_see_redlines'))}</button>` : '');
+      return; }
     /* Handover pack: + add (colleagues who may open it), × drops one, Send to N colleagues (the one hand-off each) */
     const ho = e.target && e.target.closest ? e.target.closest('[data-ca-ho-add], [data-ca-ho-pick-id], [data-ca-ho-drop], [data-ca-ho-go]') : null;
     if (ho){ e.preventDefault(); if (ho.disabled) return;
@@ -4410,7 +4528,7 @@ Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_AC
 
 /* Jambo finds the way (22 Oct 2026) */
 Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });
-Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
+Object.assign(window, { CA_CMD_CT, CA_CMD_CT_MAX, caCmdRefOf, caCmdCtRows, caCmdDocRows, caSlashList, caSlashTake, CA_CMD_ROWS_MAX, CA_CHASE_DAYS, caCmdHostOf, caCmdSay, caCmdRowHtml, caCmdTurnHtml, caCmdChaseRows, caCmdApproveRows, caCmdStdOf, caCmdAmendRows, caCmdAct, caCmdTyped, CA_CMDS, CA_CMD_NB_MAX, CA_SINCE_KEY, CA_CHECK_KEY, CA_CHECK_TONE, caCmdCheckStampOf, caCmdCheckKept, caCmdCheckKeep, caCmdCheckRing, caCmdCheckHtml, caCmdCheck, caCmdCheckFile, caCmdHandRead, caCmdHandHtml, caCmdHandText, caCmdHandTurn, caCmdHandover, CA_CHASE_LATE, caCmdChaseAll, caCmdChaseWhen, caCmdChaseHtml, caCmdChase, caCmdChaseOne, CA_REQ_ITEMS_MAX, caCmdReqOwed, caCmdReqContact, caCmdReqHtml, caCmdReqDraft, caCmdRequest, caCmdApproveSort, caCmdApproveHtml, caCmdApprove, caCmdApproveMany, caCmdApproveUndo, CA_PREP_BADGE, CA_PREP_ORDER, CA_PREP_GLUE, caCmdPrepAsk, caCmdPrepOurs, caCmdPrepRead, caCmdPrepCall, caCmdPrepWhen, caCmdPrepHtml, caCmdPrepText, caCmdPrepare, CA_CHANGED_DAYS, CA_CHANGED_GROUPS, CA_CHANGED_READ, CA_CHG_KIND, caCmdMark, caCmdMarkSeen, caCmdEndOf, caCmdTrailSince, caCmdBookMoves, caCmdDaySaid, caCmdWhenSaid, caCmdChangedHtml, caCmdChanged, caCmdWord, caCmdNbDocs, caCmdRows, caCmdFill, caSlHeadOf, caCmdGoHtml });
 
 /* the last answer's set, and the Board's own line (24 Oct 2026) */
 Object.assign(window, { CA_DRAFT_ANALYSIS, CA_THESE_RE, caLastSet, caReadThese, caBoardSaidTake });
