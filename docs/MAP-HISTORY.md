@@ -41017,3 +41017,9 @@ build both and merge". A card in the Waiting on you pile carries `is-awaiting` (
 amber on hover/linked); every other card keeps the plain grey. The first rule lost to `.rl-pile :is(.rl-card-d, .rl-band
 + .rl-card-d)` (one class heavier) — measured in the browser, won by `.rl-card.rl-card-d.is-awaiting`. The Ladder's
 panel (slot rllad) joined the seven panels' no-grey block. Their view could not be opened by the photo tool. f1272.
+
+## THE SHELL — RAIL, BAR, PANELS — THE HANDOVER PACK'S COLLEAGUE LIST FLOATS (28 Nov 2026)
+Owner, a photo of the Handover pack card: "there is a bug where the drop down of contacts scrolls behind the main
+message". The "+ add" list was a strip inside the card (max-height 220, its own scroller) and was cut by the panel's
+scroller and foot. It now stands over everything through the one helper (popListFloat) at the To row's width, a white
+card with an edge; a press outside or Esc shuts it. Photographed at the three screens. f1274.
