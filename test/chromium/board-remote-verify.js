@@ -51,7 +51,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
 
       /* 1 */
       const ways = await until(() => { const w = [...document.querySelectorAll('#ig-dock .jb-ways .jb-way')]; return w.length ? w.map(b => ({ rm: b.hasAttribute('data-hb-remote'), off: b.classList.contains('is-fit-off') || getComputedStyle(b).display === 'none', t: b.textContent.trim() })) : null; });
-      check('1 🎛️ stands first in the Board\'s links line, shown' + at, !!(ways && ways[0] && ways[0].rm && !ways[0].off && /\u{1F39B}/u.test(ways[0].t)), JSON.stringify(ways && ways.slice(0, 3)));
+      check('1 the Charts pill stands first in the Board\'s links line, shown' + at, !!(ways && ways[0] && ways[0].rm && !ways[0].off && ways[0].t === 'Charts'), JSON.stringify(ways && ways.slice(0, 3)));
       if (!(ways && ways[0] && ways[0].rm)){ await page.close(); continue; }
 
       /* 2 */
