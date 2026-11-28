@@ -17902,6 +17902,8 @@
   .ca-cmd-bar{display:flex;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--color-divider)}
   .ca-cmd-seen{height:var(--ctl-h-sm);padding:0 12px;border:0;border-radius:999px;background:var(--st-gray-bg);color:var(--color-text);font:inherit;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   .ca-cmd-seen:disabled{color:var(--color-quiet);cursor:default}
+  .jb-head-ctx{flex:0 1 auto;min-width:0;margin-left:6px;font-size:var(--t-meta);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:center}
+  .jb-talk-label[hidden] + .jb-head-ctx{display:none}
   .ca-cmd-from{margin:8px 0 0;font-size:var(--t-meta);color:var(--color-quiet)}
   .jb-thinking .jb-dots{display:inline-flex;align-items:center;gap:3px}
   .jb-thinking .jb-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.35;animation:jb-busy 1.2s infinite ease-in-out}

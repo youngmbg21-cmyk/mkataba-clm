@@ -2178,7 +2178,8 @@ async function caCmdChanged(host){
   }
   if (!feed && typeof window.buildActivityFeed === 'function') try { feed = window.buildActivityFeed(200); } catch (_){ feed = []; }
   const items = caCmdTrailSince(feed || [], Date.parse(sinceIso)).concat(caCmdBookMoves(mark));
-  return caCmdSay(host, _caT('ca_chg_asked'), caCmdChangedHtml(items, mark, sinceIso));
+  return caCmdSay(host, _caT('ca_chg_asked'), caCmdChangedHtml(items, mark, sinceIso),
+    mark ? _caT('ca_chg_ctx', { since: caCmdWhenSaid(sinceIso).replace(/,\s*/, ' ') }) : _caT('ca_chg_ctx_week', { d: CA_CHANGED_DAYS }));
 }
 function caCmdWord(k){ return '/' + String(_caT('ca_cmd_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caCmdNbDocs(){
@@ -2293,14 +2294,17 @@ function caCmdHostOf(inp){
 /* a command's card says its own source inside it (what it read), so the turn carries no "Read from <contract>" line:
    the contract on screen is not what a command over the book read (`read` with no words draws none) */
 const CA_CMD_READ = { cid: null, text: '' };
-function caCmdSay(host, q, html){
+/* `ctx`: what the answer is about, said beside Jambo's name while it is the newest turn (jamboHeadCtxHtml) */
+function caCmdSay(host, q, html, ctx){
+  const more = ctx ? { ctx: String(ctx) } : {};
+  const sync = () => { if (typeof window.jamboHeadCtxSync === 'function') try { window.jamboHeadCtxSync(); } catch (_){} };
   if (host === 'ig' && typeof window !== 'undefined' && window.intel && typeof window.renderIntelDock === 'function'){
-    window.intel.history.push({ role: 'user', text: q }, { role: 'assistant', host: 'ai', text: html, read: CA_CMD_READ });   /* the dock escapes a person's words itself (intelAsk pushes them raw) */
-    window.renderIntelDock(); return true;
+    window.intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', host: 'ai', text: html, read: CA_CMD_READ }, more));   /* the dock escapes a person's words itself (intelAsk pushes them raw) */
+    window.renderIntelDock(); sync(); return true;
   }
   if (host === 'jl' && typeof window.jlTalkOpen === 'function') try { window.jlTalkOpen(); } catch (_){}
   if (typeof window.aiPush === 'function' && typeof window.renderAIFeed === 'function'){
-    window.aiPush('user', { text: _caE(q), raw: q }); window.aiPush('assistant', { text: html, free: true, read: CA_CMD_READ }); window.renderAIFeed(); return true;
+    window.aiPush('user', { text: _caE(q), raw: q }); window.aiPush('assistant', Object.assign({ text: html, free: true, read: CA_CMD_READ }, more)); window.renderAIFeed(); sync(); return true;
   }
   return false;
 }
