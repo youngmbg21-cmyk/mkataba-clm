@@ -1298,6 +1298,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1265 What's changed as drawn: the trail's groups and merged lines, dates and stage against the snapshot, only Mark all seen moves the mark, the card's parts, no Jambo call, no "Read from" under a command, both books.
 - f1265 (3) the head's context beside Jambo's name: the newest turn's `ctx`, cleared by any later turn, drawn by the one label and synced where the head is painted once.
 - f1266 Prepare my call as drawn: Still open by the one judge, Given so far RAW over rounds, the call's time only from the reader's own event, the card's parts and presses, Jambo asked only on Suggest trades, both books.
+- f1267 Approve the ones that meet our standards: meets vs needs-your-look with reasons, the card, each its own yes by the one writer of its kind with no note asked, Undo for rule steps and the rest said, the button follows the ticks, both books. f1262 (3) re-pointed.
 - `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
 - f658 A1b (28 Nov 2026): no chart list on an empty box. f1249 (remote on the Overview only).
 
