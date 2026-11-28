@@ -85,9 +85,9 @@ describe('f1266 (1) the brief is read off the record, as drawn', () => {
 
 describe('f1266 (2) wired: choosing a contract draws it; Jambo is asked only on Suggest trades', () => {
   test('the contract list\'s choice and "/prepare MK-n" both act; nothing is asked of Jambo to draw it', () => {
-    assert.match(CA, /if \(r\.k === 'prepare'\)\{ put\(''\); caCmdAct\('prepare', caCmdHostOf\(inp\), '', r\.c\); return true; \}/);
+    assert.match(CA, /if \(r\.k === 'prepare' \|\| r\.k === 'handover'\)\{ put\(''\); caCmdAct\(r\.k, caCmdHostOf\(inp\), '', r\.c\); return true; \}/);
     assert.match(CA, /if \(k === 'prepare'\) return caCmdPrepare\(host, chosen \|\| null\);/);
-    assert.match(CA, /m\[1\]\.toLowerCase\(\) === caCmdWord\('prepare'\)\.slice\(1\)\.toLowerCase\(\)/);
+    assert.match(CA, /for \(const k of \['prepare', 'handover'\]\) if \(m && m\[1\]\.toLowerCase\(\) === caCmdWord\(k\)\.slice\(1\)\.toLowerCase\(\)\)/);
     const f = CA.slice(CA.indexOf('async function caCmdPrepare'), CA.indexOf('\n}\n', CA.indexOf('async function caCmdPrepare')));
     assert.doesNotMatch(f, /intelAsk|aiSubmit|jlAsk|caAskAnywhere|api\(/);
   });
