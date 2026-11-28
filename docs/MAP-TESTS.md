@@ -1309,3 +1309,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## HOME — THE BOARD AND THE MAP (the remote as a word, 28 Nov 2026)
 - f1249 (6) pins `hb_rm_word` and no 🎛️; (7) the key in both books; board-remote-verify check 1 asks the pill reads "Charts".
+
+## THE DOSSIER END TO END, L+S (the brief's panel, 28 Nov 2026)
+- f1266 pins slot pd2bf: no grey card on its groups or its act, a hairline between rows.
