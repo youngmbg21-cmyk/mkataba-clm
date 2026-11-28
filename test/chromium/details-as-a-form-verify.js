@@ -84,10 +84,13 @@ const check = (name, pass, detail) => {
        is opened by its own door (pdFillOpen, the Dossier's Details line) and stands in THE MIDDLE ([data-pd-mid^="form:"]) */
     if (!(await until(() => !!document.querySelector('#pd-og.is-form[data-pd-og-for="MK-DF1"]'), null, 3000)))
       await page.evaluate(() => { if (window.pdFillOpen) pdFillOpen('MK-DF1', {}); });
-    const up = await until(() => !!document.querySelector('#pd-og.is-form[data-pd-og-for="MK-DF1"]')) && await openGroupWith('#pd-og[data-pd-og-for="MK-DF1"] [data-tplf]');
+    /* RE-POINTED 28 Nov 2026 (owner: "keep the page, but only for the deal details … Remove the paper blanks from it"): the
+       form's first question is a detail of the record; a space of the paper ([data-tplf]) is never a row of it */
+    const up = await until(() => !!document.querySelector('#pd-og.is-form[data-pd-og-for="MK-DF1"]')) && await openGroupWith('#pd-og[data-pd-og-for="MK-DF1"] [data-kt]');
     if (!up) { check('0 the Details tab draws its form', false); throw new Error('not drawn'); }
+    check('0b the form holds no space of the paper', await page.evaluate(() => !document.querySelector('#pd-og [data-tplf], #pd-og [data-blankf]')));
     await page.waitForTimeout(300);
-    const qSeen = await page.evaluate(() => { const q0 = document.querySelector('#pd-og [data-tplf]'); const f = q0 && q0.nextElementSibling && q0.nextElementSibling.classList.contains('dp-face') ? q0.nextElementSibling : null;
+    const qSeen = await page.evaluate(() => { const q0 = document.querySelector('#pd-og tr.pd-fm-row [data-kt]'); const f = q0 && q0.nextElementSibling && q0.nextElementSibling.classList.contains('dp-face') ? q0.nextElementSibling : null;
       const el = (q0 && q0.getBoundingClientRect().width === 0 && f) ? f : q0; if (!el) return false;
       /* the open group may sit below the fold under the Next card: the reader scrolls to it */
       el.scrollIntoView({ block: 'nearest' }); const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; });
@@ -103,7 +106,7 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 14 Oct 2026 (stage 5): the face dresses a date question in
          HaTi's own date face (popupControlsDress — the native box is hidden
          behind .dp-face), so the box the reader sees is that face */
-      const q0 = document.querySelector('#pd-og [data-tplf]');
+      const q0 = document.querySelector('#pd-og tr.pd-fm-row [data-kt]');
       const qFace = q0 && q0.nextElementSibling && q0.nextElementSibling.classList.contains('dp-face') ? q0.nextElementSibling : null;
       const firstQ = (q0 && q0.getBoundingClientRect().width === 0 && qFace) ? qFace : q0;
       /* the other party's box wherever this build draws it on the tab */

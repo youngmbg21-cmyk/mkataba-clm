@@ -115,3 +115,10 @@ test('f1246 every Fill in door asks the one door; only our record\'s details ski
   const r = fnSrc(PD, 'pd2FillKeyIsRecord');
   assert.match(r, /it\.kind === 'kt' \|\| it\.kind === 'nda'/, 'the record\'s own details, read off detailsOf');
 });
+
+/* (28 Nov 2026) THE FORM KEEPS THE DEAL'S DETAILS ONLY (owner: "keep the page, but only for the deal details (party,
+   value, start date, signers). Remove the paper blanks from it"): a space in the wording is never a row of the form */
+test('f1246 the Fill in the contract form holds the deal details, never a space of the paper', () => {
+  assert.match(PD, /const PD_FORM_PAPER_KINDS = new Set\(\['blank', 'tplf'\]\);/);
+  assert.match(fnSrc(PD, 'pdFormRows'), /f\.kind !== 'signer' && !PD_FORM_PAPER_KINDS\.has\(f\.kind\)/);
+});

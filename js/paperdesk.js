@@ -5477,8 +5477,13 @@ function pdOgHtml(c, o){
    here unchanged. Nothing new is stored: the writers are the product's own. */
 const _pdForm = new Map();      // contract id → the rows the form opened with, in order [{ k, g, label }]
 const PD_FORM_GROUPS = ['money', 'dates', 'parties', 'paper', 'terms'];
+/* THE FORM KEEPS THE DEAL'S DETAILS, THE PAPER KEEPS ITS SPACES (owner, 28 Nov 2026: "keep the page, but only for the
+   deal details (party, value, start date, signers). Remove the paper blanks from it. Every blank in the wording is then
+   filled only on the paper, after negotiation"): a space in the wording (a placeholder, a company standard's field) is
+   never a row here; it is still owed (detailsOf) and filled by Fill in on the paper */
+const PD_FORM_PAPER_KINDS = new Set(['blank', 'tplf']);
 function pdFormRows(c){
-  return pdOgFacts(c).filter(f => f && f.kind !== 'signer');
+  return pdOgFacts(c).filter(f => f && f.kind !== 'signer' && !PD_FORM_PAPER_KINDS.has(f.kind));
 }
 /* the one line in the Dossier: how many are owed, how many Jambo read, and the one door */
 function pdFormDoorRowHtml(c, rows){
