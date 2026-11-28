@@ -41032,3 +41032,11 @@ card with an edge; a press outside or Esc shuts it. Photographed at the three sc
 
 ## THE SHELL — RAIL, BAR, PANELS — CHASE EVERYONE'S GAPS CLOSED (28 Nov 2026)
 Owner: "chase everyone states no one owes me nothing which i suspect is not true". Read off the code, four gaps: (1) a signature waited on inside HaTi was never listed (only a hand-over to sign elsewhere was); (2) a named person's yes before signing was never listed (`next.sa` skipped); (3) an admin saw no approval steps at all, because `approvalDecidableNow` is true for an admin on every step (they may stand in) — now a step is left out only when it NAMES the reader; (4) duties with no due date, or due more than 14 days ahead, were dropped silently — now an undated one is listed unticked ("No due date", a reminder asking when to expect it) and the later ones are counted under the list. Owner: "go".
+## THE SHELL — RAIL, BAR, PANELS — ONE FADING HAIRLINE, A LIGHTER GREEN CHARTS (28 Nov 2026)
+Owner: "some jambo panels have a line above the entry space that goes end to end and some have no line. I want line
+but that does not go end to end." Four options drawn on every panel (inset, fading, centre rule, soft bar); owner: "Build
+the fading hairline. Then the charts button should be a lighter green shade. Also, make sure it never appears on the
+panel if you are not in the board page." The foot rows' top borders now draw one border-image (16px in, fading); rows
+that gave way by a clear colour now give way by width 0 (a border-image ignores colour). Charts: a pale green pill. A
+walk from the Board to nine pages and into the conversation found Charts only on the Board overview. Also confirmed:
+every Jambo panel's waiting turn is the grey words and dots (jamboThinkingHtml), none the old grey bubble. f1276.

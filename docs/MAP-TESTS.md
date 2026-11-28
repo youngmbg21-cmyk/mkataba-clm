@@ -1334,3 +1334,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE SHELL — RAIL, BAR, PANELS (handover colleague list, 28 Nov 2026)
 - f1274 (1) + add floats by popListFloat; (2) outside press / Esc shut it; (3) a white card, not a strip.
+
+## THE SHELL — RAIL, BAR, PANELS (fading hairline, Charts green, 28 Nov 2026)
+- f1276 (1) foot rows draw the fading hairline; (2) give-way rows width 0; (3) Charts pale green; (4) remote Board-only.
