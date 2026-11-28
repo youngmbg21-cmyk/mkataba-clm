@@ -40989,3 +40989,6 @@ window's approvals line still names a value (lpQuoteOf) — not a side panel, le
 
 ## THE SHELL — RAIL, BAR, PANELS (28 Nov 2026: Prepare my call says what you ask of them too)
 The owner, on the merged brief: "for prepare my call needs to also show what you are asking of them not just them of you." Added under the drawn card: "They ask of you" (was "Still open") and a new "You ask of them": our own asks on the table, read RAW off c.changes (never negoInit: negoPending would write), each said in our voice off its own ops ("You ask for “eighteen (18)” in place of “twelve (12)”"), badged Sent · waiting on them or Not sent yet by negoUnsentAsks's own reading (held back or kept = not sent; made after the last hand-over = not sent; never handed over = not sent). The lead reads "3 of their points open, 2 of yours; …", and the brief shared with a colleague carries the section too.
+## THE SHELL — RAIL, BAR, PANELS — NO MONEY IN THE JUMP WINDOW (28 Nov 2026)
+After the seven panels lost their money, the owner: "remove the money from the jump window too". The "/" window's
+approvals line (lpQuoteOf) now names the agreement and the party only; f1097 re-pointed (it pinned "· KES 78M").
