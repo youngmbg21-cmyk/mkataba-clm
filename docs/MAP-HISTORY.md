@@ -41029,3 +41029,6 @@ Owner, a photo of the Handover pack card: "there is a bug where the drop down of
 message". The "+ add" list was a strip inside the card (max-height 220, its own scroller) and was cut by the panel's
 scroller and foot. It now stands over everything through the one helper (popListFloat) at the To row's width, a white
 card with an edge; a press outside or Esc shuts it. Photographed at the three screens. f1274.
+
+## THE SHELL — RAIL, BAR, PANELS — CHASE EVERYONE'S GAPS CLOSED (28 Nov 2026)
+Owner: "chase everyone states no one owes me nothing which i suspect is not true". Read off the code, four gaps: (1) a signature waited on inside HaTi was never listed (only a hand-over to sign elsewhere was); (2) a named person's yes before signing was never listed (`next.sa` skipped); (3) an admin saw no approval steps at all, because `approvalDecidableNow` is true for an admin on every step (they may stand in) — now a step is left out only when it NAMES the reader; (4) duties with no due date, or due more than 14 days ahead, were dropped silently — now an undated one is listed unticked ("No due date", a reminder asking when to expect it) and the later ones are counted under the list. Owner: "go".

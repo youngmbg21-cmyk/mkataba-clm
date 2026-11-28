@@ -2336,9 +2336,9 @@ const _caCmdBook = () => ((typeof state !== 'undefined' && state && Array.isArra
 /* CHASE EVERYONE: their duties late or due within CA_CHASE_DAYS, not held behind an earlier step, the open agreement's
    alone when one is in front; each a Chase › (obligationChase: the Send screen as a reminder) */
 const CA_CHASE_DAYS = 14;
-function caCmdChaseRows(only){
+function caCmdChaseRows(only, wide){
   const dU = d => (typeof window.daysUntil === 'function') ? window.daysUntil(d) : NaN;
-  const out = [];
+  const out = []; let later = 0;
   for (const c of (only ? [only] : _caCmdBook())){
     for (const o of (Array.isArray(c.obligations) ? c.obligations : [])){
       if (!o || o.status === 'done' || !o.id) continue;
@@ -2346,11 +2346,15 @@ function caCmdChaseRows(only){
       if (typeof window.obligationBlocked === 'function' && window.obligationBlocked(o, c)) continue;
       const due = (typeof window.dateOnly === 'function') ? window.dateOnly(o.due) : (o.due || null);
       const d = due ? dU(due) : NaN;
-      if (!(d <= CA_CHASE_DAYS)) continue;
+      /* wide (Chase everyone): a duty with no due day is listed too, unticked; one due later is COUNTED and said */
+      if (wide && !due){ out.push({ c, o, d: null }); continue; }
+      if (!(d <= CA_CHASE_DAYS)){ if (wide && d > CA_CHASE_DAYS) later++; continue; }
       out.push({ c, o, d });
     }
   }
-  return out.sort((a, b) => a.d - b.d);
+  out.sort((a, b) => (a.d == null) - (b.d == null) || a.d - b.d);
+  if (wide) out.later = later;
+  return out;
 }
 /* APPROVE THE ONES THAT MEET OUR STANDARDS: every agreement whose yes is the reader's to give now */
 function caCmdApproveRows(){
@@ -2677,7 +2681,11 @@ function caCmdChaseAll(){
     }
     let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
     const next = ap && ap.required && !ap.ok ? ap.next : null;
-    let mine = false; try { mine = !!(typeof window.approvalDecidableNow === 'function' && window.approvalDecidableNow(c)); } catch (_){ mine = false; }
+    /* THE STEP IS THE NAMED APPROVER'S (owner, 28 Nov 2026: "go"): an admin may stand in on any step, but the step is
+       still its approver's to answer, so an admin is shown it to chase unless the step names the admin themself */
+    const me = (typeof currentUser === 'function') ? currentUser() : null;
+    const named = a => !!(a && me) && (a.kind === 'member' ? (a.id != null && a.id !== '' ? String(a.id) === String(me.id) || (typeof window.awayCovers === 'function' && window.awayCovers(me, a.id)) : a.name === me.name) : a.role === me.role);
+    const mine = !!(next && !next.sa && named(next.approver));
     if (next && !next.sa && !mine){
       let ask = null; try { ask = (typeof window.askOpenFor === 'function') ? window.askOpenFor(c, 'rule', next.ruleId) : null; } catch (_){ ask = null; }
       const d = days(ask && ask.at);
@@ -2685,17 +2693,49 @@ function caCmdChaseAll(){
       out.push({ c, kind: 'approval', who, d, late: d != null && d >= CA_CHASE_LATE, what: _caT('ca_ch_w_approval'),
         words: '', fixed: true });
     }
+    /* A NAMED PERSON'S YES BEFORE SIGNING, asked and waiting on someone else: reminded by the request's own notice
+       (signApprovalNotify 'remind'; the route lets its asker or an admin send it, once a day) */
+    let sa = null; try { sa = (typeof window.signApprovalStateOf === 'function') ? window.signApprovalStateOf(c) : null; } catch (_){ sa = null; }
+    for (const r of ((sa && !sa.started && sa.rows) || [])){
+      if (!r || r.status !== 'pending' || !r.req) continue;
+      if (me && r.req.approverId != null && String(r.req.approverId) === String(me.id)) continue;   /* it is the reader's own yes */
+      if (!(me && (me.role === 'admin' || (r.req.askedBy && String(r.req.askedBy.id) === String(me.id))))) continue;
+      const d = days(r.req.askedAt);
+      out.push({ c, kind: 'sa', req: r.req, who: String(r.need.approverName || r.req.approverName || '').trim() || _caT('sa_admins'), d, late: d != null && d >= CA_CHASE_LATE,
+        what: _caT('ca_ch_w_sa'), words: '', fixed: true });
+    }
+    /* THEIR SIGNATURE INSIDE HaTi: signing has begun and the route waits on their signer (not a hand-over, said above) */
+    if (!(move && move.why === 'handover')){
+      let open = []; try { open = (typeof window.signingLocked === 'function' && window.signingLocked(c) && typeof window.signOpenRows === 'function') ? window.signOpenRows(c) : []; } catch (_){ open = []; }
+      if (open.some(x => x && x.party === 'counterparty')){
+        const plan = (typeof window.signerPlan === 'function') ? window.signerPlan(c) : [];
+        const at = plan.map(x => x && x.signed && (x.signedAt || x.at)).filter(Boolean).sort().pop();
+        const d = days(at);
+        out.push({ c, kind: 'sign', who: String(c.counterparty || '').trim(), d, late: d != null && d >= CA_CHASE_LATE, what: _caT('ca_ch_w_sign'), words: '', fixed: true });
+      }
+    }
   }
-  for (const { c, o, d } of caCmdChaseRows(null)){
+  const duties = caCmdChaseRows(null, true);
+  out.later = duties.later || 0;
+  for (const { c, o, d } of duties){
     const where = String(o.clauseLabel || o.clause || '').trim(), desc = String(o.desc || o.title || '').trim();
+    if (d == null){
+      out.push({ c, o, kind: 'duty', who: String(c.counterparty || '').trim(), d: null, nodue: true, late: false, what: [desc, where].filter(Boolean).join(', '),
+        words: _caT('ca_ch_say_duty_nodue', { name: first(contact(c)) || _caT('ca_ch_there'), what: desc ? desc.charAt(0).toLowerCase() + desc.slice(1) : '', where: where ? ' (' + where + ')' : '' }) });
+      continue;
+    }
     out.push({ c, o, kind: 'duty', who: String(c.counterparty || '').trim(), d: d < 0 ? -d : d, overdue: d < 0, late: d < 0,
       what: [desc, where].filter(Boolean).join(', '),
       words: _caT(d < 0 ? 'ca_ch_say_duty_late' : 'ca_ch_say_duty', { name: first(contact(c)) || _caT('ca_ch_there'), what: desc ? desc.charAt(0).toLowerCase() + desc.slice(1) : '',
         where: where ? ' (' + where + ')' : '', due: caCmdDaySaid(String(o.due || '').slice(0, 10)) }) });
   }
-  return out.sort((a, b) => (b.late - a.late) || ((b.d || 0) - (a.d || 0)));
+  const later = out.later;
+  const sorted = out.sort((a, b) => (b.late - a.late) || ((b.d || 0) - (a.d || 0)));
+  sorted.later = later;
+  return sorted;
 }
 function caCmdChaseWhen(r){
+  if (r.nodue) return _caT('ca_ch_nodue');
   if (r.d == null) return '';
   if (r.kind === 'duty') return r.overdue ? _caT('ca_ch_late', { n: r.d }) : _caT('ca_ch_due', { n: r.d });
   return _caT(r.d === 1 ? 'ca_ch_waits_1' : 'ca_ch_waits', { n: r.d });
@@ -2708,10 +2748,11 @@ function caCmdChaseHtml(R){
     + `<span class="ca-cmd-g"><b>${_caE([r.who, caRef(r.c)].filter(Boolean).join(' · '))}</b><small>${_caE(r.what)}</small>`
     + (r.fixed ? `<small class="ca-ch-how">${_caE(_caT('ca_ch_fixed_' + r.kind, { who: r.who || _caT('ca_cmd_them') }))}</small>`
       : `<textarea class="ca-ch-say" rows="4" data-ca-ch-say="${i}" aria-label="${_caE(_caT('ca_ch_words'))}">${_caE(r.words)}</textarea>`)
-    + `</span><span class="ca-cmd-bd is-${r.late ? 'amber' : 'grey'}" data-ca-ch-bd="${i}">${_caE(caCmdChaseWhen(r))}</span></label>`;
+    + `</span>${caCmdChaseWhen(r) ? `<span class="ca-cmd-bd is-${r.late ? 'amber' : 'grey'}" data-ca-ch-bd="${i}">${_caE(caCmdChaseWhen(r))}</span>` : `<span data-ca-ch-bd="${i}" hidden></span>`}</label>`;
   return `<div class="ca-cmd-turn is-chase">${lead}`
     + (shown.length ? `<div class="ca-cmd-rows">${shown.map(row).join('')}</div>` : '')
     + (R.length > max ? `<p class="ca-cmd-more">${_caE(_caT('ca_cmd_more', { n: R.length - max }))}</p>` : '')
+    + (R.later ? `<p class="ca-cmd-more">${_caE(_caT(R.later === 1 ? 'ca_ch_later_1' : 'ca_ch_later', { n: R.later, days: CA_CHASE_DAYS }))}</p>` : '')
     + (shown.length ? `<div class="ca-cmd-bar" data-ca-ch-bar><button type="button" class="ca-cmd-seen is-ink" data-ca-ch-go${late ? '' : ' disabled'}>${_caE(_caT(late === 1 ? 'ca_ch_go_1' : 'ca_ch_go', { n: late }))}</button></div>` : '')
     + `<p class="ca-cmd-from">${_caE(_caT('ca_ch_from'))}</p></div>`;
 }
@@ -2731,6 +2772,15 @@ async function caCmdChaseOne(r, words){
       const out = await api('contracts/' + encodeURIComponent(c.id) + '/chase', 'POST', { obligationId: r.o.id, note: String(words || '').trim() });
       if (out && out.ok === false && out.reason === 'no-address') return { ok: false, why: _caT('ca_ch_no_address') };
       return (out && (out.emailSent || out.outbox)) ? { ok: true } : { ok: false, why: _caT('ca_ch_not_sent') };
+    }
+    if (r.kind === 'sa'){
+      /* the request's own reminder door (signApprovalRemind: the server's notice, recorded on the request, said) */
+      if (typeof window.signApprovalRemind !== 'function') return { ok: false, why: _caT('ca_ch_not_sent') };
+      const live = (Array.isArray(c.signApprovals) ? c.signApprovals : []).find(x => x && x.id === r.req.id);
+      const before = (live && Array.isArray(live.reminded)) ? live.reminded.length : 0;
+      await window.signApprovalRemind(c, r.req.id);
+      const after = (live && Array.isArray(live.reminded)) ? live.reminded.length : 0;
+      return after > before ? { ok: true } : { ok: false, why: _caT('ca_ch_not_sent') };
     }
     if (r.kind === 'approval'){
       if (typeof api !== 'function') return { ok: false, why: _caT('ca_ch_no_server') };
@@ -3194,7 +3244,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
         const box = turn.querySelector(`[data-ca-ch-say="${i}"]`);
         const res = await caCmdChaseOne(r, box ? box.value : r.words);
         const bd = turn.querySelector(`[data-ca-ch-bd="${i}"]`), tick = turn.querySelector(`[data-ca-ch="${i}"]`);
-        if (bd){ bd.textContent = res.ok ? _caT('ca_ch_sent') : _caT('ca_ch_failed'); bd.className = 'ca-cmd-bd is-' + (res.ok ? 'green' : 'red'); if (!res.ok) bd.title = res.why || ''; }
+        if (bd){ bd.textContent = res.ok ? _caT('ca_ch_sent') : _caT('ca_ch_failed'); bd.className = 'ca-cmd-bd is-' + (res.ok ? 'green' : 'red'); bd.hidden = false; if (!res.ok) bd.title = res.why || ''; }
         if (tick) tick.disabled = true; if (box) box.readOnly = true;
         res.ok ? sent++ : failed++;
       }
