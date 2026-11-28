@@ -40976,3 +40976,11 @@ The owner, a photo of the brief's side panel with "Where this brief stands" ring
 version". The shared five-part panel paints its groups as a grey card; L+S pages turn it off for their own slot. The
 brief's slot (pd2bf) now does the same: one quiet list on white, a hairline between rows, the act on white; the black
 button still spans the panel (the standing rule). f1266.
+
+## JAMBO'S PANELS — THE FIVE PARTS — SEVEN PANELS LOSE THE GREY CARD (28 Nov 2026)
+After the brief panel (f1266) the owner asked: "check the other side panels for the grey box too". A browser sweep
+found seven still grey: Negotiations, Approvals, Requests, My notes, Notebook, Flow map, Jambo's house. Drawn L+S on the
+real pages (figures plain numbers with hairlines, lists on white, act and agents on white); owner: "build it and remove
+the money too, then merge". Negotiations' panel no longer shows a value beside its rows (regNegoSayFive). The "/" jump
+window's approvals line still names a value (lpQuoteOf) — not a side panel, left and said. Contract-room middle pages
+(Duties, Redlines, Where the deal stands) were not reached by the sweep. f1267.
