@@ -40995,3 +40995,10 @@ approvals line (lpQuoteOf) now names the agreement and the party only; f1097 re-
 
 ## THE SHELL — RAIL, BAR, PANELS (28 Nov 2026: What's changed counts more, and yours)
 The owner, with two empty cards: "why what has changed seems to show nothing has changed when i look in hati? What is considered change?" Measured: the card counted only OTHER people's entries and only five kinds (their replies, mentions, approvals and refusals, duties done, dates and stage), and Dates moved and Stage waited for a first Mark all seen — a workspace where the owner did the work showed nothing. Asked, the owner said "go" to all three: more kinds (other notes, sent, new contracts and uploads, duties added, edits and redline work), the reader's own in their own group "By you" (last), and the starting point kept on first use (caCmdMarkSeen when no mark). The latest 200 entries are read and a card that may have missed older ones says so. An entry by the system reads "HaTi", never "System".
+
+## THE DOSSIER END TO END, L+S — FOUR CONTRACT PANELS LOSE THE GREY CARD (28 Nov 2026)
+Owner: "check the contract pages for the grey box too", then "draw them in L+S version", "build it and merge". Found and
+built: Before you sign (checks, Then; the later check's circle keeps a thin edge on white), Fill in (spaces, Also; the
+space in hand light green), Clauses' not-read card, Redlines' Edit/Add list and empty risk row. Dossier, Plan, Duties,
+Where the deal stands, History, brief, Editor were already clean. Ladder, Their view, Key terms, Pay, Amend could not
+be opened by the photo tool and were not checked. f1269.
