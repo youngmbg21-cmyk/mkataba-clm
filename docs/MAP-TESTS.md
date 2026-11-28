@@ -1298,3 +1298,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1264 What's changed as drawn: the trail's groups and merged lines, dates and stage against the snapshot, only Mark all seen moves the mark, the card's parts, no Jambo call, no "Read from" under a command, both books.
 - `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
 - f658 A1b (28 Nov 2026): no chart list on an empty box. f1249 (remote on the Overview only).
+
+## THE SHELL — RAIL, BAR, PANELS (28 Nov 2026, the links line centred and capitalised)
+- f1264-the-links-line-centred-and-capitalised; re-pointed f1224 (1)(2).
