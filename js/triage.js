@@ -34,6 +34,9 @@
    the only one that costs nothing and answers instantly, so the contract's own
    Checks card has something on it before the paid readings have come back. */
 const TRIAGE_STEPS = ['risk', 'brief', 'playbook', 'oblig', 'fill'];
+/* nothing is read on arrival any more (readOnce, owner 27 Nov 2026): the old arrival reading, kept behind one switch, off */
+const TRIAGE_ON_ARRIVAL = false;
+const TRIAGE_READ_FIRST = true;
 
 /* ---- AND THE FIFTH IS THE OTHER HALF OF THE OWNER'S ASK (17 Sep 2026) ----
    *"When it lands in overview the open fields have to be pre-filled."* A
@@ -941,7 +944,16 @@ function contractArrived(c, opts){
      people it names, the address it carries and the promises it makes are
      claimed the same way — but the owner's 9 Sep ruling stands: NO BOX MEANS
      NO READING. `read:false` is that box left unticked. */
+  /* JAMBO READS A CONTRACT ONCE: the contract is marked as waiting for its one read (`readFirst`, kept on the record):
+     it opens on its Plan tab and its notes wait; a contract that arrived before this keeps its old ways */
+  if (TRIAGE_READ_FIRST && !o.elsewhere && !c.readFirst){ c.readFirst = true; if (typeof persist === 'function') try { persist(c); } catch (_){} }
   if (o.read === false) return false;
+  /* JAMBO READS A CONTRACT ONCE (owner's yes to the drawing "Read once", 27 Nov 2026: "when you upload a new contract or
+     when you create a new agreement, the [notes] do not appear until the contract is read … add a plan if you want or
+     not then it reads"): nothing is read on arrival — not the summary, duties, risks and playbook check, not the
+     company's facts. The contract opens on its Plan tab and the one read (readOnce, js/views/breakdown.js) starts on a
+     person's press. TRIAGE_ON_ARRIVAL keeps the old reading behind one switch, off. */
+  if (!TRIAGE_ON_ARRIVAL) return false;
   /* THE COMPANY'S FACTS ARE READ ON ARRIVAL (Discover stage 4): one read for every fact that is on, cached per wording */
   if (!o.elsewhere && typeof window !== 'undefined' && typeof window.askColFactsArrive === 'function'){ try { window.askColFactsArrive(c); } catch (_){ /* said in the facts panel */ } }
   if (typeof triageAndPaint !== 'function') return false;

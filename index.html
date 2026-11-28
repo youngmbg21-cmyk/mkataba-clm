@@ -19492,6 +19492,25 @@
   html.lg-new #ig-dock .pd2-plan-acts .ui-btn-primary{flex:1 1 auto}
   html.lg-new #ig-dock .pd2-plan .pd2-fd{margin:4px 0 0}
   html.lg-new #ig-dock .pd2-plan-say{font-size:13px;color:var(--color-text)}
+  /* JAMBO READS ONCE (owner's yes to the drawing "Read once", 27 Nov 2026): before the read, the suggested plan as plain
+     numbered lines with one black button and two links; while reading, one bar, the five parts ticked, the plan waiting */
+  html.lg-new #ig-dock .pd2-ro-lbl{margin:4px 0 0;font-size:var(--t-label);font-weight:var(--w-label);letter-spacing:.04em;text-transform:uppercase;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-ro-plan{display:flex;flex-direction:column}
+  html.lg-new #ig-dock .pd2-ro-pl{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-ro-pl > i{flex:none;width:14px;font-style:normal;color:var(--color-quiet);font-variant-numeric:tabular-nums}
+  html.lg-new #ig-dock .pd2-ro-pl > span:not(.pd2-badge){flex:1;min-width:0}
+  html.lg-new #ig-dock .pd2-ro-pl > .pd2-badge{flex:none}
+  html.lg-new #ig-dock .pd2-ro-acts .ui-btn-primary{flex:0 1 auto}
+  html.lg-new #ig-dock .pd2-ro-bar{height:6px;border-radius:3px;background:var(--color-neutral-200);overflow:hidden}
+  html.lg-new #ig-dock .pd2-ro-bar > i{display:block;height:100%;background:var(--st-green-dot);transition:width .4s ease}
+  @media (prefers-reduced-motion:reduce){ html.lg-new #ig-dock .pd2-ro-bar > i{transition:none} }
+  html.lg-new #ig-dock .pd2-ro-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new #ig-dock .pd2-ro-s{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:var(--t-meta);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-ro-s > i{flex:none;width:9px;height:9px;border-radius:50%;border:1.5px solid var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new #ig-dock .pd2-ro-s.is-done{color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-ro-s.is-done > i{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+  html.lg-new #ig-dock .pd2-ro-s.is-now{color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new #ig-dock .pd2-ro-s.is-now > i{background:var(--st-violet-dot);border-color:var(--st-violet-dot)}
   html.lg-new #ig-dock .pd2-arrive :is(.pd2-life-fill, .pd2-fd-bar i){animation:jovDraw .8s cubic-bezier(.2,.7,.2,1) .3s both}
   html.lg-new #ig-dock .pd2-arrive .pd2-fd-bar i{animation-delay:calc(300ms + var(--i, 0) * 120ms)}
   html.lg-new #ig-dock .pd2-arrive :is(.pd2-life-now, .pd2-ring){animation:jovPop .4s cubic-bezier(.2,.7,.2,1) .9s both}
@@ -26574,7 +26593,7 @@
   html.lg-new #clause-editor.is-tabbed .ce-tabtop{padding:12px 18px 0;gap:12px}
   html.lg-new #clause-editor.is-tabbed .ce-drow{position:relative;display:flex;justify-content:center;align-items:center;margin:0 -18px;min-height:32px}
   html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs{align-self:center}
-  html.lg-new #clause-editor.is-tabbed .ce-dfold{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:999px;background:none;color:var(--color-quiet);font:inherit;font-size:18px;line-height:1;cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-dfold{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:999px;background:none;color:var(--accent-ink);font:inherit;font-size:18px;line-height:1;cursor:pointer}
   html.lg-new #clause-editor.is-tabbed .ce-dfold:hover{background:var(--surface-2);color:var(--color-text)}
   html.lg-new #clause-editor.is-tabbed .ce-tnav{display:flex;align-items:center;gap:8px;margin:4px 0 0;font-size:12.5px;color:var(--color-quiet)}
   html.lg-new #clause-editor.is-tabbed .ce-tnav .sp{flex:1}
@@ -26861,6 +26880,20 @@
   html.lg-new:not(#_) .jb-turn + .jb-turn:has(.ai-msg.justify-end, .st-jb-me){margin-top:24px}
   /* the conversation starts below the waves: it opens under them, and what scrolls up fades before it reaches them */
   html.lg-new:not(#_) :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])) #igd-feed.igd-talk, #app-shell .ins-panel.is-jambo #jl-talk-sc, .st-cr #st-jb-feed):has(.jb-turn){padding-top:96px;-webkit-mask-image:linear-gradient(to bottom, transparent 0, transparent 24px, black 96px);mask-image:linear-gradient(to bottom, transparent 0, transparent 24px, black 96px)}
+  /* EVERY TAB THE SAME SIZE (owner, 28 Nov 2026: "make these buttons the same size"; picked "Full width, equal"): the strip
+     runs from the panel's left edge (16px) to the fold arrow, cut into equal tabs, each word in its middle; the editor's copy
+     is the SAME strip (its own grey track gone: each tab the track, the open one the white pill inset 3px) */
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{justify-content:flex-start;padding-left:16px;padding-right:52px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab, html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(5)) > .pd-tab, html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab{flex:1 1 0;min-width:max-content;justify-content:center;padding:0 3px;margin:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:first-child, html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab:first-child{padding-left:3px;margin-left:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:not(:has(+ .pd-tab)), html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab:not(:has(+ .pd-tab)){padding-right:3px;margin-right:0}
+  html.lg-new #clause-editor.is-tabbed .ce-drow{justify-content:flex-start;padding:0 52px 0 16px}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs{flex:1 1 auto;width:auto;max-width:none;gap:0;padding:0;border-radius:0;background:none}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab{position:relative;isolation:isolate;flex:1 1 0;min-width:max-content;justify-content:center;height:32px;padding:0 3px;border-radius:0;background:var(--surface-2);box-shadow:none}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab:first-child{border-radius:999px 0 0 999px}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab:last-child{border-radius:0 999px 999px 0}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab.on{background:var(--surface-2);box-shadow:none}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab.on::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:999px;background:var(--color-surface);box-shadow:0 1px 2px rgba(0,0,0,.10)}
 </style>
 <style>
   /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====

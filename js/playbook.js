@@ -1095,6 +1095,9 @@ function pbOpenCheckMay(c){
   if (typeof canEdit === 'function' && !canEdit()) return false;
   if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return false;
   if (c._triaging) return false;
+  /* JAMBO READS ONCE (owner, 27 Nov 2026): the playbook check is part of the one read (readOnce); a contract not yet read
+     is never checked on its own the first time it is opened */
+  if (c.readFirst && !(c.triage && c.triage.at) && !(typeof window !== 'undefined' && typeof window.stkOf === 'function' && window.stkOf(c))) return false;
   return true;
 }
 function pbOpenCheckState(c){ return (c && !c.playbook && _pbOpenState.get(String(c.id))) || null; }

@@ -41,6 +41,8 @@ function world(over = {}){
   return { ctx, contracts, calls };
 }
 
+/* RE-POINTED 27 Nov 2026 (read once): the contracts opened below were read before, as a check on first open now needs */
+const READ = { at: '2026-11-01T00:00:00Z', steps: {} };
 describe('f1106 (1) the walls', () => {
   test('a contract already checked, a viewer, a private stream, their page, no key, a reading running: never', () => {
     const cases = [
@@ -53,18 +55,25 @@ describe('f1106 (1) the walls', () => {
     ];
     for (const [extra, ctx] of cases){
       const W = world({ ctx });
-      W.contracts.A = { id: 'A', ...extra };
+      W.contracts.A = { id: 'A', triage: READ, ...extra };
       assert.equal(W.ctx.pbCheckOnOpen('A'), null, JSON.stringify(extra) + ' ' + Object.keys(ctx).join());
       assert.equal(W.calls.review, 0);
     }
-    const W = world(); W.ctx.window.PORTAL_MODE = true; W.contracts.A = { id: 'A' };
+    const W = world(); W.ctx.window.PORTAL_MODE = true; W.contracts.A = { id: 'A', triage: READ };
     assert.equal(W.ctx.pbCheckOnOpen('A'), null, 'their page');
+  });
+  /* JAMBO READS ONCE (owner, 27 Nov 2026): the playbook check is part of the one read (readOnce); a contract not read yet
+     is never checked on its own when it is opened. Red at the parent. */
+  test('a contract that arrived to be read once is never checked on open: the one read does it', () => {
+    const W = world(); W.contracts.A = { id: 'A', readFirst: true };
+    assert.equal(W.ctx.pbCheckOnOpen('A'), null);
+    assert.equal(W.calls.review, 0);
   });
 });
 
 describe('f1106 (2) once, stored as the Check press stores it', () => {
   test('the first open checks and keeps it; the second open in the sitting does nothing', async () => {
-    const W = world(); W.contracts.A = { id: 'A' };
+    const W = world(); W.contracts.A = { id: 'A', triage: READ };
     await W.ctx.pbCheckOnOpen('A');
     assert.equal(W.calls.review, 1);
     assert.equal(W.contracts.A.playbook.label, 'Ours');
@@ -74,7 +83,7 @@ describe('f1106 (2) once, stored as the Check press stores it', () => {
     assert.equal(W.calls.review, 1);
   });
   test('a check kept meanwhile by another door is not overwritten', async () => {
-    const W = world(); W.contracts.A = { id: 'A' };
+    const W = world(); W.contracts.A = { id: 'A', triage: READ };
     const p = W.ctx.pbCheckOnOpen('A');
     W.contracts.A.playbook = { label: 'kept by the press', verdicts: [] };
     await p;
@@ -85,7 +94,7 @@ describe('f1106 (2) once, stored as the Check press stores it', () => {
 
 describe('f1106 (3) said where the reader looks', () => {
   test('running, then a refusal with its reason', async () => {
-    const W = world({ answer: { error: 'No readable clause text' } }); W.contracts.A = { id: 'A' };
+    const W = world({ answer: { error: 'No readable clause text' } }); W.contracts.A = { id: 'A', triage: READ };
     const p = W.ctx.pbCheckOnOpen('A');
     assert.ok(W.ctx.pbOpenCheckState(W.contracts.A).run, 'running');
     await p;

@@ -23047,3 +23047,8 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - 26 Nov 2026 · Noticed, not fixed (PR #1038): no browser check now drives "the table is clear, then Fill in, answers kept on c.fills" on a negotiated paper of OURS (f1246 covers it in node).
 - 27 Nov 2026 · Noticed, not fixed: the Handbook's how-to reader finds no chapter for "how do I add a duty" or "how do I create a template" (so "walk me through adding a duty" falls to the AI too); the chapters' everyday words do not hold those phrasings.
 - 27 Nov 2026 · Noticed, not fixed (red on main since #1041/#1043 merged; the same on #1043's own run aec9c7b9, seen again on PR #1042): f883 (16px inside every card), f977 (6, 7) (a HARMONY rule not waiting on the switch); browser checks explorer-brain 5c/5c2 ("walk me through them" on the map), one-door 8a–8c (their paper's sentence; setInputFiles timeout), board-remote 7 (the ninth chart's cap), jambo-words 4c (a third group "Charts"), jambo-map 1c/2a/2b ("how do I set signing limits?", "how do I get them to sign?" now read as directions).
+
+## Noticed, not fixed (27 Nov 2026, Jambo reads once)
+- f148 "every plural key comes as a complete _one/_other pair" is red on main: en.ca_cmd_q_changed_one has no _other.
+- f977 (6, 7) "every HARMONY rule waits on the switch" is red on main: a rule in the HARMONY block carries !important.
+- CLAUDE.md is now about 112 KB on main (rule: under about 80 KB); a trim needs the owner's yes.

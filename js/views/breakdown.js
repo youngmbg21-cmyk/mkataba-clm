@@ -338,7 +338,10 @@ function stkFiltersHtml(b, all){
 }
 /* OPENING CLAUSES IS THE PRESS: read once a sitting per wording; a refusal
    is said and waits for Try again (the latch is raised before the read) */
+/* JAMBO READS A CONTRACT ONCE (owner's yes to the drawing "Read once", 27 Nov 2026): opening Clauses no longer starts a
+   read of its own — the one read starts from the Plan tab, the Dossier's Read it or Clauses' own button (readOnce) */
 function stkAutoRun(c){
+  if (STK_READ_ONCE && c && c.readFirst) return;
   if (!c || _bd.busy || !stkOwed(c)) return;
   /* QUESTIONS YES, WORK NO (Round A, owner 20 Nov 2026): a Viewer's visit never starts a paid read (it could not be kept) */
   if (typeof window.mayActOn === 'function' && !window.mayActOn(c)) return;
@@ -370,7 +373,7 @@ function stkHeadHtml(c, b, all){
     /* a private folder's contract is not read until somebody presses: said,
        with the same press and its cost (jamboOnPress) */
     const waits = !_bd.tried[stkKey(c)] && typeof jamboOnPress === 'function' && jamboOnPress(c);
-    if (busy || (!err && !noKey && !waits && !_bd.tried[stkKey(c)])) return `<div class="stk-head is-empty">${view}<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${bdBusyHtml()}</span><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div></div>`;
+    if (busy || (!(STK_READ_ONCE && c.readFirst) && !err && !noKey && !waits && !_bd.tried[stkKey(c)])) return `<div class="stk-head is-empty">${view}<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${bdBusyHtml()}</span><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div></div>`;
     /* NOTHING KEPT YET, SAID PLAINLY (Round 3, owner's yes 24 Oct 2026): "Not read yet. Plain English for each clause,
        and what to watch, in one reading." in grey; a reading that failed still says why, under it, never in red;
        the button says what it does — "Read the clauses" — and its cost beside it, "1 Jambo call" */
@@ -887,19 +890,72 @@ function stkShow(c, p, i){
 function stkRepaint(c){
   if (typeof docThreadPaint === 'function') try { docThreadPaint(c); } catch (_){}
 }
-async function stkRun(c){
+async function stkRun(c, o){
   if (!c || _bd.busy) return;
   if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return; }
   _bd.tried[stkKey(c)] = true;   // a press is a try: a refusal then says Try again
   _bd.runFor = c.id;
   const p = bdRun(c);
   /* the read on the paper runs with it, quick (owner, 12 Nov 2026) */
-  try { if (typeof window.pd2WalkWithRead === 'function') window.pd2WalkWithRead(c.id); } catch (_){}
+  /* not from the one read (readOnce): the notes wait for the whole read, then the reading line plays once */
+  if (!(o && o.quiet)) try { if (typeof window.pd2WalkWithRead === 'function') window.pd2WalkWithRead(c.id); } catch (_){}
   stkRepaint(c);
   await p;
   stkRepaint((typeof getContract === 'function' && getContract(c.id)) || c);
   /* THE READING LINE (Round C): once per read, when it lands with something to show */
   if (!_bd.err && typeof window.pd2ReadLinePlay === 'function') setTimeout(() => { try { window.pd2ReadLinePlay(); } catch (_){} }, 260);
+}
+/* ════ THE ONE READ (owner's yes to the drawing "Read once", 27 Nov 2026: "I do not want jambo to read a contract twice") ════
+   A contract arrives unread (contractArrived reads nothing) and opens on its Plan tab. A person's press — Read with this
+   plan, Read without a plan, the Dossier's Read it, Clauses' Read the clauses — starts ONE read: the arrival reading
+   (triageAndPaint: summary, duties, risks and the playbook check, which no longer runs on its own on first open), the
+   clause read carrying the plan (stkRun → bdRun), and the company's facts (askColFactsArrive). Each part already skips
+   what is read for this wording, so a second press never pays twice. Its progress is read off what has landed
+   (readOnceSteps); nothing here writes the record. */
+const STK_READ_ONCE = true;
+const _ro = new Map();
+function readOnceBusy(c){ return !!(c && _ro.has(String(c.id))); }
+/* the parts, in the drawing's order, each done once it has landed for this contract */
+function readOnceSteps(c){
+  const live = (c && typeof getContract === 'function' && getContract(c.id)) || c;
+  const s = (live && live.triage && live.triage.steps) || {};
+  const tri = k => !!s[k] && !(live && live._triaging && !s[k]);
+  const bdDone = !!stkOf(live) && !_bdBusyFor(live && live.id);
+  return [{ k: 'brief', done: tri('brief') }, { k: 'oblig', done: tri('oblig') }, { k: 'clauses', done: bdDone },
+    { k: 'risk', done: tri('risk') }, { k: 'playbook', done: tri('playbook') || !!(live && live.playbook) }];
+}
+async function readOnce(c){
+  if (!c) return null;
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return null; }
+  const id = String(c.id); if (_ro.has(id)) return _ro.get(id);
+  const run = (async () => {
+    try { if (c._light && !c._loaded && typeof ensureFull === 'function') await ensureFull(c); } catch (_){}
+    const live = (typeof getContract === 'function' && getContract(id)) || c;
+    const first = !(live.triage && live.triage.at);
+    /* IN ORDER, NEVER SIDE BY SIDE: the arrival reading may fill blanks into the wording (its 'fill' step), and a clause
+       read taken over the old wording would be stale the moment it landed (bdOf keeps a read only for the words it read) */
+    readOnceRepaint(id);
+    const tick = setInterval(() => readOnceRepaint(id), 900);
+    try {
+      if (typeof window.triageAndPaint === 'function') await Promise.resolve(window.triageAndPaint(live, first ? { asked: true, arrival: true } : { asked: true })).catch(() => null);
+      const now = (typeof getContract === 'function' && getContract(id)) || live;
+      const parts = [];
+      if (typeof window.askColFactsArrive === 'function') parts.push(Promise.resolve().then(() => window.askColFactsArrive(now)).catch(() => null));
+      /* the clause read only where it is owed: never read for this wording, or the plan changed since it was read */
+      const kept = stkOf(now), items = (now.readPlan && Array.isArray(now.readPlan.items)) ? now.readPlan.items : [];
+      const planMoved = items.length && !(kept && Array.isArray(kept.plan) && kept.plan.join('\u0001') === items.join('\u0001'));
+      if (!kept || planMoved) parts.push(stkRun(now, { quiet: true }).catch(() => null));
+      await Promise.all(parts);
+    } finally { clearInterval(tick); _ro.delete(id); }
+    readOnceRepaint(id, true);
+    return true;
+  })();
+  _ro.set(id, run);
+  readOnceRepaint(id);
+  return run;
+}
+function readOnceRepaint(id, done){
+  try { if (typeof window.pdReadOnceRepaint === 'function') window.pdReadOnceRepaint(id, !!done); } catch (_){}
 }
 function stkDiveOpen(c, i){
   const b = stkOf(c), shown = stkShown(c, b); if (!b || !shown[i]) return;
@@ -919,7 +975,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#pd-thread')) return;
     const c = stkContract(); if (!c) return;
-    if (t.closest('[data-stk-run]')){ stkRun(c); return; }
+    if (t.closest('[data-stk-run]')){ readOnce(c); return; }
     if (t.closest('[data-stk-more]')){ e.preventDefault(); _stk.more = !stkMoreOpen(); if (!_stk.more){ _stk.f.reg = ''; _stk.f.by = ''; } stkRepaint(c);
       const again = document.querySelector('#pd-thread [data-stk-more]'); if (again) try { again.focus({ preventScroll: true }); } catch (_){}
       return; }
@@ -1017,7 +1073,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, _bdBusyFor, readPlanFetch, readPlanSet, stkReview, stkNeedCount, stkLivePoints, stkCounts, stkMarkReviewed, stkPointKey });
+Object.assign(window, { readOnce, readOnceBusy, readOnceSteps, STK_READ_ONCE, stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, _bdBusyFor, readPlanFetch, readPlanSet, stkReview, stkNeedCount, stkLivePoints, stkCounts, stkMarkReviewed, stkPointKey });
 /* the Preamble row's Fill it in: the paper's blanks filled where they stand (the new look's one door for them) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;
