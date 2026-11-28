@@ -791,8 +791,7 @@ function jamboWaysFitOne(row){
     const dc = getComputedStyle(door), dg = parseFloat(dc.columnGap) || 0;
     let others = 0, n = 0;
     [...door.children].forEach(ch => { if (ch === row || ch.classList.contains('jb-door-sp') || ch.hidden || getComputedStyle(ch).display === 'none') return; others += ch.getBoundingClientRect().width; n++; });
-    /* centred on the line (owner, 28 Nov 2026): the room is the middle, clear of the press on EITHER side */
-    avail = door.clientWidth - (parseFloat(dc.paddingLeft) || 0) - (parseFloat(dc.paddingRight) || 0) - 2 * (others + dg * n) - (parseFloat(cs.marginRight) || 0);
+    avail = door.clientWidth - (parseFloat(dc.paddingLeft) || 0) - (parseFloat(dc.paddingRight) || 0) - others - dg * (n + 1) - (parseFloat(cs.marginRight) || 0) - (parseFloat(cs.marginLeft) || 0);
   } else avail = row.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
   if (!(avail > 0)) return;
   const fontOf = b => { const bf = getComputedStyle(b); return [bf.fontStyle, bf.fontWeight, bf.fontSize, bf.fontFamily].join(' '); };

@@ -1,7 +1,7 @@
-/* f1264 — THE GREEN LINKS ALWAYS IN THE MIDDLE, EACH WORD WITH A CAPITAL (owner, 28 Nov 2026: "put this green links always
-   in the middle and the first letter of the word should be big letter"): on the press's line ("Jambo ›", "‹ Dossier") the
-   links stand centred on the line, clear of the press on either side (the fit counts the press twice); a row of its own
-   above the box is centred too; every word starts with a capital — drawn, carried and shortened alike. */
+/* f1264 — THE GREEN LINKS RIGHT AFTER THE PRESS, EACH WORD WITH A CAPITAL (owner, 28 Nov 2026: "the first letter of the
+   word should be big letter"; then the same day "actually push them the left", reversing "always in the middle"): on the
+   press's line ("Jambo ›", "‹ Dossier") the links come next after the press at the left, the line's other marks keep its
+   right end; every word starts with a capital — drawn, carried and shortened alike. */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -9,12 +9,13 @@ const path = require('node:path');
 const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
 const C = read('js/components.js'), H = read('index.html');
 
-test('f1264 (1) the links stand in the middle of their line', () => {
-  assert.match(H, /\.jb-door > \.jb-ways\.is-in-door\{position:absolute;left:50%;top:50%;transform:translate\(-50%,-50%\);margin:0;justify-content:center\}/);
-  assert.match(H, /\.jb-door:has\(> \.jb-ways\.is-in-door\)\{position:relative\}/);
-  assert.match(H, /\.jb-ways\.is-above-foot\{justify-content:center\}/);
-  assert.match(H, /#ig-dock \[data-ig-chips\]\{justify-content:center\}/);
-  assert.match(C, /- 2 \* \(others \+ dg \* n\)/, 'the fit keeps them clear of the press on either side');
+test('f1264 (1) the links stand right after the press, at the left (owner, 28 Nov 2026: "push them the left")', () => {
+  assert.match(H, /\.jb-door > \*\{order:3\}/);
+  assert.match(H, /\.jb-door > :first-child\{order:1\}/);
+  assert.match(H, /\.jb-door > \.jb-ways\.is-in-door\{order:2;margin-left:4px\}/);
+  assert.doesNotMatch(H, /\.jb-ways\.is-in-door\{position:absolute/, 'no longer centred');
+  assert.doesNotMatch(H, /\.jb-ways\.is-above-foot\{justify-content:center\}/);
+  assert.doesNotMatch(C, /- 2 \* \(others \+ dg \* n\)/, 'the fit counts the press once');
 });
 
 test('f1264 (2) every word of the line starts with a capital', () => {
