@@ -162,9 +162,10 @@ describe('f658 the analyst', () => {
     assert.equal(w.hbRecipeRead(w.i18t('hb_sl_growth_q')).show, 'growth');
     assert.equal(w.hbRecipeRead(w.i18t('hb_sl_forecast_q')).pic, 'forecast');
   });
-  test('A1b the chart list on an empty box only on the Board itself, never over a contract\'s paper (owner, 28 Nov 2026)', () => {
+  test('A1b no chart list on an empty box anywhere (owner, 28 Nov 2026: "delete this list completely because we have the remote feature anyway")', () => {
     const HBS = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'homeboard.js'), 'utf8');
-    assert.match(HBS, /if \(!onBoard \|\| !\(typeof state !== 'undefined' && state && state\.view === 'dashboard'\)\s*\|\| \(typeof window\.igPaperInFront === 'function' && window\.igPaperInFront\(\)\)\) return null;/);
+    assert.match(HBS, /if \(!t\.trim\(\)\) return null;/);
+    assert.equal(world().hbAskPopRows(''), null);
   });
   test('A2 after "by" the groupings this book has; Tab takes one, Enter still asks', () => {
     const w = world();
@@ -197,8 +198,9 @@ describe('f658 the analyst', () => {
     assert.deepEqual(JSON.parse(JSON.stringify(w.hbS().myq)), [{ name: 'By stream', key }]);
     w._hbS = null; w.eval('_hbS = null');
     assert.equal(w.hbS().myq.length, 1, 'kept with the board');
-    const G = w.hbAskPopRows('');
-    assert.equal(G.mode, 'gallery'); assert.equal(G.rows[0].kind, 'myq'); assert.equal(G.rows[0].word, 'By stream');
+    /* RE-POINTED 28 Nov 2026 (owner: "delete this list completely because we have the remote feature anyway"): the empty
+       box lists nothing; a saved question is brought from the remote (hbRemoteHtml lists s.myq) */
+    assert.equal(w.hbAskPopRows(''), null);
     w.hbS().path = []; w.hbMyqRun(0);
     assert.deepEqual(Array.from(w.hbS().path), [key], 'run again: the view opens, read with today\'s dates');
   });
@@ -212,7 +214,7 @@ describe('f658 the analyst', () => {
     assert.ok(R.indexOf('if (hbAskTyping()){ _hbRefitOwed = true; return; }') > 0 && R.indexOf('if (hbAskTyping()){') < R.indexOf('renderIntelDock()'), 'it waits while the reader types, before any redraw');
     assert.match(R, /document\.addEventListener\('focusout', e => \{ if \(_hbRefitOwed && e\.target && e\.target\.id === 'igd-input'\)/, 'and runs once the reader leaves the box');
     assert.match(HB, /function hbAskTyping\(\)\{ const a = [^}]*return !!\(a && a\.id === 'igd-input'\); \}/, 'typing = the cursor in Jambo\'s box');
-    const w = world(); assert.equal(w.hbAskPopRows('').mode, 'gallery', 'the empty box\'s ideas list is back, for a finger too');
+    const w = world(); assert.equal(w.hbAskPopRows(''), null, 'the empty box lists nothing (owner, 28 Nov 2026: the remote brings the charts)');
   });
   test('A5 what if these do not renew: a scenario, dashed, said so, never stored', () => {
     const w = world();

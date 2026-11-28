@@ -1296,3 +1296,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1262 (3) round 2: a Viewer offered none of the four; the leading words; Chase's duty filter; Approve only on a met-and-complete check; Amend's list; every row's door; the typed words read first in every box.
 - f1262 (1)(2) rewritten 28 Nov 2026: "/" is the eight commands only, none tied to the open contract; the contract and document stages; "No contract matches"; one list in every box. f804 3d and f658 A1 re-pointed.
 - `node --test test/f1220-tabs-the-same-size.test.js` (the strip full width, equal shares, words whole; the editor copy the same)
+- f658 A1b (28 Nov 2026): no chart list on an empty box. f1249 (remote on the Overview only).
