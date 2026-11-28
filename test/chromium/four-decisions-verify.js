@@ -72,21 +72,11 @@ const blocked = [];
       /* ---- Q1 · "Draw ›" on every chart row ---- */
       await clean(); await ev(() => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} });
       await until(() => document.querySelector('#igd-input') && typeof hbFace === 'function' && hbFace() === 'board');
+      /* RE-POINTED 28 Nov 2026 (owner: "delete this list completely because we have the remote feature anyway"): the
+         empty box lists no charts; they are brought by 🎛️ */
       await page.click('#igd-input').catch(() => {});
-      const pop = await until(() => document.querySelectorAll('#hb-askpop .hb-pop-opt').length >= 5);
       await settle(); await shot('q1-ask-list');
-      if (!pop) check(`${at} · Q1 — the ask list opened`, false);
-      else {
-        const rows = await ev(() => [...document.querySelectorAll('#hb-askpop .hb-pop-opt')].map(r => {
-          const go = r.querySelector('.hb-pop-go'), rb = r.getBoundingClientRect();
-          if (!go) return { t: r.textContent.trim().slice(0, 20), go: null };
-          const g = go.getBoundingClientRect(), who = r.querySelector('.who').getBoundingClientRect();
-          return { t: r.querySelector('.who b').textContent, go: go.textContent.trim(), inside: g.right <= rb.right + 0.5 && g.left >= who.right - 0.5, cut: go.scrollWidth > go.clientWidth + 0.5 }; }));
-        const bad = (rows || []).filter(x => x.go !== 'Draw ›' || !x.inside || x.cut);
-        check(`${at} · Q1 — every chart row in Jambo's ask list ends in "Draw ›", whole, inside its row`, rows && rows.length >= 7 && !bad.length,
-          bad.length ? bad.map(x => `${x.t}: ${x.go == null ? 'no act word' : x.go + (x.cut ? ' cut' : '') + (x.inside ? '' : ' outside')}`).join(' · ') : `${rows.length} rows`);
-        await page.keyboard.press('Escape').catch(() => {});
-      }
+      check(`${at} · Q1 — an empty box on the Board opens no chart list`, !(await ev(() => !!document.querySelector('#hb-askpop .hb-pop-opt'))));
 
       /* ---- Q1b · every "/" list's place rows end in "Open ›" (25 Oct 2026, item 1 after the picks): one builder,
              three lists — the Board's, a list page's panel, and every other box's (Settings' Jambo) ---- */

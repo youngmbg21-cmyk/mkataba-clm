@@ -85,15 +85,13 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '2-by.png') });
     await page.keyboard.press('Escape');
 
-    /* 3. the gallery */
+    /* 3. RE-POINTED 28 Nov 2026 (owner: "delete this list completely because we have the remote feature anyway"):
+       an empty box lists nothing; the charts are brought by 🎛️ */
     await page.fill('#igd-input', '');
     await page.evaluate(() => { const i = document.getElementById('igd-input'); i.blur(); i.focus(); });
-    const gal = await pop();
-    check('3a. A7 an empty box offers the gallery', !!gal && gal.length >= 4, gal && gal.slice(0, 4).join(' | '));
-    await page.screenshot({ path: path.join(OUT, '3-gallery.png') });
-    const n0 = await page.evaluate(() => hbS().panels.length);
-    await page.click('#hb-askpop [data-hb-pop="0"]');
-    check('3b. A7 a press adds the view to the board as a card', !!(await until(n => hbS().panels.length === n + 1 && !!document.querySelector('[data-hb-pid] .hb-svg, [data-hb-pid] .hb-chart'), n0)));
+    await page.waitForTimeout(400);
+    const gal = await page.evaluate(() => !!document.querySelector('#hb-askpop [data-hb-pop]'));
+    check('3. an empty box opens no chart list', !gal);
 
     /* 4. the opened chart: sentence + how */
     await openChart(KEY, RECIPE);

@@ -110,7 +110,14 @@ test('f1249 (7) no money, no spend; every word in both books; the Handbook says 
     assert.ok(re.test(I18N.slice(0, sv)), k + ' in English');
     assert.ok(re.test(I18N.slice(sv)), k + ' in Swedish');
   });
-  assert.match(HBK, /Press 🎛️, first in the green links above Jambo\\'s box/);
-  assert.match(HBK, /Tryck på 🎛️, först bland de gröna länkarna/);
+  assert.match(HBK, /press 🎛️, first in the green links above Jambo\\'s box/);
+  assert.match(HBK, /trycker du på 🎛️, först bland de gröna länkarna/);
   assert.match(HBK, /'board remote'/);
+});
+
+require('node:test').describe('f1249 (7) the remote on the Overview only (owner, 28 Nov 2026: "the Remote should only show up on the overview panel not jambo side panel")', () => {
+  require('node:test').test('🎛️ joins the line only while his conversation is not up', () => {
+    const C = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'components.js'), 'utf8');
+    require('node:assert/strict').match(C, /const remote = k === 'board' && typeof window\.hbBoardHelloOn === 'function' && window\.hbBoardHelloOn\(\)\s*&& !\(typeof window\.jamboTalkUp === 'function' && window\.jamboTalkUp\(\)\);/);
+  });
 });

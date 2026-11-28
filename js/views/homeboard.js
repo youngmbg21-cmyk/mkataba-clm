@@ -11679,14 +11679,9 @@ function hbAskPopRows(v){
   const t = String(v || '');
   /* the charts in front, not a contract brought up on the Board face (hbBoardInFront) */
   const onBoard = hbBoardInFront();
-  if (!t.trim()){
-    /* THE CHART LIST ONLY ON THE BOARD ITSELF (owner, 28 Nov 2026: "this list should only appear when i am on the board
-       page"): a contract's paper brought up over the Board keeps the Board's face, so the paper in front is asked too */
-    if (!onBoard || !(typeof state !== 'undefined' && state && state.view === 'dashboard')
-      || (typeof window.igPaperInFront === 'function' && window.igPaperInFront())) return null;
-    const myq = (hbS().myq || []).map((q, i) => ({ kind: 'myq', i, word: q.name, sub: i18t('hb_myq_sub') }));
-    return { mode: 'gallery', rows: myq.concat(HB_GALLERY.map(g => ({ kind: 'gal', k: g.k, word: i18t('hb_gal_' + g.k), sub: i18t('hb_gal_' + g.k + '_s') }))) };
-  }
+  /* NO CHART LIST ON AN EMPTY BOX (owner, 28 Nov 2026: "delete this list completely because we have the remote feature
+     anyway"): the Board's charts are brought by 🎛️ alone (hbRemoteHtml) */
+  if (!t.trim()) return null;
   /* ONE "/" LIST: Jambo's places first (most used first, caSlashRows), then
      on the Board its own moves. Off the Board, the places alone. */
   /* "/" IS JAMBO'S EIGHT COMMANDS, ONE LIST IN EVERY BOX (owner, 28 Nov 2026: "The only list that should be there including

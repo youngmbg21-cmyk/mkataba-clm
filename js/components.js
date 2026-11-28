@@ -662,7 +662,10 @@ function jamboWaysHere(){
   const teach = typeof window.teachOn === 'function' && window.teachOn();
   /* THE BOARD'S REMOTE (owner, 27 Nov 2026): 🎛️ stands FIRST on the Board's line, so the fitting that leaves words out
      from the end never takes it — the same press always puts the remote away again (hbRemoteToggle) */
-  const remote = k === 'board' && typeof window.hbBoardHelloOn === 'function' && window.hbBoardHelloOn();
+  /* …ON THE OVERVIEW ONLY (owner, 28 Nov 2026: "the Remote should only show up on the overview panel not jambo side
+     panel"): while his conversation shows, the line carries no 🎛️ */
+  const remote = k === 'board' && typeof window.hbBoardHelloOn === 'function' && window.hbBoardHelloOn()
+    && !(typeof window.jamboTalkUp === 'function' && window.jamboTalkUp());
   return { k, doors: (remote ? ['hbremote'] : []).concat(teach ? ['teachhere'] : [], row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
 }
 /* A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES IS GREY, WITH ITS REASON (owner, 27 Nov 2026: "grey them out"): on THEIR paper
