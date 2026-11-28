@@ -1793,6 +1793,9 @@ function wireUploadRoute(){
    nothing to offer and the row would be furniture. */
 function triageOptInHtml(ext){
   if(!ext) return '';
+  /* JAMBO READS ONCE (owner, 27 Nov 2026): nothing is read on arrival, so the box would promise a read that never
+     happens — the contract opens on its Plan tab, where the one read is chosen */
+  if(typeof window!=='undefined'&&window.STK_READ_ONCE) return '';
   return `<label for="up-triage" style="display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:start;margin:0 0 12px;padding-top:12px;border-top:1px solid var(--color-divider);cursor:pointer">
     <input type="checkbox" id="up-triage" checked style="width:16px;height:16px;margin-top:1px;accent-color:var(--accent-fill)">
     <span>
@@ -5018,7 +5021,10 @@ let _wsTabWant=null;
 const _wsNewDrafts=new Set();
 const _wsNewAt=new Map();      /* when each was registered: "just made" is a minute, not forever */
 const ROOM_ARRIVE_MS=60000;
-function roomOpenOnTerms(id){ if(id){ _wsNewDrafts.add(String(id)); _wsNewAt.set(String(id), Date.now()); } }
+function roomOpenOnTerms(id){ if(id){ _wsNewDrafts.add(String(id)); _wsNewAt.set(String(id), Date.now());
+  /* JAMBO READS ONCE (owner, 27 Nov 2026): a contract just made waits for its one read (readFirst), marked here because this
+     runs before its first landing at every creation site (contractArrived, which marks it too, runs after the landing) */
+  if(typeof window!=='undefined'&&window.STK_READ_ONCE){ const c=(typeof getContract==='function')?getContract(String(id)):null; if(c&&!c.readFirst&&!(c.triage&&c.triage.at)) c.readFirst=true; } } }
 /* ---- …AND NOW IT LANDS ON HOME'S DOCUMENT, THE PANEL ON FILL IN (the
    one-page Home plan, stage 2; the owner picked "Form" by name on 14 Oct 2026
    and said yes to "drafts and uploads alike") ----
@@ -5060,6 +5066,9 @@ function roomHomeLand(id, opts){
      Jambo's Dossier beside it, whose Still owed list carries Fill in › for
      the reader to press. REVERSES 14 Oct's "new paper lands on Fill in"; the
      Workspace doors below keep their rule. */
+  /* JAMBO READS ONCE (owner, 27 Nov 2026): a contract just made or uploaded is not read yet — it arrives on its Plan tab,
+     and no reading line plays over an unread paper */
+  if(opts&&opts.arrived&&typeof window.pd2PlanFirst==='function'&&window.pd2PlanFirst(c)){ const ok=!!pdOpenOnHome(c.id,'plain'); if(ok&&typeof pdSetTab==='function'){ pdSetTab('plan'); if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){} } return ok; }
   if(opts&&opts.arrived){ const ok=!!pdOpenOnHome(c.id,'plain'); /* the new look plays the read on arrival (owner, 12 Nov 2026: "Read plays by itself"), each note beside the paper as its clause is read */ if(ok&&typeof window.pd2WalkArrive==='function') window.pd2WalkArrive(c.id); return ok; }
   let owed=false; try{ owed=!!detailsOf(c).left; }catch(_){ owed=false; }
   const may=(typeof canEdit!=='function')||canEdit();
