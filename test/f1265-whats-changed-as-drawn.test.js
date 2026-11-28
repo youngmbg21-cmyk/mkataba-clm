@@ -93,12 +93,12 @@ function grabRows(){ const i = CA.indexOf('function caCmdRows'); return CA.slice
 describe('f1265 (2) wired: acts at once, no Jambo call', () => {
   test('choosing it draws the card in the box\'s conversation, read off the trail, never asking Jambo', () => {
     assert.match(CA, /\{ k: 'changed', act: true \}/);
-    assert.match(CA, /if \(k === 'changed'\) return caCmdChanged\(host\);/);
+    assert.match(CA, /if \(k === 'changed'\) return caCmdChanged\(host, said && /);
     const f = CA.slice(CA.indexOf('async function caCmdChanged'), CA.indexOf('\n}\n', CA.indexOf('async function caCmdChanged')));
     assert.match(f, /api\('activity\?limit=' \+ CA_CHANGED_READ\)/);
     assert.match(f, /if \(!mark\) caCmdMarkSeen\(\);/, 'the starting point is kept on first use');
     assert.match(CA, /const CA_CHANGED_GROUPS = \['replies', 'mentions', 'notes', 'decisions', 'sent', 'added', 'edited', 'dates', 'stage', 'byyou'\];/);
-    assert.match(f, /caCmdSay\(host, _caT\('ca_chg_asked'\)/, 'the question in words, as drawn');
+    assert.match(f, /caCmdSay\(host, asked \? String\(asked\) : period != null \? _caT\('ca_chg_asked_p', \{ p: caCmdChgCtx\(S, p\) \}\) : _caT\('ca_chg_asked'\)/, 'the question in words, as drawn; typed words stand as typed');
     assert.doesNotMatch(f, /ai\/|caAskAnywhere|aiAskWords|intelAsk/);
     assert.match(CA, /closest\('\[data-ca-cmd-seen\]'\)/);
     assert.match(APP, /activityFeedState,relTime,activityRow\}\)/);
@@ -131,8 +131,72 @@ describe('f1265 (3) "Jambo · since yesterday 16:40" beside his name (owner\'s y
   test('drawn with the one label over the conversation, kept in step where the head is painted once, said by What\'s changed', () => {
     assert.match(grabC('function jamboTalkLabelHtml'), /\$\{jamboHeadCtxHtml\(\)\}`;/);
     assert.match(grabC('function jamboReadStamp'), /jamboHeadCtxSync\(\);/);
-    assert.match(CA, /mark \? _caT\('ca_chg_ctx', \{ since: caCmdWhenSaid\(sinceIso\)/);
+    assert.match(CA, /S\.mark \? _caT\('ca_chg_ctx', \{ since: caCmdWhenSaid\(S\.mark\.at\)/);
     assert.match(R('index.html'), /\.jb-talk-label\[hidden\] \+ \.jb-head-ctx\{display:none\}/);
     for (const k of ['ca_chg_ctx', 'ca_chg_ctx_week']) assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
+  });
+});
+
+/* HOW FAR BACK, THE LEGORA + STRIPE WAY (owner's pick, 28 Nov 2026): chips with counts — Since last seen · 7 · 30 · 90
+   days · Pick a date — a period typed in any box, the head saying the period; Dates moved and Stage only since the mark */
+describe('f1265 (4) how far back: chips with counts, a period typed, the mark never moved', () => {
+  function load4(){
+    const { ctx, store } = load();
+    const at = n => { const i = CA.indexOf(n); assert.ok(i >= 0, n); return i; };
+    const grab = n => CA.slice(at(n), CA.indexOf('\n}\n', at(n)) + 3);
+    vm.runInContext(CA.slice(at('const CA_CHG_PERIODS'), CA.indexOf('\n', at('const CA_CHG_PERIODS')) + 1)
+      + ['function caCmdChgStart', 'function caCmdChgDay', 'function caCmdChgRead', 'function caCmdChgCount', 'function caCmdChgCtx', 'function caCmdChgChipsHtml', 'function caCmdChgHtml', 'function caCmdChgPeriodOf'].map(grab).join('\n')
+      + '\nObject.assign(this, { caCmdChgRead, caCmdChgChipsHtml, caCmdChgHtml, caCmdChgPeriodOf, caCmdChgCtx });', ctx);
+    ctx.window.actSayOf = sayer; ctx.state = { contracts: [{ id: 'MK-377', status: 'Active', expiry: '2027-03-01' }] };
+    return { ctx, store };
+  }
+  const ago = d => new Date(Date.now() - d * 864e5).toISOString();
+  const FEED = [1, 2, 5, 12, 20, 45, 80, 120].map((d, i) => ({ id: 'MK-40' + i, action: 'Approved', detail: '', user: 'Maria', at: ago(d) }));
+  test('each chip counts its own period off the one read; the chosen one is lit; the lead and the head say the period', () => {
+    const { ctx } = load4();
+    const S = { feed: FEED, mark: { at: ago(3), snap: { 'MK-377': ['Draft', '2027-02-01'] } }, period: 30 };
+    const h = ctx.caCmdChgHtml(S);
+    assert.match(h, /<p><b>5 things in the last 30 days\.<\/b><\/p><div class="ca-chg-chips"/);
+    assert.match(h, /data-ca-chg-p="seen" aria-pressed="false">Since last seen <span class="ca-cmd-n">4<\/span>/, 'since the mark: 2 approvals + stage + date moves');
+    assert.match(h, /data-ca-chg-p="7" aria-pressed="false">7 days <span class="ca-cmd-n">3<\/span>/);
+    assert.match(h, /class="ca-chg-chip is-on" data-ca-chg-p="30" aria-pressed="true">30 days <span class="ca-cmd-n">5<\/span>/);
+    assert.match(h, /data-ca-chg-p="90" aria-pressed="false">90 days <span class="ca-cmd-n">7<\/span>/);
+    assert.match(h, /data-ca-chg-pick>Pick a date</);
+    assert.doesNotMatch(h, /<b>Dates moved|<b>Stage </, 'moves are counted against the mark only');
+    assert.match(h, /Dates moved and Stage are counted only since your last Mark all seen\./);
+    assert.equal(ctx.caCmdChgCtx(S, 30), 'last 30 days');
+    const seen = ctx.caCmdChgHtml(Object.assign({}, S, { period: 'seen' }));
+    assert.match(seen, /<b>Dates moved/); assert.doesNotMatch(seen, /counted only since your last Mark/);
+  });
+  test('a chosen day stands as its own lit chip; no mark = no "Since last seen"; a count past the read cap says +', () => {
+    const { ctx } = load4();
+    const S = { feed: FEED, mark: null, period: new Date(Date.now() - 10 * 864e5).toISOString().slice(0, 10) };
+    const h = ctx.caCmdChgHtml(S);
+    assert.doesNotMatch(h, /data-ca-chg-p="seen"/);
+    assert.match(h, /class="ca-chg-chip is-on" data-ca-chg-p="\d{4}-\d{2}-\d{2}" aria-pressed="true">Since \d{1,2} [A-Z][a-z]{2}(?: \d{4})? <span class="ca-cmd-n">3<\/span>/);
+    const full = Array.from({ length: 200 }, (_, i) => ({ id: 'MK-' + i, action: 'Approved', detail: '', user: 'Maria', at: ago(1 + i * 0.1) }));
+    assert.match(ctx.caCmdChgChipsHtml({ feed: full, mark: null, period: 7 }), /90 days <span class="ca-cmd-n">200\+<\/span>/);
+    assert.match(ctx.caCmdChgHtml({ feed: [], mark: null, period: 7, picking: true }), /<input type="date" class="ca-chg-day" data-ca-chg-day max="\d{4}-\d{2}-\d{2}"/);
+  });
+  test('a period in words, both books; one contract\'s or a version\'s changes are not the book\'s', () => {
+    const { ctx } = load4(); const P = ctx.caCmdChgPeriodOf;
+    assert.equal(P('What\'s changed in the last 30 days?'), 30);
+    assert.equal(P('what has changed in the past 2 weeks'), 14);
+    assert.equal(P('/changed 90'), 90);
+    assert.equal(P('vad har ändrats de senaste 3 månaderna'), 90);
+    const mon = P('what\'s changed since Monday'); assert.match(mon, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(new Date(mon + 'T12:00:00').getDay(), 1); assert.ok(Date.parse(mon) < Date.now());
+    assert.match(P('vad har ändrats sedan måndag'), /^\d{4}-\d{2}-\d{2}$/);
+    assert.match(P('what\'s changed since 3 Nov'), /^\d{4}-11-03$/);
+    assert.match(P('what\'s changed since November 3'), /^\d{4}-11-03$/);
+    assert.equal(P('what\'s changed since v2'), null);
+    assert.equal(P('what\'s changed on MK-398 since Monday'), null);
+    assert.equal(P('what\'s changed'), null, 'no period: the command as before');
+    const typed = CA.slice(CA.indexOf('function caCmdTyped'), CA.indexOf('\n}\n', CA.indexOf('function caCmdTyped')));
+    assert.match(typed, /const p = caCmdChgPeriodOf\(t\); if \(p != null\)\{ caCmdChanged\(host \|\| caCmdHostOf\(null\), p, t\); return true; \}/);
+    assert.match(CA, /closest\('\[data-ca-chg-p\], \[data-ca-chg-pick\]'\)/);
+    assert.doesNotMatch(CA.slice(CA.indexOf('function caCmdChgRepaint'), CA.indexOf('\n}\n', CA.indexOf('function caCmdChgRepaint'))), /caCmdMarkSeen/, 'a period never moves the mark');
+    for (const k of ['ca_chg_range', 'ca_chg_p_seen', 'ca_chg_p_days', 'ca_chg_p_since', 'ca_chg_p_pick', 'ca_chg_asked_p', 'ca_chg_moves_seen_only'])
+      assert.equal((I.match(new RegExp('\\b' + k + ': ', 'g')) || []).length, 2, k);
   });
 });
