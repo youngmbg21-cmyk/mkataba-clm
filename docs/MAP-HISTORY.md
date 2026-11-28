@@ -40968,3 +40968,9 @@ The owner asked to see the remote's 🎛️ as a word on a pill; four words were
 Dashboard · Show charts), Charts recommended, and the owner said "build Charts and merge it". The button now reads
 "Charts" (Swedish "Diagram", `hb_rm_word`) on a grey pill, light green while the remote is up; its long title stays as
 the hover. Cost said to the owner: the pill is wider than the icon, so on the Board the last link (Calendar) is left off.
+
+## THE DOSSIER END TO END, L+S — THE BRIEF'S PANEL LOSES ITS GREY CARD (28 Nov 2026)
+The owner, a photo of the brief's side panel with "Where this brief stands" ringed: "this grey area here is not an L+S
+version". The shared five-part panel paints its groups as a grey card; L+S pages turn it off for their own slot. The
+brief's slot (pd2bf) now does the same: one quiet list on white, a hairline between rows, the act on white; the black
+button still spans the panel (the standing rule). f1266.
