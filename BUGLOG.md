@@ -23055,3 +23055,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ### Changed on the owner's word (28 Nov 2026, the form keeps the deal's details)
 - The "Fill in the contract" form no longer lists the paper's spaces (placeholders, company-standard fields); they are filled on the paper only. blanks-panel-verify types into those spaces through the form (typeInto → pdFormRows) and may go red on GitHub; re-point it to Fill in on the paper if so.
+
+## Noticed, not fixed (28 Nov 2026)
+- f1241 (styling nothing draws only goes away) is red on main before the What's changed round: 835 dead rules against its limit of 831 (e.g. the Import modal's `.imp-tab.on`, `.modal-in[data-dlg-sap] .sap-row`). Left alone; not part of the round.
