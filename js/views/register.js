@@ -3503,7 +3503,8 @@ function regNegoSayFive(book, n){
   const all=book.length, signed=(typeof jov5Signed==='function')?jov5Signed():[];
   const R=regState(), band=k=>()=>{ R.band=k; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); };
   let asks=0; book.forEach(c=>{ asks+=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty').length; });
-  const money=c=>(typeof jov5Money==='function')?jov5Money(c):'';
+  /* NO MONEY IN THE SIDE PANEL (owner, 28 Nov 2026: "remove the money too"): the rows carry no value */
+  const money=()=> '';
   const draft={ label:i18t('jov5_ng_draft'), run:()=>{ if(typeof caGo==='function') caGo({ kind:'go', place:'draft' }); } };
   if(!all){
     const groups=signed.length?[{ label:i18t('jov5_ng_last'), rows:signed.slice(0,2).map(x=>jov5ContractRow(x.c, money(x.c))) }]:[];
