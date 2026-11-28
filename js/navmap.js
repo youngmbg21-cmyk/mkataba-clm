@@ -757,7 +757,7 @@ const NAV_ACTS_WRITE = ['fill', 'send', 'amend', 'value', 'counterparty', 'categ
 function navGoAct(n){
   const id = n.cid;
   const go = {
-    fill: () => (typeof pdFillOpen === 'function') ? pdFillOpen(id) : pdOpenOnHome(id, 'copilot'),
+    fill: () => (typeof pdFillGo === 'function') ? pdFillGo(id) : (typeof pdFillOpen === 'function') ? pdFillOpen(id) : pdOpenOnHome(id, 'copilot'),
     /* THE ONE SEND DOOR (owner, 26 Oct 2026: "this send door should be the same send door that is in the send all";
        the "Before you send" face opened here with NO letter behind it, which is how the bar came to say "Send · …"
        with an Email tab that did nothing): the letter itself — Send all's while changes of ours wait

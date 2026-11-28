@@ -101,3 +101,17 @@ test('f1246 step 3: an old Fill in change not yet sent becomes answers, on a pre
   for (const name of ['pd2FillStart', 'pdFillGo', 'pd2FillFromPress']) assert.match(fnSrc(PD, name), /pd2FillAdoptOld\(/, name + ': only on a press of Fill in');
   assert.doesNotMatch(fnSrc(PD, 'pd2NotesPaint'), /pd2FillAdoptOld/, 'never on a read');
 });
+
+/* (28 Nov 2026) EVERY "FILL IN" GOES THROUGH THE ONE DOOR (owner: "why is it when i click fill on contract 469 it takes me
+   to the page" — a space's Fill in on the Dossier's details went straight to the form while redlines were open): the
+   details rows, the notes beside the paper, the held Fill line and the typed "fill" all ask pdFillGo; only a detail of our
+   record (party, value, start day, signers) opens the form whatever the stage */
+test('f1246 every Fill in door asks the one door; only our record\'s details skip the wait', () => {
+  assert.match(PD, /if \(fk\)\{ const key = fk\.getAttribute\('data-pd-fill-key'\) \|\| ''; pdFillGo\(c\.id, key\); \}/, 'the details rows');
+  assert.match(PD, /if \(go === 'fill'\) pdFillGo\(c\.id, key\);/, 'the notes beside the paper');
+  assert.match(PD, /if \(w === 'fill'\) return pdFillGo\(c\.id\);/, 'the held Fill line');
+  assert.match(read('js/navmap.js'), /fill: \(\) => \(typeof pdFillGo === 'function'\) \? pdFillGo\(id\)/, 'the typed "fill"');
+  assert.match(fnSrc(PD, 'pdFillGo'), /if \(pd2On\(\) && \(!key \|\| !pd2FillKeyIsRecord\(id, key\)\)\)\{/);
+  const r = fnSrc(PD, 'pd2FillKeyIsRecord');
+  assert.match(r, /it\.kind === 'kt' \|\| it\.kind === 'nda'/, 'the record\'s own details, read off detailsOf');
+});
