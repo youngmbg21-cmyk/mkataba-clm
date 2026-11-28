@@ -84,6 +84,12 @@ function startAiStub() {
         : toolName === 'propose_sections' ? { sections: [{ heading: 'Supply & Specification', intent: 'What is supplied, how much, to what standard.' },
             { heading: 'Quality & Rejection', intent: 'How goods are checked and what happens to goods that fail.' }], note: '' }
         /* FROM SCRATCH: one section's wording, naming the heading it was asked for */
+        /* CHECK AGAINST: one met (quoting the paper), one partly, one missing with wording, one quote that is not the paper's */
+        : toolName === 'check_against' ? { kind: 'policy requirements', rows: [
+            { asks: 'The governing law is Swedish', ref: '§ 1', status: 'met', says: 'This Agreement is governed by the laws of Sweden.', clause: '4' },
+            { asks: 'Liability is capped at 24 months of fees', ref: '§ 3', status: 'partly', says: 'capped at the total fees paid in the twelve (12) months', clause: '3', fix: 'twenty-four (24) months', add: false },
+            { asks: 'A personal data breach is notified within 48 hours', ref: '§ 2', status: 'missing', says: '', clause: '4', fix: 'Each party shall notify the other of any personal data breach within 48 hours of becoming aware of it.', add: true },
+            { asks: 'Made-up quote', ref: '§ 9', status: 'met', says: 'words that are not in the contract at all', clause: '' }] }
         /* EMAIL REQUEST: the email Jambo writes, asking for the first listed item */
         : toolName === 'request_email' ? { subject: 'Two details we need before signing', used: [1, 2],
             body: 'Hi Anna,\n\nBefore we can sign the supply agreement, could you send us:\n1. Ventura Capital\'s full company name, for Clause 1 (Parties).\n2. Your registered address, for Clause 1 (Parties).\n\nKind regards,\nYoung' }
