@@ -3483,7 +3483,9 @@ function caSlPaint(){
   if (!el){ el = document.createElement('div'); el.id = 'ca-slash'; el.className = 'ca-pop ca-slash'; document.body.appendChild(el); }
   el.innerHTML = `<div role="listbox">${_caSl.rows.map((r, i) => caSlHeadOf(_caSl.rows, i) +
     `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span>${r.badge ? `<span class="ca-cmd-bd is-green">${_caE(r.badge)}</span>` : ''}${r.kind === 'none' ? '' : caCmdGoHtml(r.kind === 'cmd' ? 'ca_cmd_go' : 'ca_cmd_go_choose')}</div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
-  const r = _caSl.inp.getBoundingClientRect();
+  /* AS WIDE AS JAMBO'S WHOLE BOX (owner, 28 Nov 2026: "The list card is wide and more what i want"): measured off the box's
+     card (.jb-card, the green-edged box with its + and send), never the narrower text area inside it */
+  const r = ((_caSl.inp.closest && _caSl.inp.closest('.jb-card')) || _caSl.inp).getBoundingClientRect();
   el.style.left = Math.max(8, r.left) + 'px';
   el.style.width = Math.max(260, r.width) + 'px';
   /* a box near the top of the window (the ✦ ask bar under the top bar,
