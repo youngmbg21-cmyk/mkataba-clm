@@ -1314,3 +1314,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DOSSIER END TO END, L+S (the brief's panel, 28 Nov 2026)
 - f1266 pins slot pd2bf: no grey card on its groups or its act, a hairline between rows.
+
+## JAMBO'S PANELS — THE FIVE PARTS (seven panels L+S, 28 Nov 2026)
+- f1267 (1) the seven slots draw no grey card on figures, groups, act or agents; (2) regNegoSayFive reads no money.
