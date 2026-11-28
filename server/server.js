@@ -9823,6 +9823,55 @@ app.post('/api/ai/notes', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
+/* ---------- Jambo drafts an EMAIL REQUEST to the other side (owner, 28 Nov 2026: "go with your recommendations") ----------
+   The "/" command Email request: the person names the contract and says what they need; Jambo writes the email on
+   that press (one call, nothing sent, nothing kept). The items the contract still owes (its open blanks, their open
+   duties) come from the browser's own reading of the same contract, as words only, capped and counted; the route reads
+   the STORED contract for who the email is to and from, behind folderScopeFor. A deadline is written only when the
+   person gave one. "Make it shorter" sends the draft back once more (`shorter`). The person edits it and Create request
+   opens the Send screen, where it is checked and sent as every send is. */
+const REQ_SAID_MAX = 1200, REQ_ITEMS_MAX = 12, REQ_ITEM_CHARS = 200, REQ_BODY_MAX = 4000;
+app.post('/api/ai/request', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const b = req.body || {};
+  const cid = String(b.contractId || '');
+  if (!cid || !idInScope(folderScopeFor(req.user), cid)) return res.status(404).json({ error: 'Contract not found' });
+  const said = clean(b.said).slice(0, REQ_SAID_MAX);
+  if (!said) return res.status(400).json({ error: 'Say what you need from them.' });
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(cid);
+  let c = {}; try { c = JSON.parse((row && row.json) || '{}') || {}; } catch (_) { c = {}; }
+  const all = Array.isArray(b.items) ? b.items : [];
+  const items = all.slice(0, REQ_ITEMS_MAX).map(x => ({ what: clean(x && x.what).slice(0, REQ_ITEM_CHARS), where: clean(x && x.where).slice(0, REQ_ITEM_CHARS) })).filter(x => x.what);
+  const them = String(c.counterparty || '').trim();
+  const p = (Array.isArray(c.participants) ? c.participants : []).find(x => x && x.side === 'counterparty' && x.name);
+  const contact = String((p && p.name) || c.counterpartyName || '').trim();
+  const me = String(req.user.name || '').trim();
+  const sh = b.shorter && typeof b.shorter === 'object' ? { subject: clean(b.shorter.subject).slice(0, 200), body: String(b.shorter.body || '').slice(0, REQ_BODY_MAX) } : null;
+  const tool = { name: 'request_email', description: 'The email asking the other side for what the person needs.',
+    input_schema: { type: 'object', properties: {
+      subject: { type: 'string', description: 'A short plain subject line, under 70 characters.' },
+      body: { type: 'string', description: 'The whole email: greeting, what is needed as a numbered list (each with the clause it is for where one is known), a closing line and the sender\'s name.' },
+      used: { type: 'array', items: { type: 'integer' }, description: 'The numbers of the listed items the email asks for.' } }, required: ['subject', 'body', 'used'] } };
+  const list = items.map((x, i) => `${i + 1}. ${x.what}${x.where ? ' — ' + x.where : ''}`).join('\n');
+  const prompt = `${AI_GOVERNANCE_RULE}\n\nWrite an email from ${me || 'the person'}${c.party ? ' of ' + c.party : ''} to ${contact || 'their contact'}${them ? ' at ' + them : ''}, the other side of the agreement "${String(c.name || '').slice(0, 200)}". It goes to the other side: say nothing about our internal positions, limits, notes or reviews.\n`
+    + `\nWhat ${me || 'the person'} needs from them, in their own words: "${said}"\n`
+    + (items.length ? `\nWhat the agreement still waits for (match the person's words to these where they fit, and name the clause; ask only for what the person asked for):\n${list}\n${all.length > items.length ? `(${all.length - items.length} more not shown.)\n` : ''}` : '\nThe agreement lists nothing it still waits for; ask for what the person said.\n')
+    + '\nWrite plainly and politely, short. Invent no figure, date, deadline, name or promise the person did not give: write a by-date ONLY if the person gave one.'
+    + (sh ? `\n\nThis is the draft to make SHORTER, keeping every request and clause in it:\nSubject: ${sh.subject}\n"""\n${sh.body}\n"""` : '')
+    + '\n\nReturn via the request_email tool.';
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'request_email' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const out = (block && block.input) || {};
+    const subject = clean(out.subject).slice(0, 200), body = String(out.body || '').trim().slice(0, REQ_BODY_MAX);
+    if (!body) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before answering. Try again.' : 'Jambo wrote nothing. Try again.', kind: resp.truncated ? 'cut' : 'empty' });
+    const used = (Array.isArray(out.used) ? out.used : []).map(n => Number(n) - 1).filter(n => Number.isInteger(n) && n >= 0 && n < items.length);
+    res.json({ subject, body, used: [...new Set(used)], to: contact, ...(all.length > items.length ? { more: all.length - items.length } : {}), ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
 /* ---------- Copilot: the section list for a template being written ----------
    THE ONLY NEW QUESTION IN PROMPT & BUILD, and the cheapest half of it: what
    SECTIONS does this kind of agreement need? Nothing else in HaTi answers it —
