@@ -26865,6 +26865,20 @@
   html.lg-new:not(#_) .jb-turn + .jb-turn:has(.ai-msg.justify-end, .st-jb-me){margin-top:24px}
   /* the conversation starts below the waves: it opens under them, and what scrolls up fades before it reaches them */
   html.lg-new:not(#_) :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])) #igd-feed.igd-talk, #app-shell .ins-panel.is-jambo #jl-talk-sc, .st-cr #st-jb-feed):has(.jb-turn){padding-top:96px;-webkit-mask-image:linear-gradient(to bottom, transparent 0, transparent 24px, black 96px);mask-image:linear-gradient(to bottom, transparent 0, transparent 24px, black 96px)}
+  /* EVERY TAB THE SAME SIZE (owner, 28 Nov 2026: "make these buttons the same size"; picked "Full width, equal"): the strip
+     runs from the panel's left edge (16px) to the fold arrow, cut into equal tabs, each word in its middle; the editor's copy
+     is the SAME strip (its own grey track gone: each tab the track, the open one the white pill inset 3px) */
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{justify-content:flex-start;padding-left:16px;padding-right:52px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab, html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(5)) > .pd-tab, html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab{flex:1 1 0;min-width:max-content;justify-content:center;padding:0 3px;margin:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:first-child, html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab:first-child{padding-left:3px;margin-left:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:not(:has(+ .pd-tab)), html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab:not(:has(+ .pd-tab)){padding-right:3px;margin-right:0}
+  html.lg-new #clause-editor.is-tabbed .ce-drow{justify-content:flex-start;padding:0 52px 0 16px}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs{flex:1 1 auto;width:auto;max-width:none;gap:0;padding:0;border-radius:0;background:none}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab{position:relative;isolation:isolate;flex:1 1 0;min-width:max-content;justify-content:center;height:32px;padding:0 3px;border-radius:0;background:var(--surface-2);box-shadow:none}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab:first-child{border-radius:999px 0 0 999px}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab:last-child{border-radius:0 999px 999px 0}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab.on{background:var(--surface-2);box-shadow:none}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs .pd-tab.on::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:999px;background:var(--color-surface);box-shadow:0 1px 2px rgba(0,0,0,.10)}
 </style>
 <style>
   /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====
