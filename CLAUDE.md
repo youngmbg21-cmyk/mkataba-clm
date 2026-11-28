@@ -80,6 +80,7 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 - EVERY VISIBLE PART of the picked option is built — its idea AND its frame (Jambo's panel, heads, hint lines, buttons, columns, order). The scope rule's narrow reading does not apply to a picked drawing; the pick is the owner's yes to the band and one-door refusals it draws.
 - A PART THAT CANNOT BE BUILT AS DRAWN (no data behind it, a wall in the way, it reverses an earlier ruling) STOPS THE ROUND and is ASKED before anything merges.
 - BEFORE A ROUND MERGES the owner gets a side-by-side, drawn against built, every part ticked or named, with pictures at their three screens; the merge waits for their yes.
+- **EVERY REPORT SAYS, IN BOLD, WHERE IT WAS NOT BUILT AS DRAWN, AND WHY** (owner, 28 Nov 2026): any part left out, cut down or done another way is named in bold in the summary, its reason beside it — never "built" for what only partly is; nothing left = said so.
 
 ## Bug Fix Rules
 
