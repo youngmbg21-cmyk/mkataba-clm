@@ -41007,3 +41007,10 @@ be opened by the photo tool and were not checked. f1269.
 
 ## THE SHELL — RAIL, BAR, PANELS (28 Nov 2026: Handover pack rebuilt as drawn)
 Asked first ("for Operations" with no team on record, Download PDF, where the duties come from), the owner said "go with your recommendations": no team name (the people chosen are listed), the browser's print window for the PDF ("Print or save as PDF", as Print brief), the duties already on the contract (none = said, with a door to its Duties page; no AI read). Before: choosing a contract wrote a question for Jambo's chat. Now the pack is drawn at once: "Handover for MK-412 · signed 20 Nov 2026 · AIT", Who does what (We or They, when, its clause, soonest first), Key dates (starts · ends · notice by, off fields.noticeDays), Contacts (theirs on the agreement, ours = its owner and our participants), To (colleagues only, chosen with + add, one who cannot open the contract greyed with the reason, × to drop), Print or save as PDF, Send to N colleagues — each through the one hand-off (caPassSend: their list and bell, tracked until marked done, on the contract's history), the pack in words as the note. Measured: two colleagues sent to, each "waits in their list until they mark it done".
+## THE TRACKED-CHANGES COLUMN — A CHANGE WAITING ON YOU IS SOFT AMBER (28 Nov 2026)
+Asked to draw the change card L+S, the owner: "the redline change card always has to be shaded so what should the
+color be?". Four shades photographed (soft amber, plain grey, today's indigo, light green); owner: "go with soft amber,
+build both and merge". A card in the Waiting on you pile carries `is-awaiting` (soft amber, st-amber-bg at 55%; full
+amber on hover/linked); every other card keeps the plain grey. The first rule lost to `.rl-pile :is(.rl-card-d, .rl-band
++ .rl-card-d)` (one class heavier) — measured in the browser, won by `.rl-card.rl-card-d.is-awaiting`. The Ladder's
+panel (slot rllad) joined the seven panels' no-grey block. Their view could not be opened by the photo tool. f1272.

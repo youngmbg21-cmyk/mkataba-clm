@@ -21247,6 +21247,8 @@ function redlineChangeCardsHtml(c, opts = {}){
     const rowStrips = [band === 'suggest' ? info.replace(dkBy, '') : info, noCopyBlock, rvStuckBlock, dkInstead, dkSuggest, rvVerbs]
         .filter(Boolean).join('');
       return `<article class="rl-card rl-card-d${
+        /* SOFT AMBER WHILE IT WAITS ON YOU (owner's pick, 28 Nov 2026: "go with soft amber"); every other card stays grey */
+        band === 'awaiting' ? ' is-awaiting' : ''}${
         RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
         RL_QUIET_BANDS.includes(band) ? ' rl-card-quiet' : ''}${
         rlLinkedIs(c, ch.id) ? ' is-linked' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
