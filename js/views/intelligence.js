@@ -10873,7 +10873,7 @@ function renderIntelDock(){
         bin:msgs&&!(window.naSheetUp&&naSheetUp())&&typeof window.jamboBinHtml==='function'?jamboBinHtml(true,'igd-history-clear'):'' })
         /* …and its mirror on the landing, once something has been said: "Jambo ›" (owner's pick, 28 Oct 2026) */
         :(!solo&&intel.history.length&&typeof window.jamboFwdHtml==='function'?jamboFwdHtml({ on:true, host:'dock' }):'')}
-      ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
+      ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" data-ca-slash placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml(!talk&&!_sheet&&!!(window.pdSendShows&&pdSendShows())))||''}`;
   /* NOTHING CHANGED, NOTHING WRITTEN (igDockSame): the panel stands as it is; only what lies outside it follows */

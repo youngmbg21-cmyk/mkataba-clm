@@ -110,10 +110,11 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
 
       /* 9 */
       if (await page.locator('#igd-input').count()){
-        await page.click('#igd-input'); await page.keyboard.type('/pipe');
-        const sl = await until(() => { const pop = document.getElementById('hb-askpop'); if (!pop) return null;
-          return { heads: [...pop.querySelectorAll('h5')].map(x => x.textContent), rows: [...pop.querySelectorAll('.hb-pop-opt b')].map(x => x.textContent) }; });
-        check('9 "/pipe" lists the chart under Charts' + at, !!(sl && sl.heads.includes('Charts') && sl.rows.includes('How far contracts get')), JSON.stringify(sl));
+        /* RE-POINTED 28 Nov 2026 (owner: "/" is Jambo's eight commands only, the Board too): no chart is listed by "/" */
+        await page.click('#igd-input'); await page.keyboard.type('/');
+        const sl = await until(() => { const pop = document.getElementById('ca-slash'); if (!pop) return null;
+          return { rows: [...pop.querySelectorAll('[data-ca-sl] b')].map(x => x.textContent), hb: !!document.querySelector('#hb-askpop .hb-pop-opt') }; });
+        check('9 "/" lists the eight commands and no chart' + at, !!(sl && sl.rows.length === 8 && !sl.rows.includes('How far contracts get') && !sl.hb), JSON.stringify(sl));
         await page.keyboard.press('Escape').catch(() => {});
       } else check('9 Jambo\'s box (nothing to type in)' + at, false);
 

@@ -77,7 +77,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 16 Nov 2026 (#762): his box is the panel's own box at its foot (#jl-q) */
     await page.locator('#ins-panel #jl-q').click(); await page.keyboard.type('/');
     const slash = await until(() => { const l = document.getElementById('ca-slash'); return l && l.querySelectorAll('.ca-opt').length ? l.querySelectorAll('.ca-opt').length : null; }, null, 3000);
-    check('2c "/" lists the places, as in every box', !!slash && !!(await page.evaluate(() => !!document.querySelector('.stn-page #ins-panel #jl-q'))), String(slash));
+    check('2c "/" lists Jambo\'s commands, as in every box', !!slash && !!(await page.evaluate(() => !!document.querySelector('.stn-page #ins-panel #jl-q'))), String(slash));
     await page.keyboard.press('Backspace');
     check('2d and goes when the "/" does', !!(await until(() => !document.getElementById('ca-slash') ? true : null, null, 3000)));
 

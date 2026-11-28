@@ -189,8 +189,10 @@ describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () =
     assert.match(AI, /if\(typeof window\.jlOnScreen === 'function' && window\.jlOnScreen\(\)\) return 'list';/);
     assert.match(AI, /if\(here === 'list' && typeof window\.jlFocus === 'function'\) return !!window\.jlFocus\(prefill\);/);
   });
-  test('3d "/" lists the places in the box, the Counter\'s list', () => {
-    assert.match(code(fnOf(INS, 'jlPopRead')), /caSlashRows\(m\[1\]\.toLowerCase\(\), \{ max: 99 \}\)/);
+  /* RE-POINTED 28 Nov 2026 (owner: "/" is Jambo's eight commands only, one list in every box): the panel's own list stands down */
+  test('3d "/" in the box is the shared list of Jambo\'s commands; the panel\'s own list of places stands down', () => {
+    assert.match(code(fnOf(INS, 'jlPopRead')), /^function jlPopRead\(inp\)\{\s*jlPopClose\(\);\s*\}$/);
+    assert.ok(INS.includes('id="jl-q"') && /id="jl-q"[^>]*data-ca-slash/.test(INS));
   });
 });
 

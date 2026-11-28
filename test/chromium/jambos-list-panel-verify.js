@@ -258,8 +258,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* ---- 3 the ask ---- */
     await part('3 the ask', async () => {
       await page.click('#jl-q'); await page.keyboard.type('/');
-      const POP = await until(() => { const p = document.querySelector('[data-jl-pop]'); return p && !p.hidden && p.querySelectorAll('[data-jl-pop-row], button, li').length ? p.innerText.replace(/\s+/g, ' ') : null; });
-      check('3a "/" lists the places in the box', !!POP && /Approvals|Contracts|Calendar/i.test(POP), POP && POP.slice(0, 120));
+      /* RE-POINTED 28 Nov 2026 (owner: "/" is Jambo's eight commands only, one list in every box) */
+      const POP = await until(() => { const p = document.getElementById('ca-slash'); return p && p.querySelectorAll('[data-ca-sl]').length ? p.innerText.replace(/\s+/g, ' ') : null; });
+      check('3a "/" lists Jambo\'s commands in the box', !!POP && /\/prepare/.test(POP) && !/Approvals|Calendar/i.test(POP), POP && POP.slice(0, 120));
       await page.keyboard.press('Escape');
       await page.fill('#jl-q', 'which of these is worth the most?');
       await page.press('#jl-q', 'Enter');

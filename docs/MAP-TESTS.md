@@ -1293,3 +1293,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1261 Before you send the Stripe way: ring, rows, badges, the tick in the paper's row, timeline, both books. f713 2b and f757 10b re-pointed.
 - f1262 Jambo's commands in every "/" list: the rows (run in a vm with the English book), the three lists, a choice writes and never asks, both books.
 - f1262 (3) round 2: a Viewer offered none of the four; the leading words; Chase's duty filter; Approve only on a met-and-complete check; Amend's list; every row's door; the typed words read first in every box.
+- f1262 (1)(2) rewritten 28 Nov 2026: "/" is the eight commands only, none tied to the open contract; the contract and document stages; "No contract matches"; one list in every box. f804 3d and f658 A1 re-pointed.

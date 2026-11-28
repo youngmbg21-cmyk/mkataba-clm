@@ -106,13 +106,16 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await page.screenshot({ path: path.join(OUT, '1-chips-on-the-paper.png') });
 
     /* ===== 2. "/" ON THE DOCUMENT ===== */
+    /* RE-POINTED 28 Nov 2026 (owner: "/" is Jambo's eight commands only, in every box and on the Board) */
+    const cmds = () => page.evaluate(() => [...document.querySelectorAll('#ca-slash [data-ca-sl] b')].map(b => b.textContent.trim()));
     await type('/');
-    await page.waitForSelector('#hb-askpop', { timeout: 4000 }).catch(() => {});
-    const p2 = await pop();
-    ok('2a "/" lists the places', p2[0] === '/redline' && p2.includes('/board') && p2.includes('/sign'), JSON.stringify(p2));
-    ok('2b nothing of the Board\'s own moves off the Board', !p2.includes('/trend') && !p2.includes('/compare'));
+    await page.waitForSelector('#ca-slash', { timeout: 4000 }).catch(() => {});
+    const p2 = await cmds();
+    ok('2a "/" lists Jambo\'s eight commands', p2.length === 8 && p2[0] === '/prepare' && p2.includes('/approve'), JSON.stringify(p2));
+    ok('2b no places and no Board moves', !p2.includes('/redline') && !p2.includes('/board') && !p2.includes('/trend'));
     await page.screenshot({ path: path.join(OUT, '2-slash-on-the-paper.png') });
     await page.keyboard.press('Escape');
+    await page.fill('#igd-input', '');
 
     /* ===== 3. A WORD MOVES; THE WAY BACK ===== */
     await type('board', true);
@@ -125,21 +128,13 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     ok('3b the panel draws no green "‹ Back to …" link', back === '', back);
     await page.screenshot({ path: path.join(OUT, '3-board-with-the-way-back.png') });
 
-    /* ===== 4. "/" ON THE BOARD: ONE LIST ===== */
+    /* ===== 4. "/" ON THE BOARD: THE SAME EIGHT ===== */
     await type('/');
-    await page.waitForSelector('#hb-askpop', { timeout: 4000 }).catch(() => {});
-    const p4 = await pop();
-    const heads = await page.evaluate(() => [...document.querySelectorAll('#hb-askpop h5')].map(h => h.textContent.trim()));
-    const firstMove = p4.findIndex(w => w === '/compare' || w === '/trend');
-    ok('4a the places first, then the Board\'s moves', p4[0] === '/board' || p4[0] === '/redline', JSON.stringify(p4));
-    ok('4b the Board\'s moves are all still there', p4.includes('/trend') && p4.includes('/compare') && firstMove > 0 && p4.length >= 8);
-    ok('4c two headed groups', heads.length === 2 && heads[0] === 'Most used', JSON.stringify(heads));
-    ok('4d a place used counts ("board" once)', await page.evaluate(() => (caSlashRows('')[0] || {}).k === 'board'));
+    await page.waitForSelector('#ca-slash', { timeout: 4000 }).catch(() => {});
+    const p4 = await cmds();
+    ok('4a the Board\'s "/" is the same eight commands', p4.length === 8 && p4[0] === '/prepare', JSON.stringify(p4));
+    ok('4b no Board moves and no Board list of its own', !p4.includes('/trend') && !(await page.evaluate(() => !!document.querySelector('#hb-askpop .hb-pop-opt'))));
     await page.screenshot({ path: path.join(OUT, '4-slash-on-the-board.png') });
-    await page.keyboard.press('Escape');
-    await type('/tr');
-    const p4e = await pop();
-    ok('4e "/tr" still finds the trend move', p4e.includes('/trend'), JSON.stringify(p4e));
     await page.keyboard.press('Escape');
     await page.fill('#igd-input', '');
 

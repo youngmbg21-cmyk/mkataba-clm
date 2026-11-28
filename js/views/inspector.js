@@ -1949,16 +1949,9 @@ function jlFocus(prefill){
 /* ---- "/" — THE PLACES, MOST USED FIRST (the Counter's own list) ---- */
 let _jlPop = null;
 function jlPopRead(inp){
-  const m = /^\s*\/([\w\-åäöÅÄÖ'’]*)$/.exec(String(inp.value || ''));
-  if (!m || typeof caSlashRows !== 'function'){ jlPopClose(); return; }
-  const held = !!jlHeldContract();
-  const one = new Set((typeof CA_PLACES !== 'undefined' ? CA_PLACES : []).filter(p => p.need === 'one').map(p => p.k));
-  /* Jambo's commands first (caCmdRows), about the contract this panel holds */
-  const cmds = (typeof caCmdRows === 'function') ? caCmdRows(m[1].toLowerCase(), jlHeldContract() || null) : [];
-  const rows = cmds.concat(caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => held || !one.has(r.k)).slice(0, 8));
-  if (!rows.length){ jlPopClose(); return; }
-  _jlPop = { rows, on: Math.min((_jlPop && _jlPop.on) || 0, rows.length - 1) };
-  jlPopPaint();
+  /* "/" IS JAMBO'S EIGHT COMMANDS, ONE LIST IN EVERY BOX (owner, 28 Nov 2026): this box carries data-ca-slash, so the
+     shared list (caSlRead) draws it; this panel's own list of places stands down */
+  jlPopClose();
 }
 function jlPopPaint(){
   const el = document.querySelector('[data-jl-pop]'); if (!el || !_jlPop) return;
