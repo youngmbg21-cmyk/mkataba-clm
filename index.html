@@ -18801,16 +18801,20 @@
   html.lg-new :is(#ig-dock, #content .ins-panel.is-jambo, #st-side) .pd-tab:not(.igd-door) > .pd-tab-n.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
-  html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent;border-top-width:0}
   /* THE LINKS RIDE THE LINE (11 Nov 2026): while the way back or "Jambo ›" stands above the box it carries the page
      links, so the row above the box is hidden, not removed (removing it after every repaint flashed it), and the foot
      keeps its own top line */
-  html.lg-new .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])) + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:var(--color-divider)}
+  html.lg-new .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])) + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:var(--color-divider);border-top-width:1px}
   /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
   html.lg-new #ig-dock.pd-face-up [data-ig-chips]:has([data-ca-chip="rl_ladder"]){display:flex}
   html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}
-  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]) + .igd-foot{border-top-color:transparent}
+  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]) + .igd-foot{border-top-color:transparent;border-top-width:0}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot.jl-foot, .st-cr .st-jb-ask.st-jb-ask){padding:12px var(--jb-g,16px) var(--well-b)}
+  /* ONE FADING HAIRLINE ABOVE JAMBO'S BOX, ON EVERY PANEL (owner's pick, 28 Nov 2026: "Build the fading hairline"):
+     whichever row starts the panel's foot draws its top line as a hairline that stops 16px short of each side and fades
+     in and out; a row that gives way to the one above it has no top border at all (width 0, never only a clear colour) */
+  html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr .st-jb-ask, .jb-ways.is-above-foot, #ig-dock [data-ig-chips]:not(:empty), #ai-panel.is-popped > footer){border-image:linear-gradient(90deg, transparent 16px, var(--color-divider) calc(16px + 18%), var(--color-divider) calc(100% - 16px - 18%), transparent calc(100% - 16px)) 1}
   html.lg-new :is(#ig-dock .igd-foot, #app-shell .jl-foot, .st-cr #st-jb-form, #ai-panel.is-side > footer) .jb-card:not(.is-tall){box-sizing:border-box;min-height:var(--jb-box-h)}
   /* ==== THE NEW LOOK: A CONTRACT (the contract round, part 1, 31 Oct 2026; js/paperdesk.js pd2*) ====
      As drawn: the Dossier is one line of stages, one sentence with its link, what Jambo read, the facts each with where
@@ -24600,9 +24604,11 @@
   /* THE BOARD'S REMOTE (owner, 27 Nov 2026: 🎛️ first in the Board's links line turns Jambo's panel into the list of the
      Board's charts; hbRemoteHtml, jamboRemoteBtnHtml). The knobs are a mark, never underlined; pressed = the chosen green. */
   /* the remote is a WORD ON A PILL (owner, 28 Nov 2026: "build Charts"): grey pill, light green while pressed */
-  .jb-way.jb-rm{text-decoration:none;line-height:1;height:var(--ctl-h-sm);padding:0 10px;display:inline-flex;align-items:center;white-space:nowrap;border-radius:999px;background:var(--surface-2);color:var(--color-text);flex:none}
-  .jb-way.jb-rm.is-on{background:var(--color-accent-100);color:var(--accent-ink);box-shadow:inset 0 0 0 1px var(--color-accent-500)}
-  @media (hover:hover){ .jb-way.jb-rm:hover{background:var(--color-neutral-200)} .jb-way.jb-rm.is-on:hover{background:var(--color-accent-100)} }
+  /* …A LIGHTER GREEN (owner, 28 Nov 2026: "the charts button should be a lighter green shade"): a pale green pill with
+     green words; pressed a step deeper with a thin green edge */
+  .jb-way.jb-rm{text-decoration:none;line-height:1;height:var(--ctl-h-sm);padding:0 10px;display:inline-flex;align-items:center;white-space:nowrap;border-radius:999px;background:color-mix(in srgb, var(--accent-ink) 9%, var(--color-surface));color:var(--accent-ink);flex:none}
+  .jb-way.jb-rm.is-on{background:color-mix(in srgb, var(--accent-ink) 16%, var(--color-surface));color:var(--accent-ink);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--accent-ink) 45%, var(--color-surface))}
+  @media (hover:hover){ .jb-way.jb-rm:hover{background:color-mix(in srgb, var(--accent-ink) 14%, var(--color-surface))} .jb-way.jb-rm.is-on:hover{background:color-mix(in srgb, var(--accent-ink) 18%, var(--color-surface))} }
   .jl-words.hb-rm{display:flex;flex-direction:column;min-width:0}
   /* the remote is the Board's panel too: its head stands down as the welcome's does (the welcome's own rule, hb slot) */
   html.lg-new #ig-dock:has([data-hb-rm-panel]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
