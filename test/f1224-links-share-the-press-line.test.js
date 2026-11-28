@@ -34,7 +34,8 @@ test('f1224 (1) the row above the box rides the press\'s line, pressing the row\
   win.jamboWaysCarry(door, row);
   const nav = door.querySelector('.jb-ways.is-in-door.is-carried');
   assert.ok(nav, 'the links stand on the press\'s line');
-  assert.deepEqual([...nav.querySelectorAll('button')].map(b => b.textContent), ['fill in', 'history']);
+  /* RE-POINTED 28 Nov 2026 (owner: "the first letter of the word should be big letter"): the carried words start with a capital */
+  assert.deepEqual([...nav.querySelectorAll('button')].map(b => b.textContent), ['Fill in', 'History']);
   assert.ok(nav.querySelector('button').classList.contains('ca-chip-owed'), 'an owed link stays marked');
   assert.equal(door.firstElementChild.className.includes('jb-door-back'), true, 'the press first, then the links');
   let pressed = '';
@@ -55,7 +56,8 @@ test('f1224 (2) one row, never wrapped: short forms first, then left out from th
   Object.defineProperty(row, 'clientWidth', { configurable: true, get: () => 160 });
   win.jamboWaysFitOne(row);
   const b = [...row.querySelectorAll('button')];
-  assert.deepEqual(b.map(x => x.textContent), ['upload', 'draft', 'discover'], 'each long word takes its short form');
+  /* RE-POINTED 28 Nov 2026: a short form starts with a capital (the line's words always do, jbWayCap) */
+  assert.deepEqual(b.map(x => x.textContent.toLowerCase()), ['upload', 'draft', 'discover'], 'each long word takes its short form');
   assert.ok(b.every(x => !x.classList.contains('is-fit-off')), 'and all fit');
   Object.defineProperty(row, 'clientWidth', { configurable: true, get: () => 100 });
   win.jamboWaysFitOne(row);
