@@ -4278,7 +4278,8 @@ function lpQuoteOf(k){
   try{
     if(k==='approvals'&&typeof window.apWorkRows==='function'){
       const ys=(window.apWorkRows().yours||[]).filter(r=>r&&r.c&&!r.done);
-      const say=r=>[r.c.name, r.c.counterparty, typeof window.jov5Money==='function'?window.jov5Money(r.c):''].filter(Boolean).join(' · ');
+      /* NO MONEY IN THE JUMP WINDOW (owner, 28 Nov 2026: "remove the money from the jump window too"): the name and the party only */
+      const say=r=>[r.c.name, r.c.counterparty].filter(Boolean).join(' · ');
       if(ys.length) return { q:say(ys[0]), more:more(ys,say) };
     }
     if(k==='settings'&&typeof window.stNeedsAll==='function'){
