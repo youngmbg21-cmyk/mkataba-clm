@@ -221,8 +221,10 @@ const READ = () => {
           owedFirst: (() => { const rs = [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list > tr')]; const i = rs.findIndex(r => !r.hasAttribute('data-pd2-owed')); return i > 0 && rs.slice(i).every(r => !r.hasAttribute('data-pd2-owed')); })(),
           known: [...document.querySelectorAll('[data-pd-mid^="form:"] tr.pd2-fm-known')].map(r => r.getAttribute('data-pd2-known') + ':' + r.querySelector('td.pd-og-a').textContent.trim()),
           signer: !!document.querySelector('[data-pd-mid^="form:"] .pd2-fm-list tr.pd2-fm-sg[data-pd2-owed] [data-pd-og-sg="tname"]') }));
-        check('10a the form as drawn (The Legora Way): one list, owed first, the known facts with "§ · quote", their signer to name',
-          Fg.groups.length === 1 && /pd2-fm-list/.test(Fg.groups[0]) && Fg.owedFirst && Fg.known.some(k => /^counterparty:preamble · /i.test(k)) && Fg.known.some(k => /^value:§ 2 · /.test(k)) && Fg.known.some(k => /^ends:§ 4 · /.test(k)) && Fg.known.some(k => /^ours:/.test(k)) && Fg.signer, Fg);
+        /* RE-POINTED 28 Nov 2026 (owner: "but isnt their signer on the side panel?"): the form names no signer, ours or
+           theirs — who signs has one door, the signing route (the Dossier's Signers row) */
+        check('10a the form as drawn (The Legora Way): one list, owed first, the known facts with "§ · quote", no signers',
+          Fg.groups.length === 1 && /pd2-fm-list/.test(Fg.groups[0]) && Fg.owedFirst && Fg.known.some(k => /^counterparty:preamble · /i.test(k)) && Fg.known.some(k => /^value:§ 2 · /.test(k)) && Fg.known.some(k => /^ends:§ 4 · /.test(k)) && !Fg.known.some(k => /^(ours|theirs):/.test(k)) && !Fg.signer, Fg);
         /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): nothing of their paper to type — the form's way back brings the paper back and nothing
            of their paper's spaces is written */
         const backed = await page.evaluate(() => { const b = document.querySelector('[data-pd-mid^="form:"] [data-pd-mid-back]'); if (!b) return false; b.click(); return true; });

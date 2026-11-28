@@ -122,3 +122,10 @@ test('f1246 the Fill in the contract form holds the deal details, never a space 
   assert.match(PD, /const PD_FORM_PAPER_KINDS = new Set\(\['blank', 'tplf'\]\);/);
   assert.match(fnSrc(PD, 'pdFormRows'), /f\.kind !== 'signer' && !PD_FORM_PAPER_KINDS\.has\(f\.kind\)/);
 });
+
+/* (28 Nov 2026) NO SIGNERS IN THE FORM (owner: "but isnt their signer on the side panel?"): who signs has one door */
+test('f1246 the form names no signer; a door asking for signers opens the signing route', () => {
+  const g = fnSrc(PD, 'pd2FormRegroup');
+  assert.doesNotMatch(g, /pd2-fm-sg|known\('ours'|known\('theirs'/, 'no signer row, ours or theirs');
+  assert.match(fnSrc(PD, 'pdFillOpen'), /String\(o\.key \|\| ''\) === 'signers' && typeof window\.openSignerPlanEditor === 'function'/);
+});

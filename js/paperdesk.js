@@ -712,6 +712,10 @@ function pdFillShowsRetired(){
    grid's row, its box in the hand — answered where it is asked */
 function pdFillOpen(id, opts){
   const o = opts || {};
+  /* WHO SIGNS HAS ONE DOOR, the signing route's window (owner, 28 Nov 2026: "isnt their signer on the side panel?"): the
+     form keeps no signers, so a door asking for them opens the route */
+  if (String(o.key || '') === 'signers' && typeof window.openSignerPlanEditor === 'function'){
+    const c = (typeof getContract === 'function' && getContract(id)) || null; if (c){ window.openSignerPlanEditor(c); return true; } }
   /* LAND ON IT, past Jambo's words: a fill-in door pressed while his conversation stands in the panel
      (his first words on a new paper) turns it back to the Dossier first, so the row is there to land on */
   if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
@@ -5679,18 +5683,8 @@ function pd2FormRegroup(c){
   if (R.money) G.fill.push(known('value', _pdT('pd2_f_value'), txt(R.money), src(pd2QuoteOf(c, pd2Needles(c, 'value')))));
   if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     G.fill.push(known('ends', _pdT('pd2_f_ends'), txt(R.expiry) + (renews ? ' · ' + _pdT('pd2_renews') : ''), src(pd2QuoteOf(c, pd2Needles(c, 'expiry'))))); }
-  /* the signers: ours as the route has it; theirs the existing signer box while one is owed */
-  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.name);
-  const ours = plan.find(x => x.party !== 'counterparty'), theirs = plan.find(x => x.party === 'counterparty');
-  /* the route's own signer; none named yet, the reader the route would name (pdCkSignerSay's first), said in full */
-  let ourName = ours ? ours.name : ''; if (!ourName){ const me = (typeof currentUser === 'function' && currentUser()) || null; ourName = (me && me.name) || ''; }
-  if (ourName) G.sign.push(known('ours', _pdT('pd2_fm_ours'), ourName, E(_pdT('pd2_fm_route'))));
-  if (theirs) G.sign.push(known('theirs', _pdT('pd2_fm_theirs'), theirs.name, E(_pdT('pd2_fm_route'))));
-  else { const f = byKey.get('signers');
-    if (f && f.kind === 'signer' && ((typeof canEdit !== 'function') || canEdit())){ const tr = document.createElement('tr');
-      tr.className = 'pd-og-row pd-fm-row is-amb pd2-fm-sg'; tr.setAttribute('data-pd-og-row', 'signers'); tr.setAttribute('data-pd-og-kind', 'signer');
-      tr.innerHTML = `<td class="pd-og-f"><b>${E(_pdT('pd2_fm_theirs'))}</b></td><td class="pd-og-v">${pdOgBoxHtml(c, f)}</td><td class="pd-og-a"><span class="pd2-amb">${E(_pdT('pd2_ft_owed'))}</span> · ${E(_pdT('pd2_fm_theirs_w'))}</td>`;
-      G.sign.push(tr); } }
+  /* NO SIGNERS HERE (owner, 28 Nov 2026: "but isnt their signer on the side panel?"): who signs has its home in the
+     Dossier's Signers row and on the paper's signature lines; this form keeps the deal's other details only */
   /* THE LEGORA WAY (owner, 12 Nov 2026): ONE QUIET LIST, no group heads — what is owed first, each with its amber dot and
      answered in its own row, then what stands, each with where it was read. The chips over it only narrow what shows */
   const owed = tr => tr.classList.contains('pd-fm-row') && !tr.classList.contains('is-read') && !tr.classList.contains('is-saved');
