@@ -23060,3 +23060,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f1241 (styling nothing draws only goes away) is red on main before the What's changed round: 835 dead rules against its limit of 831 (e.g. the Import modal's `.imp-tab.on`, `.modal-in[data-dlg-sap] .sap-row`). Left alone; not part of the round.
 ### Noticed, not fixed (28 Nov 2026)
 - f1006 (2a) is red on main before today's change: jamboThinkingNow is not defined in its world (jamboFwdHtml reads it). Left red.
+- The Negotiations list's side panel (nothing chosen) shows money under "Last agreed" (e.g. KES 85M beside each signed agreement), against "no side-panel money". Seen in the grey-box sweep; not fixed.
